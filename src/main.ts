@@ -658,10 +658,8 @@ function setTheme() {
         document.documentElement.style.setProperty('--component-bg', '#ffffff');
         document.documentElement.style.setProperty('--border-color', '#cccccc');
         document.documentElement.style.setProperty('--secondary-bg', '#e9ecef');
-        document.documentElement.style.setProperty('--forest', '#0B6E4F');
-        document.documentElement.style.setProperty('--mint', '#E9F5DB');
-        document.documentElement.style.setProperty('--emerald', '#0CCE6B');
-        document.documentElement.style.setProperty('--dark', '#202020');
+        document.documentElement.style.setProperty('--input-bg', '#2a2b2b');
+
         break;
       case 'dark':
         document.documentElement.style.setProperty('--bg-color', '#181818');
@@ -669,21 +667,17 @@ function setTheme() {
         document.documentElement.style.setProperty('--component-bg', '#353535');
         document.documentElement.style.setProperty('--border-color', '#444444');
         document.documentElement.style.setProperty('--secondary-bg', '#2c2c2c');
-        document.documentElement.style.setProperty('--forest', '#0B8A6F');
-        document.documentElement.style.setProperty('--mint', '#C8FFE0');
-        document.documentElement.style.setProperty('--emerald', '#0FE37F');
-        document.documentElement.style.setProperty('--dark', '#121212');
+        document.documentElement.style.setProperty('--input-bg', '#D1F2EB');
+
         break;
       case 'forest':
         document.documentElement.style.setProperty('--bg-color', '#021e14');
-        document.documentElement.style.setProperty('--text-color', '#cdcfd0');
+        document.documentElement.style.setProperty('--text-color', '#50C878');
         document.documentElement.style.setProperty('--component-bg', '#0B6E4F');
         document.documentElement.style.setProperty('--border-color', '#2a4e3e');
         document.documentElement.style.setProperty('--secondary-bg', '#0c2e1f');
-        document.documentElement.style.setProperty('--forest', '#0B6E4F');
-        document.documentElement.style.setProperty('--mint', '#E9F5DB');
-        document.documentElement.style.setProperty('--emerald', '#0CCE6B');
-        document.documentElement.style.setProperty('--dark', '#021e14');
+        document.documentElement.style.setProperty('--input-bg', '#D1F2EB');
+
         break;
       case 'midnight':
         document.documentElement.style.setProperty('--bg-color', '#0f2027');
@@ -691,10 +685,8 @@ function setTheme() {
         document.documentElement.style.setProperty('--component-bg', '#203a43');
         document.documentElement.style.setProperty('--border-color', '#2c5364');
         document.documentElement.style.setProperty('--secondary-bg', '#192f38');
-        document.documentElement.style.setProperty('--forest', '#2c5364');
-        document.documentElement.style.setProperty('--mint', '#a8e6cf');
-        document.documentElement.style.setProperty('--emerald', '#39a0ed');
-        document.documentElement.style.setProperty('--dark', '#0c1a21');
+        document.documentElement.style.setProperty('--input-bg', '#D1F2EB');
+
         break;
     }
     

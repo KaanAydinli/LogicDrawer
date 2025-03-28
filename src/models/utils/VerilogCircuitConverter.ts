@@ -38,14 +38,6 @@ export class VerilogCircuitConverter {
       this.outputPorts = {};
       this.componentPositions.clear();
       
-      // Detect special circuit patterns
-      const specialCircuitType = this.detectSpecialCircuit(module);
-      
-      if (specialCircuitType) {
-        console.log(`Detected special circuit type: ${specialCircuitType}`);
-        return this.createSpecialCircuit(module, specialCircuitType);
-      }
-      
       // Analyze circuit structure
       const { signalLayers, signalDependencies } = this.analyzeCircuitStructure(module);
       
@@ -66,232 +58,232 @@ export class VerilogCircuitConverter {
     }
   }
   
-  private detectSpecialCircuit(module: VerilogModule): string | null {
-    const gateTypes = module.gates.map(g => g.type);
-    const inputCount = module.inputs.length;
-    const outputCount = module.outputs.length;
+  // private detectSpecialCircuit(module: VerilogModule): string | null {
+  //   const gateTypes = module.gates.map(g => g.type);
+  //   const inputCount = module.inputs.length;
+  //   const outputCount = module.outputs.length;
     
-    // Check for adder/subtractor circuit
-    if (gateTypes.includes('xor') && 
-        (gateTypes.includes('and') || gateTypes.includes('or')) &&
-        inputCount >= 3 && outputCount >= 2) {
+  //   // Check for adder/subtractor circuit
+  //   if (gateTypes.includes('xor') && 
+  //       (gateTypes.includes('and') || gateTypes.includes('or')) &&
+  //       inputCount >= 3 && outputCount >= 2) {
         
-      // Look for mode/cin input pattern
-      const hasMode = module.inputs.some(i => 
-        i.name === 'mode' || i.name === 'cin' || i.name === 'subtract'
-      );
+  //     // Look for mode/cin input pattern
+  //     const hasMode = module.inputs.some(i => 
+  //       i.name === 'mode' || i.name === 'cin' || i.name === 'subtract'
+  //     );
       
-      if (hasMode) {
-        return 'addsub';
-      }
-    }
+  //     if (hasMode) {
+  //       return 'addsub';
+  //     }
+  //   }
     
-    // Check for multiplexer circuit
-    if (gateTypes.includes('and') && gateTypes.includes('or') && 
-        module.inputs.some(i => 
-          i.name.includes('sel') || i.name === 'select' || i.name === 'mode'
-        )) {
-      return 'multiplexer';
-    }
+  //   // Check for multiplexer circuit
+  //   if (gateTypes.includes('and') && gateTypes.includes('or') && 
+  //       module.inputs.some(i => 
+  //         i.name.includes('sel') || i.name === 'select' || i.name === 'mode'
+  //       )) {
+  //     return 'multiplexer';
+  //   }
     
-    return null;
-  }
+  //   return null;
+  // }
   
-  private createSpecialCircuit(module: VerilogModule, circuitType: string): boolean {
-    switch (circuitType) {
-      case 'addsub':
-        return this.createAdderSubtractorCircuit(module);
-      case 'multiplexer':
-        return this.createMultiplexerCircuit(module);
-      default:
-        console.warn(`Unknown special circuit type: ${circuitType}`);
-        return false;
-    }
-  }
+  // private createSpecialCircuit(module: VerilogModule, circuitType: string): boolean {
+  //   switch (circuitType) {
+  //     case 'addsub':
+  //       return this.createAdderSubtractorCircuit(module);
+  //     case 'multiplexer':
+  //       return this.createMultiplexerCircuit(module);
+  //     default:
+  //       console.warn(`Unknown special circuit type: ${circuitType}`);
+  //       return false;
+  //   }
+  // }
   
-  private createAdderSubtractorCircuit(module: VerilogModule): boolean {
-    // Group inputs by data buses (a, b) and control (mode)
-    const inputGroups = this.groupRelatedSignals(module.inputs);
-    const controlSignals = module.inputs.filter(i => 
-      i.name === 'mode' || i.name === 'cin' || i.name === 'subtract'
-    );
+  // private createAdderSubtractorCircuit(module: VerilogModule): boolean {
+  //   // Group inputs by data buses (a, b) and control (mode)
+  //   const inputGroups = this.groupRelatedSignals(module.inputs);
+  //   const controlSignals = module.inputs.filter(i => 
+  //     i.name === 'mode' || i.name === 'cin' || i.name === 'subtract'
+  //   );
     
-    // Position components
-    const xSpacing = 150;
-    const ySpacing = 80;
-    let xPos = 100;
-    let yPos = 100;
+  //   // Position components
+  //   const xSpacing = 150;
+  //   const ySpacing = 80;
+  //   let xPos = 100;
+  //   let yPos = 100;
     
-    // Position input groups (a0-an, b0-bn) vertically aligned
-    let maxBits = 0;
-    const dataBuses = inputGroups.filter(group => group.length > 1);
+  //   // Position input groups (a0-an, b0-bn) vertically aligned
+  //   let maxBits = 0;
+  //   const dataBuses = inputGroups.filter(group => group.length > 1);
     
-    dataBuses.forEach((bus, busIndex) => {
-      maxBits = Math.max(maxBits, bus.length);
-      bus.forEach((signal, bitIndex) => {
-        this.componentPositions.set(signal.name, {
-          x: xPos + busIndex * 100,  // Offset each bus horizontally
-          y: yPos + bitIndex * ySpacing
-        });
-      });
-    });
+  //   dataBuses.forEach((bus, busIndex) => {
+  //     maxBits = Math.max(maxBits, bus.length);
+  //     bus.forEach((signal, bitIndex) => {
+  //       this.componentPositions.set(signal.name, {
+  //         x: xPos + busIndex * 100,  // Offset each bus horizontally
+  //         y: yPos + bitIndex * ySpacing
+  //       });
+  //     });
+  //   });
     
-    // Position control signals
-    controlSignals.forEach((signal, index) => {
-      this.componentPositions.set(signal.name, {
-        x: xPos,
-        y: yPos + maxBits * ySpacing + (index + 1) * ySpacing
-      });
-    });
+  //   // Position control signals
+  //   controlSignals.forEach((signal, index) => {
+  //     this.componentPositions.set(signal.name, {
+  //       x: xPos,
+  //       y: yPos + maxBits * ySpacing + (index + 1) * ySpacing
+  //     });
+  //   });
     
-    // Calculate gate positions based on bit slices
-    const fullAdderWidth = 150; // Width of a full adder slice
-    xPos += 200; // Start gates after inputs
+  //   // Calculate gate positions based on bit slices
+  //   const fullAdderWidth = 150; // Width of a full adder slice
+  //   xPos += 200; // Start gates after inputs
     
-    // Group gates by bit position they operate on
-    const gatesByBit = this.groupGatesByBitPosition(module);
+  //   // Group gates by bit position they operate on
+  //   const gatesByBit = this.groupGatesByBitPosition(module);
     
-    // Position gates for each bit
-    Object.entries(gatesByBit).forEach(([bitIndex, gates]) => {
-      const bitPos = parseInt(bitIndex);
+  //   // Position gates for each bit
+  //   Object.entries(gatesByBit).forEach(([bitIndex, gates]) => {
+  //     const bitPos = parseInt(bitIndex);
       
-      // Calculate layer for each gate in this bit slice
-      const gateLayers = this.layerGatesWithinBitSlice(gates);
+  //     // Calculate layer for each gate in this bit slice
+  //     const gateLayers = this.layerGatesWithinBitSlice(gates);
       
-      // Position each gate
-      gates.forEach(gate => {
-        const layer = gateLayers.get(gate.output) || 0;
-        this.componentPositions.set(gate.output, {
-          x: xPos + layer * fullAdderWidth,
-          y: yPos + bitPos * ySpacing * 2 // More space between bit slices
-        });
-      });
-    });
+  //     // Position each gate
+  //     gates.forEach(gate => {
+  //       const layer = gateLayers.get(gate.output) || 0;
+  //       this.componentPositions.set(gate.output, {
+  //         x: xPos + layer * fullAdderWidth,
+  //         y: yPos + bitPos * ySpacing * 2 // More space between bit slices
+  //       });
+  //     });
+  //   });
     
-    // Position outputs
-    xPos = Math.max(...Array.from(this.componentPositions.values()).map(p => p.x)) + 200;
+  //   // Position outputs
+  //   xPos = Math.max(...Array.from(this.componentPositions.values()).map(p => p.x)) + 200;
     
-    module.outputs.forEach((output, index) => {
-      // Try to determine bit position from output name
-      const bitMatch = output.name.match(/(\d+)$/);
-      let bitPos = index;
+  //   module.outputs.forEach((output, index) => {
+  //     // Try to determine bit position from output name
+  //     const bitMatch = output.name.match(/(\d+)$/);
+  //     let bitPos = index;
       
-      if (bitMatch) {
-        bitPos = parseInt(bitMatch[1]);
-      }
+  //     if (bitMatch) {
+  //       bitPos = parseInt(bitMatch[1]);
+  //     }
       
-      this.componentPositions.set(output.name, {
-        x: xPos,
-        y: yPos + bitPos * ySpacing
-      });
-    });
+  //     this.componentPositions.set(output.name, {
+  //       x: xPos,
+  //       y: yPos + bitPos * ySpacing
+  //     });
+  //   });
     
-    // Create components and connections
-    return this.buildCircuit(module);
-  }
+  //   // Create components and connections
+  //   return this.buildCircuit(module);
+  // }
   
-  private createMultiplexerCircuit(module: VerilogModule): boolean {
-    // Identify select signals
-    const selectSignals = module.inputs.filter(i => 
-      i.name.includes('sel') || i.name === 'select' || i.name === 'mode'
-    );
+  // private createMultiplexerCircuit(module: VerilogModule): boolean {
+  //   // Identify select signals
+  //   const selectSignals = module.inputs.filter(i => 
+  //     i.name.includes('sel') || i.name === 'select' || i.name === 'mode'
+  //   );
     
-    // Group data inputs
-    const dataInputs = module.inputs.filter(i => !selectSignals.includes(i));
-    const inputGroups = this.groupRelatedSignals(dataInputs);
+  //   // Group data inputs
+  //   const dataInputs = module.inputs.filter(i => !selectSignals.includes(i));
+  //   const inputGroups = this.groupRelatedSignals(dataInputs);
     
-    // Position components
-    const xPos = 100;
-    let yPos = 100;
-    const ySpacing = 80;
+  //   // Position components
+  //   const xPos = 100;
+  //   let yPos = 100;
+  //   const ySpacing = 80;
     
-    // Position select signals at top
-    selectSignals.forEach((signal, index) => {
-      this.componentPositions.set(signal.name, {
-        x: xPos,
-        y: yPos + index * ySpacing
-      });
-    });
+  //   // Position select signals at top
+  //   selectSignals.forEach((signal, index) => {
+  //     this.componentPositions.set(signal.name, {
+  //       x: xPos,
+  //       y: yPos + index * ySpacing
+  //     });
+  //   });
     
-    // Position data input groups
-    yPos += selectSignals.length * ySpacing + 40; // Extra spacing after select signals
+  //   // Position data input groups
+  //   yPos += selectSignals.length * ySpacing + 40; // Extra spacing after select signals
     
-    inputGroups.forEach(group => {
-      group.forEach((signal, index) => {
-        this.componentPositions.set(signal.name, {
-          x: xPos,
-          y: yPos + index * ySpacing
-        });
-      });
+  //   inputGroups.forEach(group => {
+  //     group.forEach((signal, index) => {
+  //       this.componentPositions.set(signal.name, {
+  //         x: xPos,
+  //         y: yPos + index * ySpacing
+  //       });
+  //     });
       
-      yPos += group.length * ySpacing + 20; // Extra spacing between groups
-    });
+  //     yPos += group.length * ySpacing + 20; // Extra spacing between groups
+  //   });
     
-    // Position gates in layers
-    const { signalLayers } = this.analyzeCircuitStructure(module);
-    const maxLayer = Math.max(...Array.from(signalLayers.values()));
+  //   // Position gates in layers
+  //   const { signalLayers } = this.analyzeCircuitStructure(module);
+  //   const maxLayer = Math.max(...Array.from(signalLayers.values()));
     
-    // Group gates by layer
-    const gatesByLayer = new Map<number, VerilogGate[]>();
+  //   // Group gates by layer
+  //   const gatesByLayer = new Map<number, VerilogGate[]>();
     
-    module.gates.forEach(gate => {
-      const layer = signalLayers.get(gate.output) || 1;
-      if (!gatesByLayer.has(layer)) {
-        gatesByLayer.set(layer, []);
-      }
-      gatesByLayer.get(layer)!.push(gate);
-    });
+  //   module.gates.forEach(gate => {
+  //     const layer = signalLayers.get(gate.output) || 1;
+  //     if (!gatesByLayer.has(layer)) {
+  //       gatesByLayer.set(layer, []);
+  //     }
+  //     gatesByLayer.get(layer)!.push(gate);
+  //   });
     
-    // Position gates in each layer
-    for (let layer = 1; layer <= maxLayer; layer++) {
-      const gates = gatesByLayer.get(layer) || [];
-      const layerXPos = xPos + layer * 150;
+  //   // Position gates in each layer
+  //   for (let layer = 1; layer <= maxLayer; layer++) {
+  //     const gates = gatesByLayer.get(layer) || [];
+  //     const layerXPos = xPos + layer * 150;
       
-      gates.forEach((gate, index) => {
-        // Try to center gates vertically based on their inputs
-        const inputPositions = gate.inputs
-          .map(input => this.componentPositions.get(input))
-          .filter(pos => pos !== undefined) as Point[];
+  //     gates.forEach((gate, index) => {
+  //       // Try to center gates vertically based on their inputs
+  //       const inputPositions = gate.inputs
+  //         .map(input => this.componentPositions.get(input))
+  //         .filter(pos => pos !== undefined) as Point[];
         
-        let gateYPos = yPos + index * ySpacing;
+  //       let gateYPos = yPos + index * ySpacing;
         
-        // If we have input positions, center the gate
-        if (inputPositions.length > 0) {
-          const avgY = inputPositions.reduce((sum, pos) => sum + pos.y, 0) / inputPositions.length;
-          gateYPos = avgY;
-        }
+  //       // If we have input positions, center the gate
+  //       if (inputPositions.length > 0) {
+  //         const avgY = inputPositions.reduce((sum, pos) => sum + pos.y, 0) / inputPositions.length;
+  //         gateYPos = avgY;
+  //       }
         
-        this.componentPositions.set(gate.output, {
-          x: layerXPos,
-          y: gateYPos
-        });
-      });
-    }
+  //       this.componentPositions.set(gate.output, {
+  //         x: layerXPos,
+  //         y: gateYPos
+  //       });
+  //     });
+  //   }
     
-    // Position outputs
-    const outputXPos = xPos + (maxLayer + 1) * 150;
+  //   // Position outputs
+  //   const outputXPos = xPos + (maxLayer + 1) * 150;
     
-    module.outputs.forEach((output, index) => {
-      // Try to align with its source
-      let outputYPos = 100 + index * ySpacing;
+  //   module.outputs.forEach((output, index) => {
+  //     // Try to align with its source
+  //     let outputYPos = 100 + index * ySpacing;
       
-      // Find the gate that produces this output
-      const sourceGate = module.gates.find(g => g.output === output.name);
-      if (sourceGate) {
-        const sourcePos = this.componentPositions.get(sourceGate.output);
-        if (sourcePos) {
-          outputYPos = sourcePos.y;
-        }
-      }
+  //     // Find the gate that produces this output
+  //     const sourceGate = module.gates.find(g => g.output === output.name);
+  //     if (sourceGate) {
+  //       const sourcePos = this.componentPositions.get(sourceGate.output);
+  //       if (sourcePos) {
+  //         outputYPos = sourcePos.y;
+  //       }
+  //     }
       
-      this.componentPositions.set(output.name, {
-        x: outputXPos,
-        y: outputYPos
-      });
-    });
+  //     this.componentPositions.set(output.name, {
+  //       x: outputXPos,
+  //       y: outputYPos
+  //     });
+  //   });
     
-    return this.buildCircuit(module);
-  }
+  //   return this.buildCircuit(module);
+  // }
   
   private analyzeCircuitStructure(module: VerilogModule): { 
     signalLayers: Map<string, number>,
@@ -348,7 +340,7 @@ export class VerilogCircuitConverter {
     const xBase = 100;
     const yBase = 100;
     const xLayerSpacing = 180;
-    const yComponentSpacing = 80;
+    const yComponentSpacing = 200;
     
     // 3. Position inputs
     let yPos = yBase;
@@ -368,7 +360,7 @@ export class VerilogCircuitConverter {
           });
         });
         
-        yPos = yBase + group.length * yComponentSpacing + 40;
+        yPos = yBase + group.length * yComponentSpacing + 200;
       } else {
         // Data inputs get positioned after control signals
         group.forEach((input, index) => {
@@ -378,7 +370,7 @@ export class VerilogCircuitConverter {
           });
         });
         
-        yPos += group.length * yComponentSpacing + 20;
+        yPos += group.length * yComponentSpacing + 150;
       }
     });
     
@@ -412,7 +404,7 @@ export class VerilogCircuitConverter {
           gateYPos = avgY;
           
           // Make sure gates in the same layer don't overlap
-          const minSpacing = 70;
+          const minSpacing = 100;
           const overlappingGate = gates.slice(0, index).find(g => {
             const pos = this.componentPositions.get(g.output);
             return pos && Math.abs(pos.y - gateYPos) < minSpacing;
@@ -432,7 +424,7 @@ export class VerilogCircuitConverter {
     }
     
     // 6. Position outputs
-    const outputXPos = xBase + (maxLayer + 1) * xLayerSpacing + 80; // Add extra spacing
+    const outputXPos = xBase + (maxLayer + 1) * xLayerSpacing + 50; // Add extra spacing
     
     // Try to group related outputs
     const outputGroups = this.groupRelatedSignals(module.outputs);
@@ -472,7 +464,7 @@ export class VerilogCircuitConverter {
     // Second pass: fix overlapping outputs by ensuring minimum spacing
     outputPositions.sort((a, b) => a.y - b.y);
     for (let i = 1; i < outputPositions.length; i++) {
-      const minSpacing = 70; // Minimum spacing between bulbs
+      const minSpacing = 100; // Minimum spacing between bulbs
       const prev = outputPositions[i-1];
       const current = outputPositions[i];
       
@@ -700,7 +692,7 @@ export class VerilogCircuitConverter {
         } else {
           // Single bit output
           const bulbPosition = { 
-            x: position.x + 20, 
+            x: position.x + 200, 
             y: position.y 
           };
           

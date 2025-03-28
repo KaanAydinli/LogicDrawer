@@ -66,9 +66,9 @@ export class VerilogParser {
   private extractPortsAndWires(portList: string, body: string) {
     // Find input and output declarations in the module header and body
     // Now also capture bit vector specifications like [7:0]
-    const inputRegex = /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+);?/g;
-    const outputRegex = /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+);?/g;
-    const wireRegex = /wire\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s,]+);?/g;
+    const inputRegex = /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+)?/g;
+    const outputRegex = /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+)?/g;
+    const wireRegex = /wire\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s,]+)?/g;
 
     const inputs = this.collectPortsWithBitWidths(portList, inputRegex);
     const outputs = this.collectPortsWithBitWidths(portList, outputRegex);
