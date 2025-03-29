@@ -138,7 +138,8 @@ body {
   font-weight: 900;
   font-size: larger;
   font-style: normal;
-  
+  border: var(--text-color) 2px solid;
+  border-radius: px;
   cursor: text;
   
 
@@ -215,6 +216,7 @@ body {
 }
 .component-group {
   margin-bottom: 15px;
+  
 }
 
 .component-group-title {
@@ -242,6 +244,8 @@ body {
   border-radius: 4px;
   cursor: pointer;
   transition-duration: 0.5s;
+  border: #000000  1px solid;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
   
 }
 
@@ -270,7 +274,7 @@ body {
   text-align: center;
   height: 8%;
   background-color: var(--bg-color);
-
+  border: #0b0b0b  3px solid;
   
 }
 .component-label {
@@ -294,9 +298,6 @@ body {
   height: 100%;
   cursor: crosshair;
 }
-
-
-
 .rightContainer{
 
   display: flex;
@@ -354,7 +355,7 @@ body {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 350px;
+  width: 30%;
   height: 90%;
   background-color: var(--secondary-bg);
   border: 1px solid var(--border-color);
@@ -364,15 +365,13 @@ body {
   flex-direction: column;
   overflow: hidden;
   z-index: 1000;
-  transform: translateX(400px);
+  transform: translateX(110%);
   transition: transform 0.5s ease-in-out;
 }
 
 .ai-chat-container.open {
   transform: translateX(0);
 }
-
-
 
 .ai-chat-header {
   display: flex;
@@ -493,6 +492,9 @@ body {
   outline: none;
   border-color: var(--emerald);
 }
+.aiLogo{
+  cursor: pointer;
+}
 
 #send-message {
   background-color: var(--emerald);
@@ -550,7 +552,7 @@ body {
   display: none;
   position: absolute;
   top: 100%;
-  right: 0;
+  right: -50%;
   background-color: var(--secondary-bg);
   min-width: 140px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
@@ -562,11 +564,11 @@ body {
 
 .theme-dropdown.show {
   display: block;
-  animation: fadeIn 0.2s ease-in-out;
+  animation: fadeIn 0.5s ease-in-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
+  from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 

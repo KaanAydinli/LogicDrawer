@@ -334,16 +334,17 @@ export class VerilogCircuitConverter {
   ): void {
     // 1. Group related inputs
     const inputGroups = this.groupRelatedSignals(module.inputs);
-    
+  
     // 2. Determine circuit depth and width
     const maxLayer = Math.max(...Array.from(signalLayers.values()));
     const xBase = 100;
     const yBase = 100;
     const xLayerSpacing = 180;
-    const yComponentSpacing = 200;
+    const yComponentSpacing = 200; // Increase this to 200 from whatever it was
     
-    // 3. Position inputs
+    // 3. Position inputs with better spacing
     let yPos = yBase;
+    const usedPositions = new Set<number>(); // Track used Y positions
     
     inputGroups.forEach(group => {
       const isControlGroup = group.some(input => 
@@ -351,26 +352,36 @@ export class VerilogCircuitConverter {
         input.name === 'clk' || input.name === 'reset'
       );
       
-      // Control signals get positioned at top
       if (isControlGroup) {
         group.forEach((input, index) => {
+          const y = yBase + index * yComponentSpacing;
+          usedPositions.add(y);
           this.componentPositions.set(input.name, {
             x: xBase,
-            y: yBase + index * yComponentSpacing
+            y: y
           });
         });
         
-        yPos = yBase + group.length * yComponentSpacing + 200;
+        yPos = yBase + group.length * yComponentSpacing + 100; // Extra spacing after controls
       } else {
-        // Data inputs get positioned after control signals
+        // Make sure we don't overlap with any existing positions
+        if (usedPositions.has(yPos)) {
+          // Find next available position
+          while (usedPositions.has(yPos)) {
+            yPos += 100;
+          }
+        }
+        
         group.forEach((input, index) => {
+          const y = yPos + index * yComponentSpacing;
+          usedPositions.add(y);
           this.componentPositions.set(input.name, {
             x: xBase,
-            y: yPos + index * yComponentSpacing
+            y: y
           });
         });
         
-        yPos += group.length * yComponentSpacing + 150;
+        yPos += group.length * yComponentSpacing + 100; // Increased spacing
       }
     });
     

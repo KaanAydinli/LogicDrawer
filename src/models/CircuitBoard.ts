@@ -171,9 +171,9 @@ export class CircuitBoard {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.applyTransform();
 
-    if (this.grid) {
+    
       this.drawGrid();
-    }
+    
 
     // Önce kabloları çizelim (bileşenlerin altında kalması için)
     this.wires.forEach((wire) => {
@@ -416,11 +416,7 @@ export class CircuitBoard {
 
     console.log("Mouse down at:", mousePos);
 
-    if (event.ctrlKey || event.shiftKey) {
-      this.isSelecting = true;
-      this.selectionRect = { start: mousePos, end: mousePos };
-      return;
-    }
+
 
     // Tüm bileşenlerin seçim durumunu sıfırla
     this.components.forEach((component) => {
@@ -518,6 +514,12 @@ export class CircuitBoard {
         this.draw();
         return;
       }
+    }
+
+    if (!this.isSelecting) {
+      this.isSelecting = true;
+      this.selectionRect = { start: mousePos, end: mousePos };
+      return;
     }
 
     // Hiçbir şeye tıklanmadıysa seçimi kaldır
@@ -667,10 +669,10 @@ export class CircuitBoard {
       this.updateConnectedWires(
         this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent],
       );
-      this.draggedComponent = null;
+      
     }
 
-    if (!this.draggedComponent && !this.currentWire) {
+    if (!this.draggedComponent || !this.currentWire) {
       this.clearSelection();
     }
 

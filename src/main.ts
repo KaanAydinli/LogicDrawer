@@ -76,48 +76,57 @@ When writing Verilog code, follow these rules:
 - DO NOT use Markdown code blocks, backticks, or language identifiers
 - Present code as plain text without any formatting decorations
 - Use explicit gate instantiations with instance names
+- NEVER USE COMMENTS 
 
-IMPORTANT RULES:
-1. NEVER use output ports as inputs to other gates. Always use intermediate wires. NEVER add comments to the code NEVER.
+CRITICAL RULES:
+1. NEVER use output ports as inputs to other gates. Always use intermediate wires.
 2. ALWAYS declare EVERY intermediate signal as a wire before using it.
 3. EVERY signal in your design must be either an input, output, or wire.
+4. Each wire or input can have ONLY ONE driver. NEVER connect multiple gate outputs to the same destination.
+5. Each gate can have AT MOST 2 INPUTS and 1 output. NEVER create gates with more than 2 inputs.
+6. NEVER use operators like =, &, |, ^, ~ for assignments. Use explicit gate instantiations instead.
+7. NEVER use the same wire as both input and output of the same gate - this creates an invalid feedback loop.
+8. Use the input and output keywords ONLY ONCE each in your module declaration - group all inputs together and all outputs together.
 
 Use these formats for Verilog elements:
-- For module declarations: module name(input a, b, output sum, cout);
+- For module declarations: module name(input a, b, c, output sum, cout, z);
 - For wire declarations: wire w1, w2, w3;
-- For gates: 
+- For gates (MUST have exactly 1-2 inputs): 
   and a1(out, in1, in2);
   or o1(result, in1, in2);
   xor x1(sum, a, b);
-  not n1(out_inv, in);
+  not n1(out_inv, in);  // NOT gates have 1 input
   nand nd1(out, in1, in2);
   nor nr1(out, in1, in2);
   xnor xn1(out, in1, in2);
-- For comments: // This is a comment
 
-EXAMPLE OF CORRECT WIRE DECLARATION:
-module example(input a, b, c, output z);
-  // Declare ALL intermediate signals as wires
-  wire and_out, not_b, or_out;
+INCORRECT (separate input declarations):
+module bad_example(input a, input b, input c, output z);
+  wire w1;
+  and a1(z, a, b);
+endmodule
+
+CORRECT (grouped input declarations):
+module good_example(input a, b, c, output z);
+  wire w1;
+  and a1(w1, a, b);
+  and a2(z, w1, c);
+endmodule
+
+INCORRECT (more than 2 inputs):
+module bad_example(input a, b, c, d, output z);
+  wire w1;
+  or o1(w1, a, b, c, d);  // ERROR: More than 2 inputs
+endmodule
+
+CORRECT (using multiple 2-input gates):
+module good_example(input a, b, c, d, output z);
+  wire or1_out, or2_out;
   
-  not n1(not_b, b);       // b inverted is stored in not_b wire
-  and a1(and_out, a, c);  // a AND c stored in and_out wire
-  or o1(or_out, and_out, not_b); // Intermediate result stored in or_out
-  not n2(z, or_out);      // Final output
+  or o1(or1_out, a, b);     // First 2-input OR gate
+  or o2(or2_out, c, d);     // Second 2-input OR gate
+  or o3(z, or1_out, or2_out); // Final OR combining results
 endmodule
-
-INCORRECT EXAMPLE (missing wire declarations):
-module example(input a, b, c, output z);
-  not n1(not_b, b);       // ERROR: not_b is not declared
-  and a1(and_out, a, c);  // ERROR: and_out is not declared
-  or o1(z, and_out, not_b);
-endmodule
-
-DO NOT use operators like:
-- out = in1 & in2; 
-- result = in1 | in2;
-- sum = a ^ b;
-- out_inv = ~in;
 
 Always name gates with a prefix indicating the gate type (a for AND, o for OR, x for XOR, etc.) followed by a number.
 Always declare ALL intermediate signals before using them.
@@ -221,23 +230,7 @@ function setupZoomControls() {
   });
 
   // Klavye kısayolları
-  document.addEventListener("keydown", (event) => {
-    // Zoom in - + tuşu
-    if (event.key === "+" || (event.key === "=" && event.shiftKey)) {
-      circuitBoard.zoomIn();
-    }
-
-    // Zoom out - - tuşu
-    if (event.key === "-" || event.key === "_") {
-      circuitBoard.zoomOut();
-    }
-
-    // Zoom reset - 0 tuşu
-    if (event.key === "0") {
-      circuitBoard.resetZoom();
-    }
-  });
-
+  
   // Opsiyonel: Butonlarla zoom kontrolü
   const zoomInButton = document.getElementById("zoom-in-button");
   const zoomOutButton = document.getElementById("zoom-out-button");
@@ -446,8 +439,7 @@ function setUpAI() {
             {
               role: "system",
               content:
-                "Your name is Logai, You are a helpful AI assistant specialized in digital logic circuits. Help the user with circuit design concepts, explanations of gates, and provide guidance on how to use the logic circuit designer tool. Keep your answers focused on circuit design and logic gates. Do not provide personal information or engage in off-topic conversations. Also do not over explain or provide unnecessary details. Be concise and to the point. If the user asks for you to write SystemVerilog code for the specified behavior for a circuit, you should write that code directly without any additional explanation. This is a example verilog coded circuit your code should look like this. " +
-                promptAI,
+                promptAI
             },
 
             { role: "user", content: userMessage },
@@ -662,11 +654,20 @@ function setTheme() {
     return;
   }
 
-  // Toggle dropdown when clicking the Themes button
+  
   themeButton.addEventListener("click", function (e) {
     e.stopPropagation();
     themeDropdown.classList.toggle("show");
   });
+  themeButton.addEventListener('mouseenter', (event: MouseEvent) => {
+    
+    themeDropdown.classList.toggle("show");
+  });
+  themeDropdown.addEventListener('mouseleave', (event: MouseEvent) => {
+    themeDropdown.classList.remove("show");
+  });
+
+  
 
   // Hide dropdown when clicking elsewhere
   document.addEventListener("click", function () {
