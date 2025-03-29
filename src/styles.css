@@ -132,7 +132,7 @@ body {
 
 
   background-color: var(--bg-color);  
-
+  color: var(--text-color);
   font-family: "Pixelify Sans", sans-serif;
   font-optical-sizing: auto;
   font-weight: 900;
@@ -181,7 +181,7 @@ body {
   overflow: hidden;
 }
 
-/* Sidebar styles */
+
 .sidebar {
   width: 250px;
   background-color: var(--secondary-bg);
@@ -189,6 +189,30 @@ body {
   overflow-y: auto;
 }
 
+::-webkit-scrollbar {
+  width: 15px; /* Width for vertical scrollbar */
+  height: 10px; 
+  
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--component-bg); /* Color of the scrollbar */
+  border-radius: 10px;
+  border: var(--text-color)  2px solid;
+   /* Rounded corners */
+}
+
+
+::-webkit-scrollbar-track {
+  background: var(--text-color); /* Background color */
+  border-radius: 10px;
+  border: #000000  2px solid;
+}
+
+/* Scrollbar Handle on Hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Darker on hover */
+}
 .component-group {
   margin-bottom: 15px;
 }
@@ -217,12 +241,14 @@ body {
   background-color: var(--component-bg);
   border-radius: 4px;
   cursor: pointer;
-  transition: filter 0.3s;
+  transition-duration: 0.5s;
   
 }
 
 .component:hover {
-  filter: invert(1);
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  transform: scale(1.05);
 }
 
 .component-icon {
@@ -362,7 +388,7 @@ body {
 .close-chat-button {
   background: transparent;
   border: none;
-  color: var(--mint);
+  color: var(--text-color);
   font-size: 24px;
   cursor: pointer;
   line-height: 1;
@@ -405,8 +431,8 @@ body {
 }
 
 .ai-avatar {
-  background-color: var(--emerald);
-  color: var(--dark);
+  
+  color: var(--text-color);
 }
 
 .user-avatar {
@@ -517,7 +543,7 @@ body {
 
 .Theme {
   cursor: pointer;
-  user-select: none;
+
 }
 
 .theme-dropdown {
@@ -553,14 +579,15 @@ body {
 }
 
 .theme-option:hover {
-  background-color: var(--forest);
-  color: var(--mint);
+  background-color: var(--text-color);
+  color: var(--bg-color);
 }
 
 /* Active theme style */
 .theme-option.active {
-  background-color: var(--emerald);
-  color: var(--dark);
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  font-weight: bold;
 }
 
 

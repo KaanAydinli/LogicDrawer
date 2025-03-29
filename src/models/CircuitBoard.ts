@@ -18,6 +18,8 @@ import { Clock } from "./components/Clock";
 import { DLatch } from "./Sequential/DLatch";
 import { DFlipFlop } from "./Sequential/DFlipFlop";
 import { Decoder } from "./gates/Decoder";
+import { BufferGate } from "./gates/BufferGate";
+import { HexDigit } from "./components/HexDigit";
 
 export class CircuitBoard {
   components: Component[];
@@ -293,105 +295,105 @@ export class CircuitBoard {
       alert("No components to screenshot");
       return;
     }
-  
+
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
-  
+
     // Find boundaries of all components
-    this.components.forEach(component => {
+    this.components.forEach((component) => {
       const box = component.getBoundingBox();
       minX = Math.min(minX, box.x);
       minY = Math.min(minY, box.y);
       maxX = Math.max(maxX, box.x + box.width);
       maxY = Math.max(maxY, box.y + box.height);
     });
-  
+
     // Check wires as well to include them in the boundary
-    this.wires.forEach(wire => {
+    this.wires.forEach((wire) => {
       const points = wire.getAllPoints();
-      points.forEach(point => {
+      points.forEach((point) => {
         minX = Math.min(minX, point.x);
         minY = Math.min(minY, point.y);
         maxX = Math.max(maxX, point.x);
         maxY = Math.max(maxY, point.y);
       });
     });
-  
+
     // Add some padding
     const padding = 20;
     minX -= padding;
     minY -= padding;
     maxX += padding;
     maxY += padding;
-  
+
     // Calculate size
     const width = maxX - minX;
     const height = maxY - minY;
-  
+
     // Step 2: Create a new canvas of the exact size needed
-    const screenshotCanvas = document.createElement('canvas');
+    const screenshotCanvas = document.createElement("canvas");
     screenshotCanvas.width = width;
     screenshotCanvas.height = height;
-    const screenshotCtx = screenshotCanvas.getContext('2d') as CanvasRenderingContext2D;
-  
+    const screenshotCtx = screenshotCanvas.getContext("2d") as CanvasRenderingContext2D;
+
     // Step 3: Draw the components and wires onto the new canvas
     // Clear the canvas with background color
-    screenshotCtx.fillStyle = '#151515'; // Dark background like the main canvas
+    screenshotCtx.fillStyle = "#151515"; // Dark background like the main canvas
     screenshotCtx.fillRect(0, 0, width, height);
-  
+
     // Optional: Draw grid
     if (this.grid) {
       this.drawGridForScreenshot(screenshotCtx, minX, minY, width, height);
     }
-  
+
     // Draw wires
-    this.wires.forEach(wire => {
+    this.wires.forEach((wire) => {
       screenshotCtx.save();
       screenshotCtx.translate(-minX, -minY);
       wire.draw(screenshotCtx);
       screenshotCtx.restore();
     });
-  
+
     // Draw components
-    this.components.forEach(component => {
+    this.components.forEach((component) => {
       screenshotCtx.save();
       screenshotCtx.translate(-minX, -minY);
       component.draw(screenshotCtx);
       screenshotCtx.restore();
     });
-  
+
     // Step 4: Convert to image and trigger download
-    const dataUrl = screenshotCanvas.toDataURL('image/png');
-    
+    const dataUrl = screenshotCanvas.toDataURL("image/png");
+
     // Create download link
-    const link = document.createElement('a');
-    link.download = 'circuit-screenshot.png';
+    const link = document.createElement("a");
+    link.download = "circuit-screenshot.png";
     link.href = dataUrl;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
-  
+
   // Helper method to draw grid for screenshot
   private drawGridForScreenshot(
-    ctx: CanvasRenderingContext2D, 
-    offsetX: number, 
-    offsetY: number, 
-    width: number, 
-    height: number
+    ctx: CanvasRenderingContext2D,
+    offsetX: number,
+    offsetY: number,
+    width: number,
+    height: number,
   ): void {
     const gridSize = 20;
-    
+
     // Calculate grid starting points
     const startX = Math.floor(offsetX / gridSize) * gridSize - offsetX;
     const startY = Math.floor(offsetY / gridSize) * gridSize - offsetY;
-    
+
     // Grid drawing
     ctx.strokeStyle = "rgba(80, 80, 80, 0.2)";
     ctx.lineWidth = 1;
-    
+
     // Vertical lines
     for (let x = startX; x <= width; x += gridSize) {
       ctx.beginPath();
@@ -399,7 +401,7 @@ export class CircuitBoard {
       ctx.lineTo(x, height);
       ctx.stroke();
     }
-    
+
     // Horizontal lines
     for (let y = startY; y <= height; y += gridSize) {
       ctx.beginPath();
@@ -531,32 +533,32 @@ export class CircuitBoard {
   public getCanvasWidth(): number {
     return this.canvas.width;
   }
-  
+
   public getCanvasHeight(): number {
     return this.canvas.height;
   }
   public getComponentById(id: string): any {
-    return this.components.find(component => component.id === id) || null;
+    return this.components.find((component) => component.id === id) || null;
   }
-  
+
   public createWire(fromPort: any, toPort: any): void {
     // Check if ports already exist and are not already connected
     if (!fromPort || !toPort || fromPort.isConnected || toPort.isConnected) {
       return;
     }
-  
+
     // Create new wire
     const wire = new Wire(fromPort);
     wire.connect(toPort);
-    
+
     // Set ports as connected
     fromPort.isConnected = true;
     toPort.isConnected = true;
-    
+
     // Add wire to the circuit
     this.wires.push(wire);
   }
-  
+
   public addComponentByType(type: string, position: Point): string {
     const component = this.createComponentByType(type, position);
     if (component) {
@@ -578,11 +580,10 @@ export class CircuitBoard {
 
     if (this.draggedComponent) {
       // Sürükleme bitti, bağlı kabloları güncelle
-      this.updateConnectedWires(this.selectedComponents.length > 0 ? 
-                             this.selectedComponents : [this.draggedComponent]);
-      
+      this.updateConnectedWires(
+        this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent],
+      );
     }
-    
 
     // Seçili bileşenleri sürükle
     if (this.draggedComponent && this.selectedComponents.length > 0) {
@@ -663,8 +664,9 @@ export class CircuitBoard {
     }
     if (this.draggedComponent) {
       // Sürükleme bitti, bağlı kabloları güncelle
-      this.updateConnectedWires(this.selectedComponents.length > 0 ? 
-                             this.selectedComponents : [this.draggedComponent]);
+      this.updateConnectedWires(
+        this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent],
+      );
       this.draggedComponent = null;
     }
 
@@ -795,8 +797,12 @@ export class CircuitBoard {
         return new DLatch(position);
       case "dflipflop":
         return new DFlipFlop(position);
-        case "decoder":
-          return new Decoder(position);
+      case "decoder":
+        return new Decoder(position);
+      case "buffer":
+        return new BufferGate(position);
+      case "hex":
+        return new HexDigit(position);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;
@@ -819,14 +825,15 @@ export class CircuitBoard {
   private updateConnectedWires(components: Component[]): void {
     // Tüm seçili bileşenlere bağlı kabloları bul ve yeniden yönlendir
     const updatedWires: Wire[] = [];
-    
+
     for (const component of components) {
       // Bu bileşene bağlı tüm kabloları bul
       for (const wire of this.wires) {
         // Eğer kablo bu bileşene bağlıysa ve daha önce işlenmemişse
-        if ((wire.from.component === component || (wire.to && wire.to.component === component)) && 
-            !updatedWires.includes(wire)) {
-          
+        if (
+          (wire.from.component === component || (wire.to && wire.to.component === component)) &&
+          !updatedWires.includes(wire)
+        ) {
           // Kabloyu yeniden yönlendir
           wire.autoRoute();
           updatedWires.push(wire);

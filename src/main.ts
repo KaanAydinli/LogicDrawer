@@ -25,6 +25,8 @@ import { DFlipFlop } from "./models/Sequential/DFlipFlop";
 import { RoboflowService } from "./ai/RoboflowService";
 import { ImageUploader } from "./ai/ImageUploader";
 import { Decoder } from "./models/gates/Decoder";
+import { BufferGate } from "./models/gates/BufferGate";
+import { HexDigit } from "./models/components/HexDigit";
 
 // Create repository service
 const repositoryService = new MockCircuitRepositoryService();
@@ -49,50 +51,77 @@ let welcomeDialog: HTMLElement;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
 const verilogCode = `
-module addsub_4bit(
-    input a3, a2, a1, a0, b3, b2, b1, b0, mode;
-    output sum3, sum2, sum1, sum0, cout;
-);
-    wire b0_comp, b1_comp, b2_comp, b3_comp;
-    wire xor_a0_b0, xor_a1_b1, xor_a2_b2, xor_a3_b3;
-    wire c0, c1, c2;
-    wire and_a0_b0, and_cin_xor0;
-    wire and_a1_b1, and_c0_xor1;
-    wire and_a2_b2, and_c1_xor2;
-    wire and_a3_b3, and_c2_xor3;
-    
-    xor b0_xor(b0_comp, b0, mode);
-    xor b1_xor(b1_comp, b1, mode);
-    xor b2_xor(b2_comp, b2, mode);
-    xor b3_xor(b3_comp, b3, mode);
-    
+module full_subtractor(input a, b, bin, output diff, bout); wire xor_ab; 
+wire not_a; 
+wire and_nota_b; 
+wire xnor_ab; 
+wire and_xnor_bin;
 
-    xor bit0_xor1(xor_a0_b0, a0, b0_comp);
-    xor bit0_xor2(sum0, xor_a0_b0, mode);
-    and bit0_and1(and_a0_b0, a0, b0_comp);
-    and bit0_and2(and_cin_xor0, mode, xor_a0_b0);
-    or bit0_or(c0, and_a0_b0, and_cin_xor0);
-    
-    xor bit1_xor1(xor_a1_b1, a1, b1_comp);
-    xor bit1_xor2(sum1, xor_a1_b1, c0);
-    and bit1_and1(and_a1_b1, a1, b1_comp);
-    and bit1_and2(and_c0_xor1, c0, xor_a1_b1);
-    or bit1_or(c1, and_a1_b1, and_c0_xor1);
-    
-    xor bit2_xor1(xor_a2_b2, a2, b2_comp);
-    xor bit2_xor2(sum2, xor_a2_b2, c1);
-    and bit2_and1(and_a2_b2, a2, b2_comp);
-    and bit2_and2(and_c1_xor2, c1, xor_a2_b2);
-    or bit2_or(c2, and_a2_b2, and_c1_xor2);
-    
-    xor bit3_xor1(xor_a3_b3, a3, b3_comp);
-    xor bit3_xor2(sum3, xor_a3_b3, c2);
-    and bit3_and1(and_a3_b3, a3, b3_comp);
-    and bit3_and2(and_c2_xor3, c2, xor_a3_b3);
-    or bit3_or(cout, and_a3_b3, and_c2_xor3);
-    
+xor x1(xor_ab, a, b); 
+xor x2(diff, xor_ab, bin);
+
+not n1(not_a, a); 
+and a1(and_nota_b, not_a, b);
+
+xnor xn1(xnor_ab, a, b); 
+and a2(and_xnor_bin, xnor_ab, bin);
+
+or o1(bout, and_nota_b, and_xnor_bin); 
 endmodule
 `;
+
+const promptAI = `Your name is Logai. You are an AI assistant specialized in digital logic circuits.
+
+When writing Verilog code, follow these rules:
+- DO NOT use Markdown code blocks, backticks, or language identifiers
+- Present code as plain text without any formatting decorations
+- Use explicit gate instantiations with instance names
+
+IMPORTANT RULES:
+1. NEVER use output ports as inputs to other gates. Always use intermediate wires. NEVER add comments to the code NEVER.
+2. ALWAYS declare EVERY intermediate signal as a wire before using it.
+3. EVERY signal in your design must be either an input, output, or wire.
+
+Use these formats for Verilog elements:
+- For module declarations: module name(input a, b, output sum, cout);
+- For wire declarations: wire w1, w2, w3;
+- For gates: 
+  and a1(out, in1, in2);
+  or o1(result, in1, in2);
+  xor x1(sum, a, b);
+  not n1(out_inv, in);
+  nand nd1(out, in1, in2);
+  nor nr1(out, in1, in2);
+  xnor xn1(out, in1, in2);
+- For comments: // This is a comment
+
+EXAMPLE OF CORRECT WIRE DECLARATION:
+module example(input a, b, c, output z);
+  // Declare ALL intermediate signals as wires
+  wire and_out, not_b, or_out;
+  
+  not n1(not_b, b);       // b inverted is stored in not_b wire
+  and a1(and_out, a, c);  // a AND c stored in and_out wire
+  or o1(or_out, and_out, not_b); // Intermediate result stored in or_out
+  not n2(z, or_out);      // Final output
+endmodule
+
+INCORRECT EXAMPLE (missing wire declarations):
+module example(input a, b, c, output z);
+  not n1(not_b, b);       // ERROR: not_b is not declared
+  and a1(and_out, a, c);  // ERROR: and_out is not declared
+  or o1(z, and_out, not_b);
+endmodule
+
+DO NOT use operators like:
+- out = in1 & in2; 
+- result = in1 | in2;
+- sum = a ^ b;
+- out_inv = ~in;
+
+Always name gates with a prefix indicating the gate type (a for AND, o for OR, x for XOR, etc.) followed by a number.
+Always declare ALL intermediate signals before using them.
+Always end your module with endmodule`;
 
 const storage = document.querySelector(".storage") as HTMLElement;
 
@@ -313,6 +342,12 @@ function addComponentByType(type: string, position: Point) {
     case "decoder":
       component = new Decoder(position);
       break;
+    case "buffer":
+      component = new BufferGate(position);
+      break;
+    case "hex":
+      component = new HexDigit(position);
+      break;
     default:
       return; // Geçersiz tip ise çık
   }
@@ -411,7 +446,8 @@ function setUpAI() {
             {
               role: "system",
               content:
-                "Your name is Logai, You are a helpful AI assistant specialized in digital logic circuits. Help the user with circuit design concepts, explanations of gates, and provide guidance on how to use the logic circuit designer tool. Keep your answers focused on circuit design and logic gates. Do not provide personal information or engage in off-topic conversations. Also do not over explain or provide unnecessary details. Be concise and to the point.",
+                "Your name is Logai, You are a helpful AI assistant specialized in digital logic circuits. Help the user with circuit design concepts, explanations of gates, and provide guidance on how to use the logic circuit designer tool. Keep your answers focused on circuit design and logic gates. Do not provide personal information or engage in off-topic conversations. Also do not over explain or provide unnecessary details. Be concise and to the point. If the user asks for you to write SystemVerilog code for the specified behavior for a circuit, you should write that code directly without any additional explanation. This is a example verilog coded circuit your code should look like this. " +
+                promptAI,
             },
 
             { role: "user", content: userMessage },
@@ -522,7 +558,7 @@ function setUpAI() {
           <img src="${imageSrc}" alt="Uploaded image">
         </div>
       </div>
-      <div class="user-avatar">You</div>
+      
     `;
     messagesContainer.appendChild(messageDiv);
     scrollToBottom();
@@ -530,15 +566,30 @@ function setUpAI() {
 
   function addAIMessage(text: string) {
     const messageDiv = document.createElement("div");
+    var aiText = escapeHTML(text);
+
+    if (aiText.startsWith("module")) {
+      const converter = new VerilogCircuitConverter(circuitBoard);
+      const success = converter.importVerilogCode(aiText);
+      if (success) {
+        console.log("Verilog import successful!");
+      } else {
+        console.error("Verilog import failed!");
+      }
+    }
+
     messageDiv.className = "ai-message";
     messageDiv.innerHTML = `
-                            <svg width = 200px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
+    <div class="ai-avatar">
+                <svg width = 200px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
               
             <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
             
           </svg>
-      <div class="message-content">${escapeHTML(text)}</div>
-    `;
+    </div>
+    <div class="message-content">${aiText}</div>
+  `;
+
     messagesContainer.appendChild(messageDiv);
     scrollToBottom();
   }

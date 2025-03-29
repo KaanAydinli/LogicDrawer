@@ -103,7 +103,7 @@ export abstract class LogicGate extends Component {
     // Bağlantı çizgisini çiz (port ile kapı arasında)
     ctx.beginPath();
     ctx.moveTo(outputPort.position.x, outputPort.position.y);
-    ctx.lineTo(this.position.x + this.size.width, outputPort.position.y);
+    ctx.lineTo(this.position.x + this.size.width - 10, outputPort.position.y);
     ctx.stroke();
   }
 }

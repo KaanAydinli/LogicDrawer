@@ -49,8 +49,8 @@ export class MockCircuitRepositoryService implements CircuitRepositoryService {
       dateModified: new Date('2023-02-20'),
       tags: ['adder', 'subtractor', '4-bit', 'arithmetic'],
       verilogCode: `module fullsubtractor (
-    input a, b, bin;    
-    output diff, bout;   
+    input a, b, bin    
+    output diff, bout   
 );
 wire w1, w2, w3, not_a, w3_temp;
 xor x1(w1, a, b);

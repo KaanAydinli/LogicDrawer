@@ -28,47 +28,116 @@ export interface VerilogGate {
 export class VerilogParser {
   private currentModule: VerilogModule | null = null;
 
-  /**
-   * Parse Verilog code and return the module definition
-   */
   parseVerilog(code: string): VerilogModule {
-    // Remove comments
-    const noComments = code.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, "");
+    try {
+      // Safety check for null/undefined input
+      if (!code) {
+        throw new Error("No Verilog code provided");
+      }
 
-    // Simple match for module
-    const moduleMatch = noComments.match(/module\s+(\w+)\s*\(([\s\S]*?)\);\s*([\s\S]*?)endmodule/);
-    if (!moduleMatch) {
-      throw new Error("Invalid Verilog module syntax.");
+      // Remove comments
+      const noComments = code.replace(/\/\/.*|\/\*[\s\S]*?\*\/|`[\s\S]*?`/g, "");
+      
+      // Validate module syntax
+      const moduleMatch = noComments.match(/module\s+(\w+)\s*\(([\s\S]*?)\);\s*([\s\S]*?)endmodule/);
+      if (!moduleMatch) {
+        throw new Error("Invalid Verilog module syntax. Check module declaration and make sure it ends with 'endmodule'.");
+      }
+  
+      const [ , moduleName, portList, body ] = moduleMatch;
+      
+      // Validate port list
+      if (!portList.trim()) {
+        throw new Error("Module port list is empty.");
+      }
+  
+      // Check for invalid semicolons in port declarations
+      if ((portList.match(/;/g) || []).length > 1) {
+        throw new Error("Invalid semicolon in module port declaration.");
+      }
+      
+      try {
+        const { inputs, outputs, wires } = this.extractPortsAndWires(portList, body);
+        const gates = this.extractGates(body);
+        
+        // Create a list of all valid signal names for validation
+        const allSignalNames = [
+          ...inputs.map(p => p.name),
+          ...outputs.map(p => p.name),
+          ...wires.map(p => p.name)
+        ];
+        
+        // Check wire declarations and gate connections
+        this.validateWireConnections(gates, allSignalNames);
+        this.validateGateConnections(gates, allSignalNames);
+  
+        this.currentModule = {
+          name: moduleName,
+          inputs,
+          outputs,
+          wires,
+          gates
+        };
+  
+        return this.currentModule;
+      } catch (error) {
+        throw new Error(`Error in module body: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    } catch (error) {
+      this.clear(); // Clear any partially built module
+      throw error; // Re-throw for handling in the converter
     }
-
-    const [ , moduleName, portList, body ] = moduleMatch;
-    const { inputs, outputs, wires } = this.extractPortsAndWires(portList, body);
-    const gates = this.extractGates(body);
-
-    this.currentModule = {
-      name: moduleName,
-      inputs,
-      outputs,
-      wires,
-      gates
-    };
-
-    return this.currentModule;
+  }
+  
+  // Validate wire connections (ensure no multiple drivers)
+  private validateWireConnections(gates: VerilogGate[], allSignals: string[]): void {
+    const wireOutputMap: Record<string, string> = {};
+    
+    for (const gate of gates) {
+      const outputNet = gate.output;
+      
+      if (!outputNet) {
+        throw new Error(`Gate ${gate.name} has no output defined`);
+      }
+      
+      if (outputNet in wireOutputMap) {
+        throw new Error(`Signal '${outputNet}' is driven by multiple gates (${wireOutputMap[outputNet]} and ${gate.type}). Each wire can only have one driver.`);
+      }
+      
+      wireOutputMap[outputNet] = gate.type;
+    }
+  }
+  
+  // Validate that all gate connections reference valid signals
+  private validateGateConnections(gates: VerilogGate[], allSignals: string[]): void {
+    for (const gate of gates) {
+      // Check output connection
+      if (!gate.output || !allSignals.includes(gate.output)) {
+        throw new Error(`Gate ${gate.name} output '${gate.output}' is not a declared signal`);
+      }
+      
+      // Check input connections
+      for (const input of gate.inputs) {
+        if (!input || !allSignals.includes(input)) {
+          throw new Error(`Gate ${gate.name} input '${input}' is not a declared signal`);
+        }
+      }
+    }
   }
 
-  /**
-   * Get the currently parsed module
-   */
+  // Rest of your existing code remains the same
   getModule(): VerilogModule | null {
     return this.currentModule;
   }
 
+
   private extractPortsAndWires(portList: string, body: string) {
     // Find input and output declarations in the module header and body
-    // Now also capture bit vector specifications like [7:0]
-    const inputRegex = /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+)?/g;
+    const inputRegex = /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+?)(?=\s*;|\s+(?:output|inout|wire|reg|endmodule)\b|$)/g;
     const outputRegex = /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+)?/g;
     const wireRegex = /wire\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s,]+)?/g;
+
+    
 
     const inputs = this.collectPortsWithBitWidths(portList, inputRegex);
     const outputs = this.collectPortsWithBitWidths(portList, outputRegex);
@@ -82,16 +151,30 @@ export class VerilogParser {
 
     // Check for wire declarations in body
     const wires = this.collectPortsWithBitWidths(body, wireRegex);
+    
+    // Validate that we found inputs and outputs
+    if (inputs.length === 0) {
+      throw new Error("No input ports defined in the module");
+    }
+    if (outputs.length === 0) {
+      throw new Error("No output ports defined in the module");
+    }
 
     return { inputs, outputs, wires };
   }
 
+  // Rest of the methods remain the same
   private collectPortsWithBitWidths(source: string, regex: RegExp): VerilogPort[] {
+    // Your existing implementation
     const results: VerilogPort[] = [];
     let match;
     
     while ((match = regex.exec(source)) !== null) {
       const [, fullBitRange, msbStr, lsbStr, identifiers] = match;
+      
+      if (!identifiers || identifiers.trim() === '') {
+        continue; // Skip if no identifiers found
+      }
       
       // Parse bit range if present
       const msb = msbStr ? parseInt(msbStr, 10) : undefined;
@@ -122,9 +205,7 @@ export class VerilogParser {
   }
 
   private extractGates(body: string): VerilogGate[] {
-    // Match gate instances like: xor x1(out, in1, in2);
-    // or: and g1(a, b, c);
-    // or: and a2(out2, w2, a0);
+    // Your existing implementation with safety checks
     const gateRegex = /\b(xor|and|or|nand|nor|xnor|not|mux2|mux4)\s+(\w+)\s*\(\s*([\w\s,\[\]]+)\s*\)\s*;?/gi;
     const gates: VerilogGate[] = [];
     let match;
@@ -135,8 +216,15 @@ export class VerilogParser {
       // Parse arguments, preserving any bit-select or bit-range notation
       const argList = this.parseGateArgs(args);
       
+      if (argList.length === 0) {
+        throw new Error(`Gate ${gateName} has no connections defined`);
+      }
+      
       // Usually first is output, rest are inputs
       const output = argList.shift() || "";
+      
+      // Validate gate inputs based on gate type
+      this.validateGateInputCount(gateType, gateName, argList.length);
       
       gates.push({
         type: gateType.toLowerCase(),
@@ -149,8 +237,24 @@ export class VerilogParser {
     return gates;
   }
   
+  // Add validation for gate input counts
+  private validateGateInputCount(gateType: string, gateName: string, inputCount: number): void {
+    const lowerType = gateType.toLowerCase();
+    
+    // Check gates have correct number of inputs
+    if (lowerType === 'not' && inputCount !== 1) {
+      throw new Error(`NOT gate '${gateName}' must have exactly 1 input`);
+    } else if (['and', 'or', 'nand', 'nor', 'xor', 'xnor'].includes(lowerType) && inputCount < 1) {
+      throw new Error(`${gateType.toUpperCase()} gate '${gateName}' must have at least 1 input`);
+    } else if (lowerType === 'mux2' && inputCount !== 3) {
+      throw new Error(`MUX2 gate '${gateName}' must have exactly 3 inputs (2 data, 1 select)`);
+    } else if (lowerType === 'mux4' && inputCount !== 6) {
+      throw new Error(`MUX4 gate '${gateName}' must have exactly 6 inputs (4 data, 2 select)`);
+    }
+  }
+  
   private parseGateArgs(argsString: string): string[] {
-    // Split by commas, but handle bit select/range notation properly
+    // Your existing implementation
     const args: string[] = [];
     let currentArg = '';
     let bracketDepth = 0;
@@ -181,9 +285,6 @@ export class VerilogParser {
     return args;
   }
 
-  /**
-   * Clear the current module
-   */
   clear(): void {
     this.currentModule = null;
   }
