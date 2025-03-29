@@ -335,7 +335,6 @@ function setupKeyboardShortcuts() {
     // G tuşu - ızgarayı göster/gizle
     if (event.key === "g" || event.key === "G") {
       circuitBoard.toggleGrid();
-      
     }
     // if (event.key === "l" || event.key === "L") {
     //   const converter = new VerilogCircuitConverter(circuitBoard);
@@ -390,7 +389,11 @@ function setUpAI() {
       const loadingMessageDiv = document.createElement("div");
       loadingMessageDiv.className = "ai-message";
       loadingMessageDiv.innerHTML = `
-        <img style = "width: 48px; height: 48px;" src="/src/images/aiLogo2.png" alt="">
+                               <svg width = 40px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
+              
+            <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+            
+          </svg>
         <div class="message-content">Thinking...</div>
       `;
       messagesContainer.appendChild(loadingMessageDiv);
@@ -504,7 +507,7 @@ function setUpAI() {
     messageDiv.className = "user-message";
     messageDiv.innerHTML = `
       <div class="message-content">${escapeHTML(text)}</div>
-      <div class="user-avatar">You</div>
+      
     `;
     messagesContainer.appendChild(messageDiv);
     scrollToBottom();
@@ -529,7 +532,11 @@ function setUpAI() {
     const messageDiv = document.createElement("div");
     messageDiv.className = "ai-message";
     messageDiv.innerHTML = `
-      <img style = "width: 48px; height: 48px;" src="/src/images/aiLogo2.png" alt="">
+                            <svg width = 200px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
+              
+            <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+            
+          </svg>
       <div class="message-content">${escapeHTML(text)}</div>
     `;
     messagesContainer.appendChild(messageDiv);
@@ -595,121 +602,122 @@ function handleFileSelect(event: Event) {
 }
 function setTheme() {
   // Get references to existing HTML elements
-  const themeButton = document.querySelector('.Theme') as HTMLElement;
-  const themeDropdown = document.querySelector('.theme-dropdown') as HTMLElement;
-  const themeOptions = document.querySelectorAll('.theme-option') as NodeListOf<HTMLElement>;
-  
+  const themeButton = document.querySelector(".Theme") as HTMLElement;
+  const themeDropdown = document.querySelector(".theme-dropdown") as HTMLElement;
+  const themeOptions = document.querySelectorAll(".theme-option") as NodeListOf<HTMLElement>;
+
   if (!themeButton || !themeDropdown) {
-    console.warn('Theme elements not found in HTML');
+    console.warn("Theme elements not found in HTML");
     return;
   }
-  
+
   // Toggle dropdown when clicking the Themes button
-  themeButton.addEventListener('click', function(e) {
+  themeButton.addEventListener("click", function (e) {
     e.stopPropagation();
-    themeDropdown.classList.toggle('show');
+    themeDropdown.classList.toggle("show");
   });
-  
+
   // Hide dropdown when clicking elsewhere
-  document.addEventListener('click', function() {
-    themeDropdown.classList.remove('show');
+  document.addEventListener("click", function () {
+    themeDropdown.classList.remove("show");
   });
-  
+
   // Prevent clicks within dropdown from closing it
-  themeDropdown.addEventListener('click', function(e) {
+  themeDropdown.addEventListener("click", function (e) {
     e.stopPropagation();
   });
-  
+
   // Handle theme selection
-  themeOptions.forEach(option => {
-    option.addEventListener('click', function() {
-      const selectedTheme = this.getAttribute('data-theme');
+  themeOptions.forEach((option) => {
+    option.addEventListener("click", function () {
+      const selectedTheme = this.getAttribute("data-theme");
       if (!selectedTheme) return;
-      
+
       // Remove active class from all options
-      themeOptions.forEach(opt => opt.classList.remove('active'));
-      
+      themeOptions.forEach((opt) => opt.classList.remove("active"));
+
       // Add active class to selected option
-      this.classList.add('active');
-      
+      this.classList.add("active");
+
       // Apply the selected theme
       applyTheme(selectedTheme);
-      
+
       // Close the dropdown after selection
-      themeDropdown.classList.remove('show');
+      themeDropdown.classList.remove("show");
     });
   });
-  
+
   // Function to apply the selected theme
   function applyTheme(themeName: string): void {
     console.log(`Applying theme: ${themeName}`);
-    
+    const component = document.querySelector(".component") as HTMLElement;
+
     // Remove any previous theme classes
-    document.body.classList.remove('theme-dark', 'theme-light', 'theme-forest', 'theme-midnight');
-    
+    document.body.classList.remove("theme-dark", "theme-light", "theme-forest", "theme-midnight");
+
     // Add the new theme class
     document.body.classList.add(`theme-${themeName}`);
-    
+
     // Update CSS variables for theming
-    switch(themeName) {
-      case 'light':
-        document.documentElement.style.setProperty('--bg-color', '#f0f5f9');
-        document.documentElement.style.setProperty('--text-color', '#333333');
-        document.documentElement.style.setProperty('--component-bg', '#ffffff');
-        document.documentElement.style.setProperty('--border-color', '#cccccc');
-        document.documentElement.style.setProperty('--secondary-bg', '#e9ecef');
-        document.documentElement.style.setProperty('--input-bg', '#2a2b2b');
+    switch (themeName) {
+      case "light":
+        document.documentElement.style.setProperty("--bg-color", "#f0f5f9");
+        document.documentElement.style.setProperty("--text-color", "#333333");
+        document.documentElement.style.setProperty("--component-bg", "#ffffff");
+        document.documentElement.style.setProperty("--border-color", "#cccccc");
+        document.documentElement.style.setProperty("--secondary-bg", "#e9ecef");
+        document.documentElement.style.setProperty("--input-bg", "#2a2b2b");
 
         break;
-      case 'dark':
-        document.documentElement.style.setProperty('--bg-color', '#181818');
-        document.documentElement.style.setProperty('--text-color', '#e0e0e0');
-        document.documentElement.style.setProperty('--component-bg', '#353535');
-        document.documentElement.style.setProperty('--border-color', '#444444');
-        document.documentElement.style.setProperty('--secondary-bg', '#2c2c2c');
-        document.documentElement.style.setProperty('--input-bg', '#D1F2EB');
+      case "dark":
+        document.documentElement.style.setProperty("--bg-color", "#181818");
+        document.documentElement.style.setProperty("--text-color", "#e0e0e0");
+        document.documentElement.style.setProperty("--component-bg", "#353535");
+        document.documentElement.style.setProperty("--border-color", "#444444");
+        document.documentElement.style.setProperty("--secondary-bg", "#2c2c2c");
+        document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
 
         break;
-      case 'forest':
-        document.documentElement.style.setProperty('--bg-color', '#021e14');
-        document.documentElement.style.setProperty('--text-color', '#50C878');
-        document.documentElement.style.setProperty('--component-bg', '#0B6E4F');
-        document.documentElement.style.setProperty('--border-color', '#2a4e3e');
-        document.documentElement.style.setProperty('--secondary-bg', '#0c2e1f');
-        document.documentElement.style.setProperty('--input-bg', '#D1F2EB');
+      case "forest":
+        document.documentElement.style.setProperty("--bg-color", "#021e14");
+        document.documentElement.style.setProperty("--text-color", "#e0f2f1");
+        document.documentElement.style.setProperty("--component-bg", "#0B6E4F");
+        document.documentElement.style.setProperty("--border-color", "#2a4e3e");
+        document.documentElement.style.setProperty("--secondary-bg", "#0c2e1f");
+        document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
 
         break;
-      case 'midnight':
-        document.documentElement.style.setProperty('--bg-color', '#0f2027');
-        document.documentElement.style.setProperty('--text-color', '#e0f2f1');
-        document.documentElement.style.setProperty('--component-bg', '#203a43');
-        document.documentElement.style.setProperty('--border-color', '#2c5364');
-        document.documentElement.style.setProperty('--secondary-bg', '#192f38');
-        document.documentElement.style.setProperty('--input-bg', '#D1F2EB');
+      case "midnight":
+        document.documentElement.style.setProperty("--bg-color", "#0f2027");
+        document.documentElement.style.setProperty("--text-color", "#e0f2f1");
+        document.documentElement.style.setProperty("--component-bg", "#203a43");
+        document.documentElement.style.setProperty("--border-color", "#2c5364");
+        document.documentElement.style.setProperty("--secondary-bg", "#192f38");
+        document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
 
         break;
     }
-    
+
     // Save the selected theme to localStorage
-    localStorage.setItem('selectedTheme', themeName);
+    localStorage.setItem("selectedTheme", themeName);
   }
-  
+
   // Load saved theme on initialization
-  const savedTheme = localStorage.getItem('selectedTheme');
+  const savedTheme = localStorage.getItem("selectedTheme");
   if (savedTheme) {
     applyTheme(savedTheme);
-    
+
     // Mark the saved theme as active in the dropdown
     const activeOption = document.querySelector(`.theme-option[data-theme="${savedTheme}"]`);
     if (activeOption) {
-      activeOption.classList.add('active');
+      activeOption.classList.add("active");
     }
   } else {
     // Set a default theme if none is saved
     const defaultOption = document.querySelector('.theme-option[data-theme="forest"]');
     if (defaultOption) {
-      defaultOption.classList.add('active');
-      applyTheme('forest');
+      defaultOption.classList.add("active");
+      applyTheme("forest");
     }
   }
 }

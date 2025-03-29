@@ -25,7 +25,7 @@
 
 body {
   font-family: 'Arial', sans-serif;
-  background-color: #021e14;
+  background-color: var(--bg-color);
   color: var(--text-color);
   height: 100vh;
   overflow: hidden;
@@ -130,21 +130,21 @@ body {
 
 .docName{
 
-  background-color: var(--input-bg);
-  
+
+  background-color: var(--bg-color);  
 
   font-family: "Pixelify Sans", sans-serif;
   font-optical-sizing: auto;
   font-weight: 900;
   font-size: larger;
   font-style: normal;
-  border-bottom: 1px solid var(--border-color);
+  
   cursor: text;
-  border-radius: 10;
+  
 
 }
 .docName::placeholder{
-  color: var(--bg-color);
+  color: var(--text-color);
 }
 .Theme{
 
@@ -217,11 +217,12 @@ body {
   background-color: var(--component-bg);
   border-radius: 4px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: filter 0.3s;
+  
 }
 
 .component:hover {
-  background-color: var(--primary-bg);
+  filter: invert(1);
 }
 
 .component-icon {
@@ -253,94 +254,6 @@ body {
   font-style: normal;
   font-size: 0.8rem;
   text-align: center;
-}
-
-/* Component icons */
-.toggle-switch {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><circle cx="16" cy="12" r="6"/><line x1="2" y1="12" x2="10" y2="12"/></svg>');
-}
-
-.buttonPush {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4" fill="%23cdcfd0"/><line x1="2" y1="12" x2="22" y2="12"/></svg>');
-}
-
-.clock {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M2 6h4v6h4v-6h4v6h4v-6h4"/><line x1="2" y1="18" x2="22" y2="18"/></svg>');
-}
-
-.high-constant {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><text x="12" y="16" text-anchor="middle" font-size="14" fill="%23cdcfd0">1</text></svg>');
-}
-
-.low-constant {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><text x="12" y="16" text-anchor="middle" font-size="14" fill="%23cdcfd0">0</text></svg>');
-}
-
-.light-bulb {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M9 18h6"/><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/></svg>');
-}
-
-.digit {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M7 7h10M7 12h10M7 17h10M7 7v10M17 7v10"/></svg>');
-}
-.mux2 { 
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 4l8 4v8l-8 4z"/><line x1="12" y1="12" x2="20" y2="12"/><line x1="4" y1="8" x2="1" y2="8"/><line x1="4" y1="16" x2="1" y2="16"/><line x1="8" y1="0" x2="8" y2="6"/></svg>'); 
-}
-.mux4 {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 2l8 4v12l-8 4z"/><line x1="12" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="1" y2="6"/><line x1="4" y1="10" x2="1" y2="10"/><line x1="4" y1="14" x2="1" y2="14"/><line x1="4" y1="18" x2="1" y2="18"/><line x1="11" y1="0" x2="11" y2="5"/><line x1="7" y1="0" x2="7" y2="4"/></svg>');
-}
-.buffer {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 6v12l12-6z"/><line x1="20" y1="12" x2="16" y2="12"/></svg>');
-}
-.decoder {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M16 2L4 6v12l12 4z"/><line x1="0" y1="8" x2="4" y2="8"/><line x1="0" y1="16" x2="4" y2="16"/><line x1="16" y1="6" x2="20" y2="6"/><line x1="16" y1="10" x2="20" y2="10"/><line x1="16" y1="14" x2="20" y2="14"/><line x1="16" y1="18" x2="20" y2="18"/></svg>');
-}
-
-.not {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 6v12l12-6z"/><circle cx="20" cy="12" r="2"/><line x1="22" y1="12" x2="20" y2="12"/></svg>');
-}
-
-.and {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 6h8a8 8 0 0 1 8 8v0a8 8 0 0 1-8 8h-8z"/><line x1="4" y1="10" x2="1" y2="10"/><line x1="4" y1="18" x2="1" y2="18"/><line x1="20" y1="14" x2="23" y2="14"/></svg>');
-}
-
-.nand {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 6h8a8 8 0 0 1 8 8v0a8 8 0 0 1-8 8h-8z"/><circle cx="22" cy="14" r="2"/><line x1="4" y1="10" x2="1" y2="10"/><line x1="4" y1="18" x2="1" y2="18"/></svg>');
-}
-
-.screenshot {
-
- height: 30px;
- width: 30px;
-  
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  
-
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23D1F2EB" stroke-width="2"><path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" /><circle cx="12" cy="13" r="4" /><line x1="9" y1="3" x2="15" y2="3" /><line x1="18" y1="9" x2="20" y2="9" /></svg>');
-}
-
-.or {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 4C4 4 4 20 4 20C8 20 14 18 18 12C14 6 8 4 4 4Z" /><line x1="1" y1="8" x2="4" y2="8" /><line x1="1" y1="16" x2="4" y2="16" /><line x1="18" y1="12" x2="23" y2="12" /></svg>');
-}
-.dflipflop {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="1" /><line x1="1" y1="8" x2="6" y2="8" /><text x="1" y="6" font-size="4" fill="%23cdcfd0" stroke="none" stroke-width="0.5">D</text><line x1="1" y1="16" x2="6" y2="16" /><path d="M3 15 L4 16 L3 17" fill="none" /><line x1="18" y1="8" x2="23" y2="8" /><text x="20" y="6" font-size="4" fill="%23cdcfd0" stroke="none" stroke-width="0.5">Q</text><line x1="18" y1="16" x2="23" y2="16" /><text x="20" y="14.5" font-size="4" fill="%23cdcfd0" stroke="none" stroke-width="0.5">Q̄</text><line x1="6" y1="12" x2="18" y2="12" stroke-width="1" stroke-dasharray="1,1" /></svg>');
-}
-
-.dlatch {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="1" /><line x1="1" y1="8" x2="6" y2="8" /><text x="1" y="6" font-size="4" fill="%23cdcfd0" stroke="none" stroke-width="0.5">D</text><line x1="1" y1="16" x2="6" y2="16" /><path d="M3 15 L4 16 L3 17" fill="none" /><line x1="18" y1="8" x2="23" y2="8" /><text x="20" y="6" font-size="4" fill="%23cdcfd0" stroke="none" stroke-width="0.5">Q</text><line x1="18" y1="16" x2="23" y2="16" /><text x="20" y="14.5" font-size="4" fill="%23cdcfd0" stroke="none" stroke-width="0.5">Q̄</text></svg>');
-}
-.nor {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 4C4 4 4 20 4 20C8 20 14 18 18 12C14 6 8 4 4 4Z" /><circle cx="20" cy="12" r="2" /><line x1="1" y1="8" x2="4" y2="8" /><line x1="1" y1="16" x2="4" y2="16" /><line x1="22" y1="12" x2="23" y2="12" /></svg>');
-}
-
-.xor {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 4C4 4 4 20 4 20C8 20 14 18 18 12C14 6 8 4 4 4Z" /><path d="M1 4C1.5 8 2 9 2 12C2 15 1.5 16 1 20" /><line x1="0" y1="8" x2="1" y2="8" /><line x1="0" y1="16" x2="1" y2="16" /><line x1="18" y1="12" x2="23" y2="12" /></svg>');
-}
-
-.xnor {
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23cdcfd0" stroke-width="2"><path d="M4 4C4 4 4 20 4 20C8 20 14 18 18 12C14 6 8 4 4 4Z" /><path d="M1 4C1.5 8 2 9 2 12C2 15 1.5 16 1 20" /><circle cx="20" cy="12" r="2" /><line x1="0" y1="8" x2="1" y2="8" /><line x1="0" y1="16" x2="1" y2="16" /><line x1="22" y1="12" x2="23" y2="12" /></svg>');
 }
 
 .canvas-container {
@@ -375,7 +288,7 @@ body {
   font-size: larger;
   font-style: normal;
   border-bottom: 1px solid var(--border-color);
-  cursor: default;
+  cursor: pointer;
 }
 
 .button {
@@ -416,7 +329,7 @@ body {
   bottom: 20px;
   right: 20px;
   width: 350px;
-  height: 650px;
+  height: 90%;
   background-color: var(--secondary-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -440,8 +353,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background-color: var(--forest);
-  color: var(--mint);
+  background-color: var(--bg-color);
+  color: var(--text-color);
   font-family: "Pixelify Sans", sans-serif;
   border-bottom: 1px solid var(--border-color);
 }
@@ -475,6 +388,7 @@ body {
 }
 
 .user-message {
+  
   align-self: flex-end;
   flex-direction: row-reverse;
 }
@@ -514,7 +428,7 @@ body {
 
 .user-message .message-content {
   border-top-right-radius: 0;
-  background-color: var(--forest);
+  background-color: var(--border-color);
 }
 
 .ai-chat-input-area {
@@ -594,14 +508,7 @@ body {
     right: 5%;
   }
 }
-.aiLogo {
 
-  width: 48px;
-  aspect-ratio: 1;
-  
-  cursor: pointer;
-  
-}
 
 .theme-container {
   position: relative;
