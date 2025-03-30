@@ -29,6 +29,7 @@ import { BufferGate } from "./models/gates/BufferGate";
 import { HexDigit } from "./models/components/HexDigit";
 import { Text } from "./models/components/Text";
 import { LocalStorageCircuitRepository } from "./Repository/LocalStorageCircuitRepository";
+import { LogicGate } from "./models/LogicGate";
 
 // const repositoryService = new MockCircuitRepositoryService();
 const repositoryService = new LocalStorageCircuitRepository();
@@ -48,6 +49,8 @@ let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
 const verilogCode = `
+
+testingasd
 module full_subtractor(input a, b, bin, output diff, bout); 
 wire xor_ab; 
 wire not_a; 
@@ -66,6 +69,8 @@ and a2(and_xnor_bin, xnor_ab, bin);
 
 or o1(bout, and_nota_b, and_xnor_bin); 
 endmodule
+
+asadasd
 `;
 
 const promptAI = `Your name is Logai. You are an AI assistant specialized in digital logic circuits.
@@ -165,6 +170,21 @@ function initApp() {
   setUpAI();
   setTheme();
 }
+function extractVerilogFromPrompt(prompt: string): string | null {
+  // Regular expression to match Verilog modules (case-insensitive)
+  // This pattern matches from "module" keyword to "endmodule" keyword
+  const moduleRegex = /\b(module\s+[\w\s\(\),;]*[\s\S]*?endmodule)\b/gi;
+
+  // Find all matches
+  const matches = prompt.match(moduleRegex);
+
+  if (!matches || matches.length === 0) {
+    return null;
+  }
+
+  // If there are multiple modules, join them with newlines
+  return matches.join("\n\n");
+}
 
 function setupZoomControls() {
   canvas.addEventListener("wheel", (event) => {
@@ -239,15 +259,22 @@ function setupComponentAddListeners() {
       event.preventDefault();
       const type = component.getAttribute("data-type");
 
+      // Get canvas rect to determine viewport dimensions
       const canvasRect = canvas.getBoundingClientRect();
-      const centerX = canvasRect.width / 2;
-      const centerY = canvasRect.height / 2;
 
-      addComponentByType(type as string, { x: centerX, y: centerY });
+      // Calculate the viewport center in world coordinates
+      // This accounts for panning and zoom
+      const viewportCenterX = (canvasRect.width / 2 - circuitBoard.offsetX) / circuitBoard.scale;
+      const viewportCenterY = (canvasRect.height / 2 - circuitBoard.offsetY) / circuitBoard.scale;
+
+      // Add the component at the viewport center
+      addComponentByType(type as string, { 
+        x: viewportCenterX, 
+        y: viewportCenterY 
+      });
     });
   });
 }
-
 function addComponentByType(type: string, position: Point) {
   let component;
 
@@ -350,9 +377,21 @@ function setupKeyboardShortcuts() {
       circuitBoard.clearCurrentWire();
     }
 
-    if(event.key === "Enter"){
+    if (event.key === "Enter") {
       circuitBoard.simulate();
       circuitBoard.draw();
+    }
+    if(event.key === "+") {
+      
+      if(circuitBoard.selectedComponent){
+        const component = circuitBoard.selectedComponent;
+        if(component instanceof LogicGate && component.type !== "buffer" && component.type !== "not"){
+          component.increaseInputCount();
+          circuitBoard.draw();
+        }
+      }
+      
+      
     }
   });
 }
@@ -392,7 +431,7 @@ function setUpAI() {
       const loadingMessageDiv = document.createElement("div");
       loadingMessageDiv.className = "ai-message";
       loadingMessageDiv.innerHTML = `
-                               <svg width = 40px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
+        <svg width = 40px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
               
             <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
             
@@ -450,6 +489,34 @@ function setUpAI() {
     addUserMessage(message);
 
     chatInput.value = "";
+
+    const code = extractVerilogFromPrompt(message);
+    if (code) {
+     
+      if (
+        message.toLowerCase().includes("draw") ||
+        message.toLowerCase().includes("create") ||
+        message.toLowerCase().includes("make") ||
+        message.toLowerCase().includes("implement") ||
+        message.toLowerCase().includes("build") ||
+        message.toLowerCase().includes("convert")
+      ) {
+   
+        const converter = new VerilogCircuitConverter(circuitBoard);
+        const success = converter.importVerilogCode(code);
+
+        if (success) {
+          addAIMessage(
+            "I've created the circuit from your Verilog code! You can see it on the canvas now.",
+          );
+        } else {
+          addAIMessage(
+            "I found Verilog code in your message, but I couldn't create a valid circuit from it. Please check for syntax errors or unsupported features.",
+          );
+        }
+        return; 
+      }
+    }
 
     try {
       const aiResponse = await callMistralAPI(message);

@@ -560,15 +560,18 @@ body {
   transition: background-color 0.2s;
   color: var(--text-color);
   font-size: 14px;
+  transition: 0.5s;
 }
 
 .theme-option:hover {
   background-color: var(--text-color);
-  color: var(--bg-color);
+  color: var(--component-bg);
+  transform: scale(1.15);
 }
 
 .theme-option.active {
-  background-color: var(--text-color);
-  color: var(--bg-color);
+  
   font-weight: bold;
+  text-decoration: underline;
+  font-size: 16px;
 }

@@ -348,7 +348,7 @@ export class VerilogCircuitConverter {
     inputGroups.forEach(group => {
       const isControlGroup = group.some(input => 
         input.name.includes('mode') || input.name.includes('sel') || input.name === 's' ||
-        input.name === 'clk' || input.name === 'reset'
+        input.name === 'clk' || input.name === 'reset' || input.name === 'en' || input.name === 'enable'
       );
       
       if (isControlGroup) {

@@ -30,7 +30,7 @@ export abstract class Component {
     this.outputs = [];
     this.selected = false;
   }
-  
+
   abstract evaluate(): void;
   abstract draw(ctx: CanvasRenderingContext2D): void;
 
@@ -100,6 +100,7 @@ onClick(point: Point): void {
     
     return null;
   }
+  
   getState(): any {
     return {
       id: this.id,

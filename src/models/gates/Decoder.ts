@@ -3,26 +3,26 @@ import { LogicGate } from '../LogicGate';
 
 export class Decoder extends LogicGate {
   constructor(position: Point) {
-    super('decoder', position);
+    super('decoder', position,2,4);
 
-    this.outputs = [];
+    // this.outputs = [];
 
-    for (let i = 0; i < 4; i++) {
-        const portPosition = {
-          x: this.position.x + this.size.width + 10,
-          y: this.position.y + (i + 1) * (this.size.height / (4 + 1))
-        };
+    // for (let i = 0; i < 4; i++) {
+    //     const portPosition = {
+    //       x: this.position.x + this.size.width + 10,
+    //       y: this.position.y + (i + 1) * (this.size.height / (4 + 1))
+    //     };
   
-        this.outputs.push({
-          id: `${this.id}-output-${i}`,
+    //     this.outputs.push({
+    //       id: `${this.id}-output-${i}`,
           
-          type: 'output',
-          position: portPosition,
-          value: false,
-          isConnected: false,
-          component: this
-        });
-      }
+    //       type: 'output',
+    //       position: portPosition,
+    //       value: false,
+    //       isConnected: false,
+    //       component: this
+    //     });
+    //   }
   }
 
   evaluate(): void {
@@ -49,7 +49,7 @@ export class Decoder extends LogicGate {
   }
 
   
-  draw(ctx: CanvasRenderingContext2D): void {
+  drawGate(ctx: CanvasRenderingContext2D): void {
     
     ctx.strokeStyle = this.selected ? '#0B6E4F' : '#cdcfd0';
     ctx.lineWidth = 2;
@@ -81,44 +81,8 @@ export class Decoder extends LogicGate {
     ctx.textBaseline = 'middle';
     ctx.fillText("Decoder", x + width / 2, y + height / 2);
 
-    this.drawPorts(ctx);
+    
   }
 
-  protected drawPorts(ctx: CanvasRenderingContext2D): void {
-   
-    this.inputs.forEach(port => {
-      ctx.beginPath();
-      ctx.arc(port.position.x, port.position.y, 5, 0, Math.PI * 2);
 
-
-      ctx.fillStyle = port.value ? '#50C878' : '#353535';
-      ctx.fill();
-
-      ctx.strokeStyle = '#cdcfd0';
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(port.position.x, port.position.y);
-      ctx.lineTo(this.position.x, port.position.y);
-      ctx.stroke();
-    });
-
-
-    this.outputs.forEach(port => {
-        ctx.beginPath();
-        ctx.arc(port.position.x, port.position.y, 5, 0, Math.PI * 2);
-
-        ctx.fillStyle = port.value ? '#50C878' : '#353535';
-        ctx.fill();
-  
-        ctx.strokeStyle = '#cdcfd0';
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(port.position.x, port.position.y);
-        ctx.lineTo(this.position.x + this.size.width, port.position.y);
-        ctx.stroke();
-      });
-
-  }
 }

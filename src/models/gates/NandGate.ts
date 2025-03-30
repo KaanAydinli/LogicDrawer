@@ -13,7 +13,7 @@ export class NandGate extends LogicGate {
   }
 
   
-  draw(ctx: CanvasRenderingContext2D): void {
+  drawGate(ctx: CanvasRenderingContext2D): void {
     
     ctx.strokeStyle = this.selected ? "#0B6E4F" : "#cdcfd0";
     ctx.lineWidth = 2;
@@ -44,45 +44,6 @@ export class NandGate extends LogicGate {
     ctx.stroke();
 
     
-    this.drawPorts(ctx);
-  }
-
-  protected drawPorts(ctx: CanvasRenderingContext2D): void {
-    
-    this.inputs.forEach((port) => {
-      ctx.beginPath();
-      ctx.arc(port.position.x, port.position.y, 5, 0, Math.PI * 2);
-
-      
-      ctx.fillStyle = port.value ? "#50C878" : "#353535";
-      ctx.fill();
-
-      ctx.strokeStyle = "#cdcfd0";
-      ctx.stroke();
-
-      
-      ctx.beginPath();
-      ctx.moveTo(port.position.x, port.position.y);
-      ctx.lineTo(this.position.x, port.position.y);
-      ctx.stroke();
-    });
-
-    
-    const outputPort = this.outputs[0];
-    ctx.beginPath();
-    ctx.arc(outputPort.position.x + 5, outputPort.position.y, 5, 0, Math.PI * 2);
-
-    
-    ctx.fillStyle = outputPort.value ? "#50C878" : "#353535";
-    ctx.fill();
-
-    ctx.strokeStyle = "#cdcfd0";
-    ctx.stroke();
-
-    
-    ctx.beginPath();
-    ctx.moveTo(outputPort.position.x, outputPort.position.y);
-    ctx.lineTo(this.position.x + this.size.width + 12, outputPort.position.y);
-    ctx.stroke();
+   
   }
 }

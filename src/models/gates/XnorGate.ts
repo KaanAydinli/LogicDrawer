@@ -14,7 +14,7 @@ export class XnorGate extends LogicGate {
   }
 
   
-  draw(ctx: CanvasRenderingContext2D): void {
+  drawGate(ctx: CanvasRenderingContext2D): void {
     
     ctx.strokeStyle = this.selected ? "#0B6E4F" : "#cdcfd0";
     ctx.lineWidth = 2;
@@ -53,7 +53,5 @@ export class XnorGate extends LogicGate {
 
     ctx.stroke();
 
-    
-    this.drawPorts(ctx);
   }
 }

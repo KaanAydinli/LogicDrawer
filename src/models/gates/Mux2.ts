@@ -16,7 +16,7 @@ export class Mux2 extends LogicGate {
   }
 
   
-draw(ctx: CanvasRenderingContext2D): void {
+drawGate(ctx: CanvasRenderingContext2D): void {
     
     ctx.strokeStyle = this.selected ? '#0B6E4F' : '#cdcfd0';
     ctx.lineWidth = 2;
@@ -117,7 +117,7 @@ draw(ctx: CanvasRenderingContext2D): void {
     }
   
     
-    this.drawPorts(ctx);
+   
   }
   protected drawPorts(ctx: CanvasRenderingContext2D): void {
     
