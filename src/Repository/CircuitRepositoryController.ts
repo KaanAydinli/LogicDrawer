@@ -1,51 +1,55 @@
-import { VerilogCircuitConverter } from './models/utils/VerilogCircuitConverter';
-
+import { VerilogCircuitConverter } from "../models/utils/VerilogCircuitConverter";
 
 export interface Comment {
-    id: string;
-    authorId: string;
-    authorName: string;
-    date: Date;
-    text: string;
-    likes: number;
-  }
-  
-  export interface CircuitEntry {
-    id: string;
-    title: string;
-    description: string;
-    authorId: string;
-    authorName: string;
-    dateCreated: Date;
-    dateModified: Date;
-    tags: string[];
-    verilogCode: string;
-    likes: number;
-    downloads: number;
-    comments: Comment[];
-    thumbnailUrl?: string;
-  }
-  
-  export interface CircuitRepositoryService {
-    getCircuits(): Promise<CircuitEntry[]>;
-    getCircuitById(id: string): Promise<CircuitEntry>;
-    searchCircuits(query: string): Promise<CircuitEntry[]>;
-    uploadCircuit(circuit: Omit<CircuitEntry, 'id' | 'dateCreated' | 'dateModified' | 'likes' | 'downloads' | 'comments'>): Promise<CircuitEntry>;
-    likeCircuit(id: string): Promise<void>;
-    downloadCircuit(id: string): Promise<string>; // Returns Verilog code
-    addComment(circuitId: string, comment: Omit<Comment, 'id' | 'date' | 'likes'>): Promise<Comment>;
-    deleteCircuit(id: string): Promise<void>;
-  }
+  id: string;
+  authorId: string;
+  authorName: string;
+  date: Date;
+  text: string;
+  likes: number;
+}
+
+export interface CircuitEntry {
+  id: string;
+  title: string;
+  description: string;
+  authorId: string;
+  authorName: string;
+  dateCreated: Date;
+  dateModified: Date;
+  tags: string[];
+  verilogCode: string;
+  likes: number;
+  downloads: number;
+  comments: Comment[];
+  thumbnailUrl?: string;
+}
+
+export interface CircuitRepositoryService {
+  getCircuits(): Promise<CircuitEntry[]>;
+  getCircuitById(id: string): Promise<CircuitEntry>;
+  searchCircuits(query: string): Promise<CircuitEntry[]>;
+  uploadCircuit(
+    circuit: Omit<
+      CircuitEntry,
+      "id" | "dateCreated" | "dateModified" | "likes" | "downloads" | "comments"
+    >,
+  ): Promise<CircuitEntry>;
+  likeCircuit(id: string): Promise<void>;
+  downloadCircuit(id: string): Promise<string>; // Returns Verilog code
+  addComment(circuitId: string, comment: Omit<Comment, "id" | "date" | "likes">): Promise<Comment>;
+  deleteCircuit(id: string): Promise<void>;
+}
 export function createRepositoryUI(): HTMLElement {
-    const container = document.createElement('div');
-    container.id = 'circuit-repository';
-    container.className = 'repository-modal';
-    container.style.display = 'none';
-    
-    container.innerHTML = `
+  const container = document.createElement("div");
+  container.id = "circuit-repository";
+  container.className = "repository-modal";
+  container.style.display = "none";
+
+  container.innerHTML = `
       <div class="repository-content">
         <div class="repository-header">
-          <h2>Circuit Repository</h2>
+          <div class="repository-title">Circuit Repository</div>
           <button class="close-button" id="repo-close-btn">×</button>
         </div>
         
@@ -77,7 +81,7 @@ export function createRepositoryUI(): HTMLElement {
       <!-- Upload Form (initially hidden) -->
       <div class="upload-form" id="upload-form" style="display: none;">
         <div class="form-header">
-          <h3>Upload New Circuit</h3>
+          <div class="form-title">Upload New Circuit</div>
           <button class="close-button" id="close-upload-form">×</button>
         </div>
         
@@ -106,13 +110,13 @@ export function createRepositoryUI(): HTMLElement {
         </form>
       </div>
     `;
-    
-    return container;
-  }
-  
-  export function addRepositoryStyles(): void {
-    const style = document.createElement('style');
-    style.textContent = `
+
+  return container;
+}
+
+export function addRepositoryStyles(): void {
+  const style = document.createElement("style");
+  style.textContent = `
       .repository-modal {
         position: fixed;
         top: 0;
@@ -128,14 +132,16 @@ export function createRepositoryUI(): HTMLElement {
       }
       
       .repository-content {
-        background-color: white;
+        background-color: var(--bg-color);
+        border: 3px solid #0b0b0b;
         border-radius: 8px;
         width: 90%;
         height: 90%;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+        color: var(--text-color);
       }
       
       .repository-header {
@@ -143,14 +149,17 @@ export function createRepositoryUI(): HTMLElement {
         justify-content: space-between;
         align-items: center;
         padding: 16px 24px;
-        border-bottom: 1px solid #e0e0e0;
-        background-color: #f8f9fa;
+        border-bottom: 3px solid #0b0b0b;
+        background-color: var(--bg-color);
       }
       
-      .repository-header h2 {
+      .repository-title {
         margin: 0;
-        color: #333;
-        font-weight: 600;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: 900;
+        font-size: xx-large;
       }
       
       .close-button {
@@ -158,57 +167,60 @@ export function createRepositoryUI(): HTMLElement {
         border: none;
         font-size: 24px;
         cursor: pointer;
-        color: #666;
+        color: var(--text-color);
         transition: color 0.2s;
       }
       
       .close-button:hover {
-        color: #333;
+        color: var(--highlight-color);
       }
       
       .repository-tabs {
         display: flex;
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #e0e0e0;
+        background-color: var(--secondary-bg);
+        border-bottom: 1px solid var(--border-color);
       }
       
       .tab {
         padding: 12px 24px;
         cursor: pointer;
         border-bottom: 3px solid transparent;
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 500;
         transition: all 0.2s;
-        color: #555;
+        color: var(--text-color);
       }
       
       .tab:hover {
-        background-color: #eee;
+        background-color: var(--component-bg);
       }
       
       .tab.active {
-        border-bottom-color: #4285f4;
-        color: #4285f4;
+        border-bottom-color: var(--highlight-color);
+        color: var(--highlight-color);
         font-weight: 600;
       }
       
       .search-container {
         display: flex;
         padding: 16px 24px;
-        border-bottom: 1px solid #e0e0e0;
-        background-color: white;
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--secondary-bg);
       }
       
       .search-container input {
         flex: 1;
         padding: 10px 16px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         font-size: 14px;
+        background-color: var(--component-bg);
+        color: var(--text-color);
         transition: border-color 0.2s;
       }
       
       .search-container input:focus {
-        border-color: #4285f4;
+        border-color: var(--highlight-color);
         outline: none;
         box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
       }
@@ -216,17 +228,19 @@ export function createRepositoryUI(): HTMLElement {
       .upload-button {
         margin-left: 12px;
         padding: 10px 16px;
-        background-color: #4285f4;
-        color: white;
-        border: none;
+        background-color: var(--component-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         cursor: pointer;
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 500;
         transition: background-color 0.2s;
       }
       
       .upload-button:hover {
-        background-color: #3367d6;
+        background-color: var(--highlight-color);
+        color: #fff;
       }
       
       .circuit-grid {
@@ -236,34 +250,35 @@ export function createRepositoryUI(): HTMLElement {
         padding: 24px;
         overflow-y: auto;
         flex: 1;
-        background-color: #f8f9fa;
+        background-color: var(--bg-color);
       }
       
       .circuit-card {
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--border-color);
         border-radius: 8px;
         overflow: hidden;
         transition: transform 0.2s, box-shadow 0.2s;
         cursor: pointer;
-        background-color: white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        background-color: var(--secondary-bg);
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
       }
       
       .circuit-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        background-color: var(--component-bg);
       }
       
       .circuit-thumbnail {
         height: 160px;
-        background-color: #eef2f5;
+        background-color: var(--component-bg);
         background-size: cover;
         background-position: center;
         display: flex;
         justify-content: center;
         align-items: center;
-        color: #999;
-        border-bottom: 1px solid #eee;
+        color: var(--text-color);
+        border-bottom: 1px solid var(--border-color);
       }
       
       .circuit-info {
@@ -272,13 +287,14 @@ export function createRepositoryUI(): HTMLElement {
       
       .circuit-info h3 {
         margin: 0 0 12px 0;
-        color: #333;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 600;
       }
       
       .circuit-info p {
         margin: 0 0 12px 0;
-        color: #555;
+        color: var(--text-color);
         font-size: 14px;
         line-height: 1.5;
       }
@@ -286,7 +302,8 @@ export function createRepositoryUI(): HTMLElement {
       .circuit-meta {
         display: flex;
         justify-content: space-between;
-        color: #888;
+        color: var(--text-color);
+        opacity: 0.7;
         font-size: 13px;
         margin-bottom: 12px;
       }
@@ -298,23 +315,24 @@ export function createRepositoryUI(): HTMLElement {
       }
       
       .tag {
-        background-color: #eef2f5;
+        background-color: var(--component-bg);
         padding: 4px 10px;
         border-radius: 12px;
         font-size: 12px;
-        color: #555;
+        color: var(--text-color);
         transition: background-color 0.2s;
       }
       
       .tag:hover {
-        background-color: #dde4ea;
+        background-color: var(--highlight-color);
+        color: #fff;
       }
       
       .circuit-detail {
         flex: 1;
         padding: 24px;
         overflow-y: auto;
-        background-color: white;
+        background-color: var(--bg-color);
       }
       
       .back-button {
@@ -322,7 +340,8 @@ export function createRepositoryUI(): HTMLElement {
         border: none;
         padding: 8px 0;
         cursor: pointer;
-        color: #4285f4;
+        color: var(--highlight-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 500;
         margin-bottom: 20px;
         display: flex;
@@ -331,7 +350,7 @@ export function createRepositoryUI(): HTMLElement {
       }
       
       .back-button:hover {
-        color: #3367d6;
+        color: #fff;
         text-decoration: underline;
       }
       
@@ -346,12 +365,13 @@ export function createRepositoryUI(): HTMLElement {
         align-items: center;
         margin-bottom: 24px;
         padding-bottom: 16px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--border-color);
       }
       
       .detail-header h2 {
         margin: 0;
-        color: #333;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 600;
       }
       
@@ -362,69 +382,76 @@ export function createRepositoryUI(): HTMLElement {
       
       .detail-actions button {
         padding: 10px 16px;
-        border: none;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         cursor: pointer;
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 500;
         transition: background-color 0.2s;
       }
       
       .use-button {
-        background-color: #4285f4;
-        color: white;
+        background-color: var(--component-bg);
+        color: var(--text-color);
       }
       
       .use-button:hover {
-        background-color: #3367d6;
+        background-color: var(--highlight-color);
+        color: #fff;
       }
       
       .download-button {
-        background-color: #34a853;
-        color: white;
+        background-color: var(--component-bg);
+        color: var(--text-color);
       }
       
       .download-button:hover {
-        background-color: #2a8943;
+        background-color: var(--highlight-color);
+        color: #fff;
       }
       
       .like-button {
-        background-color: #f5f5f5;
-        color: #333;
+        background-color: var(--component-bg);
+        color: var(--text-color);
         display: flex;
         align-items: center;
         gap: 6px;
       }
       
       .like-button:hover {
-        background-color: #e5e5e5;
+        background-color: #e53935;
+        color: #fff;
       }
       
       .like-button.liked {
-        background-color: #ffebee;
-        color: #e53935;
+        background-color: #e53935;
+        color: #fff;
       }
       
       .detail-info {
         margin-bottom: 24px;
         line-height: 1.6;
-        color: #555;
+        color: var(--text-color);
       }
       
       .detail-info strong {
-        color: #333;
+        color: var(--text-color);
+        opacity: 0.9;
       }
       
       .detail-description {
         margin: 24px 0;
         padding: 20px;
-        background-color: #f9f9f9;
+        background-color: var(--secondary-bg);
         border-radius: 8px;
         line-height: 1.6;
+        border: 1px solid var(--border-color);
       }
       
       .detail-description h3 {
         margin-top: 0;
-        color: #333;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 600;
       }
       
@@ -439,19 +466,21 @@ export function createRepositoryUI(): HTMLElement {
       .circuit-preview {
         margin: 24px 0;
         padding: 20px;
-        background-color: #f9f9f9;
+        background-color: var(--secondary-bg);
         border-radius: 8px;
+        border: 1px solid var(--border-color);
       }
       
       .circuit-preview h3 {
         margin-top: 0;
-        color: #333;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 600;
       }
       
       .circuit-preview img {
         max-width: 100%;
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--border-color);
         border-radius: 8px;
         margin-top: 16px;
       }
@@ -462,19 +491,20 @@ export function createRepositoryUI(): HTMLElement {
       
       .circuit-code h3 {
         margin-top: 0;
-        color: #333;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 600;
       }
       
       .circuit-code pre {
-        background-color: #f5f5f5;
+        background-color: var(--component-bg);
         padding: 16px;
         border-radius: 8px;
         overflow-x: auto;
         font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
         line-height: 1.5;
         margin-top: 16px;
-        border: 1px solid #e0e0e0;
+        border: 1px solid var(--border-color);
       }
       
       .circuit-comments {
@@ -483,7 +513,8 @@ export function createRepositoryUI(): HTMLElement {
       
       .circuit-comments h3 {
         margin-top: 0;
-        color: #333;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 600;
         margin-bottom: 16px;
       }
@@ -493,7 +524,7 @@ export function createRepositoryUI(): HTMLElement {
       }
       
       .comment {
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--border-color);
         padding: 16px 0;
       }
       
@@ -509,55 +540,60 @@ export function createRepositoryUI(): HTMLElement {
       
       .comment-author {
         font-weight: 600;
-        color: #333;
+        color: var(--text-color);
       }
       
       .comment-date {
-        color: #888;
+        color: var(--text-color);
+        opacity: 0.7;
         font-size: 13px;
       }
       
       .comment-text {
-        color: #555;
+        color: var(--text-color);
         line-height: 1.5;
       }
       
       .comment-form {
         margin-top: 24px;
-        border-top: 1px solid #eee;
+        border-top: 1px solid var(--border-color);
         padding-top: 24px;
       }
       
       .comment-form textarea {
         width: 100%;
         padding: 12px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         resize: vertical;
         min-height: 100px;
         margin-bottom: 12px;
         font-family: inherit;
+        background-color: var(--component-bg);
+        color: var(--text-color);
       }
       
       .comment-form textarea:focus {
-        border-color: #4285f4;
+        border-color: var(--highlight-color);
         outline: none;
         box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
       }
       
       .comment-form button {
         padding: 10px 16px;
-        background-color: #4285f4;
-        color: white;
-        border: none;
+        background-color: var(--component-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         cursor: pointer;
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 500;
         transition: background-color 0.2s;
       }
       
       .comment-form button:hover {
-        background-color: #3367d6;
+        background-color: var(--highlight-color);
+        color: #fff;
       }
       
       .upload-form {
@@ -565,13 +601,15 @@ export function createRepositoryUI(): HTMLElement {
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        background-color: white;
+        background-color: var(--bg-color);
         padding: 24px;
         border-radius: 8px;
         width: 550px;
         max-width: 90%;
-        box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
         z-index: 1100;
+        border: 3px solid #0b0b0b;
+        color: var(--text-color);
       }
       
       .form-header {
@@ -580,13 +618,15 @@ export function createRepositoryUI(): HTMLElement {
         align-items: center;
         margin-bottom: 24px;
         padding-bottom: 16px;
-        border-bottom: 1px solid #eee;
+        border-bottom: 1px solid var(--border-color);
       }
       
-      .form-header h3 {
+      .form-title {
         margin: 0;
-        color: #333;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 600;
+        font-size: 20px;
       }
       
       .form-field {
@@ -596,24 +636,27 @@ export function createRepositoryUI(): HTMLElement {
       .form-field label {
         display: block;
         margin-bottom: 8px;
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 500;
-        color: #333;
+        color: var(--text-color);
       }
       
       .form-field input,
       .form-field textarea {
         width: 100%;
         padding: 10px 12px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         font-family: inherit;
         font-size: 14px;
+        background-color: var(--component-bg);
+        color: var(--text-color);
         transition: border-color 0.2s;
       }
       
       .form-field input:focus,
       .form-field textarea:focus {
-        border-color: #4285f4;
+        border-color: var(--highlight-color);
         outline: none;
         box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
       }
@@ -630,26 +673,29 @@ export function createRepositoryUI(): HTMLElement {
       
       form button[type="submit"] {
         padding: 12px 16px;
-        background-color: #4285f4;
-        color: white;
-        border: none;
+        background-color: var(--component-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         cursor: pointer;
         width: 100%;
         margin-top: 16px;
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 500;
         transition: background-color 0.2s;
       }
       
       form button[type="submit"]:hover {
-        background-color: #3367d6;
+        background-color: var(--highlight-color);
+        color: #fff;
       }
       
       .loading-indicator {
         grid-column: 1 / -1;
         text-align: center;
         padding: 40px;
-        color: #666;
+        color: var(--text-color);
+        font-family: "Pixelify Sans", sans-serif;
         font-style: italic;
       }
       
@@ -657,31 +703,34 @@ export function createRepositoryUI(): HTMLElement {
         grid-column: 1 / -1;
         text-align: center;
         padding: 60px;
-        color: #666;
-        background-color: white;
+        color: var(--text-color);
+        background-color: var(--secondary-bg);
         border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border-color);
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+        font-family: "Pixelify Sans", sans-serif;
       }
       
       .repository-button {
-        background-color: #4285f4;
-        color: white;
-        border: none;
+        background-color: var(--component-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
         border-radius: 4px;
         padding: 10px 16px;
+        font-family: "Pixelify Sans", sans-serif;
         font-weight: 500;
         cursor: pointer;
         transition: background-color 0.2s;
       }
       
       .repository-button:hover {
-        background-color: #3367d6;
+        background-color: var(--highlight-color);
+        color: #fff;
       }
     `;
-    
-    document.head.appendChild(style);
-  }
 
+  document.head.appendChild(style);
+}
 
 export class CircuitRepositoryController {
   private container: HTMLElement;
@@ -690,122 +739,130 @@ export class CircuitRepositoryController {
   private detailViewElement: HTMLElement | null = null;
   private uploadFormElement: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
-  
+
   private currentCircuits: CircuitEntry[] = [];
-  private currentTab: 'browse' | 'my-circuits' = 'browse';
+  private currentTab: "browse" | "my-circuits" = "browse";
   public selectedCircuitId: string | null = null;
 
   constructor(
     private repositoryService: CircuitRepositoryService,
     private verilogConverter: VerilogCircuitConverter,
     containerElement: HTMLElement,
-    private currentUserId: string = 'default-user'
+    private currentUserId: string = "default-user",
   ) {
     this.container = containerElement;
     this.initializeUI();
   }
-  
+
   public open(): void {
     if (this.modalElement) {
-      this.modalElement.style.display = 'flex';
+      this.modalElement.style.display = "flex";
       this.loadCircuits();
     }
   }
-  
+
   public close(): void {
     if (this.modalElement) {
-      this.modalElement.style.display = 'none';
+      this.modalElement.style.display = "none";
     }
   }
-  
+
   private initializeUI(): void {
     // Add styles to document
     addRepositoryStyles();
-    
+
     // Create and add repository UI to container
     const repoUI = createRepositoryUI();
     this.container.appendChild(repoUI);
     this.modalElement = repoUI;
-    
+
     // Cache element references
-    this.circuitGridElement = document.getElementById('circuit-grid');
-    this.detailViewElement = document.getElementById('circuit-detail');
-    this.uploadFormElement = document.getElementById('upload-form');
-    this.searchInput = document.getElementById('circuit-search') as HTMLInputElement;
-    
+    this.circuitGridElement = document.getElementById("circuit-grid");
+    this.detailViewElement = document.getElementById("circuit-detail");
+    this.uploadFormElement = document.getElementById("upload-form");
+    this.searchInput = document.getElementById("circuit-search") as HTMLInputElement;
+
     // Set up event listeners
     this.setupEventListeners();
   }
-  
+
   private setupEventListeners(): void {
     // Close button
-    const closeBtn = document.getElementById('repo-close-btn');
+    const closeBtn = document.getElementById("repo-close-btn");
     if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.close());
+      closeBtn.addEventListener("click", () => this.close());
     }
-    
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.modalElement) {
+        this.close();
+      }
+    });
+
     // Tab switching
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        const tabName = (e.currentTarget as HTMLElement).getAttribute('data-tab');
-        if (tabName === 'browse' || tabName === 'my-circuits') {
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", (e) => {
+        const tabName = (e.currentTarget as HTMLElement).getAttribute("data-tab");
+        if (tabName === "browse" || tabName === "my-circuits") {
           this.switchTab(tabName);
         }
       });
     });
-    
+
     // Search input
     if (this.searchInput) {
-      this.searchInput.addEventListener('input', (e) => {
+      this.searchInput.addEventListener("input", (e) => {
         const query = (e.target as HTMLInputElement).value;
         this.searchCircuits(query);
       });
     }
-    
+
     // Upload button
-    const uploadBtn = document.getElementById('upload-circuit-btn');
+    const uploadBtn = document.getElementById("upload-circuit-btn");
     if (uploadBtn) {
-      uploadBtn.addEventListener('click', () => this.showUploadForm());
+      uploadBtn.addEventListener("click", () => this.showUploadForm());
     }
-    
+
     // Close upload form
-    const closeUploadBtn = document.getElementById('close-upload-form');
+    const closeUploadBtn = document.getElementById("close-upload-form");
     if (closeUploadBtn) {
-      closeUploadBtn.addEventListener('click', () => this.hideUploadForm());
+      closeUploadBtn.addEventListener("click", () => this.hideUploadForm());
     }
-    
+
     // Upload form submission
-    const uploadForm = document.getElementById('circuit-upload-form');
+    const uploadForm = document.getElementById("circuit-upload-form");
     if (uploadForm) {
-      uploadForm.addEventListener('submit', (e) => this.handleUploadSubmit(e));
+      uploadForm.addEventListener("submit", (e) => this.handleUploadSubmit(e));
     }
-    
+
     // Back to grid button
-    const backBtn = document.getElementById('back-to-grid-btn');
+    const backBtn = document.getElementById("back-to-grid-btn");
     if (backBtn) {
-      backBtn.addEventListener('click', () => this.showCircuitGrid());
+      backBtn.addEventListener("click", () => this.showCircuitGrid());
     }
   }
-  
+
   private async loadCircuits(): Promise<void> {
     if (!this.circuitGridElement) return;
-    
+
     // Show loading state
     this.circuitGridElement.innerHTML = `<div class="loading-indicator">Loading circuits...</div>`;
-    
+
     try {
-      if (this.currentTab === 'browse') {
+      if (this.currentTab === "browse") {
         this.currentCircuits = await this.repositoryService.getCircuits();
       } else {
         // For 'my-circuits', filter by current user
         const allCircuits = await this.repositoryService.getCircuits();
-        this.currentCircuits = allCircuits.filter((c: { authorId: string; }) => c.authorId === this.currentUserId);
+        this.currentCircuits = allCircuits.filter(
+          (c: { authorId: string }) => c.authorId === this.currentUserId,
+        );
       }
-      
+
       this.renderCircuitGrid();
     } catch (error) {
-      console.error('Failed to load circuits:', error);
+      console.error("Failed to load circuits:", error);
       this.circuitGridElement.innerHTML = `
         <div class="no-results">
           <h3>Error Loading Circuits</h3>
@@ -814,36 +871,36 @@ export class CircuitRepositoryController {
       `;
     }
   }
-  
+
   private renderCircuitGrid(): void {
     if (!this.circuitGridElement) return;
-    
+
     if (this.currentCircuits.length === 0) {
       this.circuitGridElement.innerHTML = `
         <div class="no-results">
           <h3>No circuits found</h3>
-          <p>${this.currentTab === 'browse' ? 'There are no circuits in the repository yet.' : 'You haven\'t created any circuits yet.'}</p>
+          <p>${this.currentTab === "browse" ? "There are no circuits in the repository yet." : "You haven't created any circuits yet."}</p>
         </div>
       `;
       return;
     }
-    
-    this.circuitGridElement.innerHTML = '';
-    
-    this.currentCircuits.forEach(circuit => {
+
+    this.circuitGridElement.innerHTML = "";
+
+    this.currentCircuits.forEach((circuit) => {
       const card = this.createCircuitCard(circuit);
       this.circuitGridElement?.appendChild(card);
     });
   }
-  
+
   private createCircuitCard(circuit: CircuitEntry): HTMLElement {
-    const card = document.createElement('div');
-    card.className = 'circuit-card';
+    const card = document.createElement("div");
+    card.className = "circuit-card";
     card.dataset.circuitId = circuit.id;
-    
+
     card.innerHTML = `
-      <div class="circuit-thumbnail" ${circuit.thumbnailUrl ? `style="background-image: url('${circuit.thumbnailUrl}')"` : ''}>
-        ${!circuit.thumbnailUrl ? 'No Preview' : ''}
+      <div class="circuit-thumbnail" ${circuit.thumbnailUrl ? `style="background-image: url('${circuit.thumbnailUrl}')"` : ""}>
+        ${!circuit.thumbnailUrl ? "No Preview" : ""}
       </div>
       <div class="circuit-info">
         <h3>${circuit.title}</h3>
@@ -854,50 +911,50 @@ export class CircuitRepositoryController {
           <span>⬇️ ${circuit.downloads}</span>
         </div>
         <div class="circuit-tags">
-          ${circuit.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+          ${circuit.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
         </div>
       </div>
     `;
-    
-    card.addEventListener('click', () => this.viewCircuitDetails(circuit.id));
-    
+
+    card.addEventListener("click", () => this.viewCircuitDetails(circuit.id));
+
     return card;
   }
-  
+
   private async viewCircuitDetails(circuitId: string): Promise<void> {
     if (!this.detailViewElement || !this.circuitGridElement) return;
-    
+
     try {
       const circuit = await this.repositoryService.getCircuitById(circuitId);
       this.selectedCircuitId = circuitId;
-      
+
       // Render detail view
       this.renderCircuitDetail(circuit);
-      
+
       // Show detail view, hide grid
-      this.circuitGridElement.style.display = 'none';
-      this.detailViewElement.style.display = 'block';
+      this.circuitGridElement.style.display = "none";
+      this.detailViewElement.style.display = "block";
     } catch (error) {
-      console.error('Failed to load circuit details:', error);
-      alert('Error loading circuit details. Please try again.');
+      console.error("Failed to load circuit details:", error);
+      alert("Error loading circuit details. Please try again.");
     }
   }
-  
+
   private renderCircuitDetail(circuit: CircuitEntry): void {
     if (!this.detailViewElement) return;
-    
-    const detailContainer = document.getElementById('detail-container');
+
+    const detailContainer = document.getElementById("detail-container");
     if (!detailContainer) return;
-    
+
     const isLiked = false; // In a real app, you'd check if the current user has liked this circuit
-    
+
     detailContainer.innerHTML = `
       <div class="detail-header">
         <h2>${circuit.title}</h2>
         <div class="detail-actions">
           <button class="use-button" id="use-circuit-btn">Use This Circuit</button>
           <button class="download-button" id="download-circuit-btn">Download</button>
-          <button class="like-button ${isLiked ? 'liked' : ''}" id="like-circuit-btn">
+          <button class="like-button ${isLiked ? "liked" : ""}" id="like-circuit-btn">
             ❤️ ${circuit.likes}
           </button>
         </div>
@@ -910,7 +967,7 @@ export class CircuitRepositoryController {
         
         <div class="detail-tags">
           <strong>Tags:</strong>
-          ${circuit.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+          ${circuit.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
         </div>
       </div>
       
@@ -921,9 +978,10 @@ export class CircuitRepositoryController {
       
       <div class="circuit-preview">
         <h3>Circuit Preview</h3>
-        ${circuit.thumbnailUrl 
-          ? `<img src="${circuit.thumbnailUrl}" alt="${circuit.title}">`
-          : '<p>No preview available</p>'
+        ${
+          circuit.thumbnailUrl
+            ? `<img src="${circuit.thumbnailUrl}" alt="${circuit.title}">`
+            : "<p>No preview available</p>"
         }
       </div>
       
@@ -936,9 +994,12 @@ export class CircuitRepositoryController {
         <h3>Comments (${circuit.comments.length})</h3>
         
         <div class="comments-list">
-          ${circuit.comments.length === 0 
-            ? '<p>No comments yet. Be the first to comment!</p>' 
-            : circuit.comments.map(comment => `
+          ${
+            circuit.comments.length === 0
+              ? "<p>No comments yet. Be the first to comment!</p>"
+              : circuit.comments
+                  .map(
+                    (comment) => `
                 <div class="comment">
                   <div class="comment-header">
                     <span class="comment-author">${comment.authorName}</span>
@@ -946,7 +1007,9 @@ export class CircuitRepositoryController {
                   </div>
                   <div class="comment-text">${comment.text}</div>
                 </div>
-              `).join('')
+              `,
+                  )
+                  .join("")
           }
         </div>
         
@@ -956,216 +1019,218 @@ export class CircuitRepositoryController {
         </div>
       </div>
     `;
-    
+
     // Set up event listeners for detail view
     this.setupDetailViewEvents(circuit);
   }
-  
+
   private setupDetailViewEvents(circuit: CircuitEntry): void {
     // Use circuit button
-    const useBtn = document.getElementById('use-circuit-btn');
+    const useBtn = document.getElementById("use-circuit-btn");
     if (useBtn) {
-      useBtn.addEventListener('click', () => this.useCircuit(circuit));
+      useBtn.addEventListener("click", () => this.useCircuit(circuit));
     }
-    
+
     // Download button
-    const downloadBtn = document.getElementById('download-circuit-btn');
+    const downloadBtn = document.getElementById("download-circuit-btn");
     if (downloadBtn) {
-      downloadBtn.addEventListener('click', () => this.downloadCircuit(circuit));
+      downloadBtn.addEventListener("click", () => this.downloadCircuit(circuit));
     }
-    
+
     // Like button
-    const likeBtn = document.getElementById('like-circuit-btn');
+    const likeBtn = document.getElementById("like-circuit-btn");
     if (likeBtn) {
-      likeBtn.addEventListener('click', () => this.likeCircuit(circuit.id));
+      likeBtn.addEventListener("click", () => this.likeCircuit(circuit.id));
     }
-    
+
     // Comment button
-    const commentBtn = document.getElementById('post-comment-btn');
-    const commentText = document.getElementById('comment-text') as HTMLTextAreaElement;
+    const commentBtn = document.getElementById("post-comment-btn");
+    const commentText = document.getElementById("comment-text") as HTMLTextAreaElement;
     if (commentBtn && commentText) {
-      commentBtn.addEventListener('click', () => {
+      commentBtn.addEventListener("click", () => {
         if (commentText.value.trim()) {
           this.addComment(circuit.id, commentText.value);
-          commentText.value = '';
+          commentText.value = "";
         }
       });
     }
   }
-  
-  private switchTab(tab: 'browse' | 'my-circuits'): void {
+
+  private switchTab(tab: "browse" | "my-circuits"): void {
     this.currentTab = tab;
-    
+
     // Update active tab UI
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(t => {
-      if (t.getAttribute('data-tab') === tab) {
-        t.classList.add('active');
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach((t) => {
+      if (t.getAttribute("data-tab") === tab) {
+        t.classList.add("active");
       } else {
-        t.classList.remove('active');
+        t.classList.remove("active");
       }
     });
-    
+
     // Reload circuits for this tab
     this.loadCircuits();
-    
+
     // Reset to grid view
     this.showCircuitGrid();
   }
-  
+
   private showCircuitGrid(): void {
     if (!this.circuitGridElement || !this.detailViewElement) return;
-    
-    this.detailViewElement.style.display = 'none';
-    this.circuitGridElement.style.display = 'grid';
+
+    this.detailViewElement.style.display = "none";
+    this.circuitGridElement.style.display = "grid";
     this.selectedCircuitId = null;
   }
-  
+
   private async searchCircuits(query: string): Promise<void> {
-    if (query.trim() === '') {
+    if (query.trim() === "") {
       // If search is empty, just load all circuits
       return this.loadCircuits();
     }
-    
+
     try {
       const searchResults = await this.repositoryService.searchCircuits(query);
-      
+
       // If in 'my-circuits' tab, filter by user
-      if (this.currentTab === 'my-circuits') {
-        this.currentCircuits = searchResults.filter(c => c.authorId === this.currentUserId);
+      if (this.currentTab === "my-circuits") {
+        this.currentCircuits = searchResults.filter((c) => c.authorId === this.currentUserId);
       } else {
         this.currentCircuits = searchResults;
       }
-      
+
       this.renderCircuitGrid();
     } catch (error) {
-      console.error('Search failed:', error);
+      console.error("Search failed:", error);
     }
   }
-  
+
   private showUploadForm(): void {
     if (this.uploadFormElement) {
-      this.uploadFormElement.style.display = 'block';
+      this.uploadFormElement.style.display = "block";
     }
   }
-  
+
   private hideUploadForm(): void {
     if (this.uploadFormElement) {
-      this.uploadFormElement.style.display = 'none';
-      
+      this.uploadFormElement.style.display = "none";
+
       // Clear form fields
-      const form = document.getElementById('circuit-upload-form') as HTMLFormElement;
+      const form = document.getElementById("circuit-upload-form") as HTMLFormElement;
       if (form) form.reset();
     }
   }
-  
+
   private async handleUploadSubmit(e: Event): Promise<void> {
     e.preventDefault();
-    
-    const titleInput = document.getElementById('circuit-title') as HTMLInputElement;
-    const descInput = document.getElementById('circuit-description') as HTMLTextAreaElement;
-    const tagsInput = document.getElementById('circuit-tags') as HTMLInputElement;
-    const codeInput = document.getElementById('circuit-code') as HTMLTextAreaElement;
-    
+
+    const titleInput = document.getElementById("circuit-title") as HTMLInputElement;
+    const descInput = document.getElementById("circuit-description") as HTMLTextAreaElement;
+    const tagsInput = document.getElementById("circuit-tags") as HTMLInputElement;
+    const codeInput = document.getElementById("circuit-code") as HTMLTextAreaElement;
+
     if (!titleInput || !descInput || !tagsInput || !codeInput) return;
-    
+
     const title = titleInput.value.trim();
     const description = descInput.value.trim();
-    const tags = tagsInput.value.split(',').map(t => t.trim()).filter(Boolean);
+    const tags = tagsInput.value
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
     const verilogCode = codeInput.value.trim();
-    
+
     if (!title || !description || !verilogCode) {
-      alert('Please fill in all required fields.');
+      alert("Please fill in all required fields.");
       return;
     }
-    
+
     try {
       const circuitData = {
         title,
         description,
         authorId: this.currentUserId,
-        authorName: 'Current User', // In a real app, you'd get this from user profile
+        authorName: "Current User", // In a real app, you'd get this from user profile
         tags,
         verilogCode,
-        thumbnailUrl: undefined // Could generate a thumbnail here
+        thumbnailUrl: undefined, // Could generate a thumbnail here
       };
-      
+
       await this.repositoryService.uploadCircuit(circuitData);
-      
+
       // Hide form and reload circuits
       this.hideUploadForm();
       this.loadCircuits();
     } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Failed to upload circuit. Please try again.');
+      console.error("Upload failed:", error);
+      alert("Failed to upload circuit. Please try again.");
     }
   }
-  
+
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
       // Import the circuit into the editor
       this.verilogConverter.importVerilogCode(circuit.verilogCode);
-      
+
       // Close the repository modal
       this.close();
     } catch (error) {
-      console.error('Failed to use circuit:', error);
-      alert('Error importing circuit. Please check the Verilog code and try again.');
+      console.error("Failed to use circuit:", error);
+      alert("Error importing circuit. Please check the Verilog code and try again.");
     }
   }
-  
+
   private async downloadCircuit(circuit: CircuitEntry): Promise<void> {
     try {
       await this.repositoryService.downloadCircuit(circuit.id);
-      
+
       // Create download link
-      const blob = new Blob([circuit.verilogCode], { type: 'text/plain' });
+      const blob = new Blob([circuit.verilogCode], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
+
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `${circuit.title.replace(/\s+/g, '_')}.v`;
+      a.download = `${circuit.title.replace(/\s+/g, "_")}.v`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Download failed:', error);
-      alert('Failed to download circuit. Please try again.');
+      console.error("Download failed:", error);
+      alert("Failed to download circuit. Please try again.");
     }
   }
-  
+
   private async likeCircuit(circuitId: string): Promise<void> {
     try {
       await this.repositoryService.likeCircuit(circuitId);
-      
+
       // Refresh circuit details to show updated like count
       this.viewCircuitDetails(circuitId);
     } catch (error) {
-      console.error('Like operation failed:', error);
+      console.error("Like operation failed:", error);
     }
   }
-  
+
   private async addComment(circuitId: string, text: string): Promise<void> {
     try {
       const comment = {
         authorId: this.currentUserId,
-        authorName: 'Current User', 
-        text: text.trim()
+        authorName: "Current User",
+        text: text.trim(),
       };
-      
+
       await this.repositoryService.addComment(circuitId, comment);
-      
+
       this.viewCircuitDetails(circuitId);
     } catch (error) {
-      console.error('Comment failed:', error);
-      alert('Failed to add comment. Please try again.');
+      console.error("Comment failed:", error);
+      alert("Failed to add comment. Please try again.");
     }
   }
-  
+
   private truncateText(text: string, maxLength: number): string {
     if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+    return text.substring(0, maxLength) + "...";
   }
-  
 }

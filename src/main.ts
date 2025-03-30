@@ -16,8 +16,8 @@ import { VerilogCircuitConverter } from "./models/utils/VerilogCircuitConverter"
 import { Constant1 } from "./models/components/Constant1";
 import { Constant0 } from "./models/components/Constant0";
 
-import { CircuitRepositoryController } from "./CircuitRepositoryController";
-import { MockCircuitRepositoryService } from "./MockCircuitRepositoryService";
+import { CircuitRepositoryController } from "./Repository/CircuitRepositoryController";
+import { MockCircuitRepositoryService } from "./Repository/MockCircuitRepositoryService";
 import { Wire } from "./models/Wire";
 import { Clock } from "./models/components/Clock";
 import { DLatch } from "./models/Sequential/DLatch";
@@ -28,8 +28,10 @@ import { Decoder } from "./models/gates/Decoder";
 import { BufferGate } from "./models/gates/BufferGate";
 import { HexDigit } from "./models/components/HexDigit";
 import { Text } from "./models/components/Text";
+import { LocalStorageCircuitRepository } from "./Repository/LocalStorageCircuitRepository";
 
-const repositoryService = new MockCircuitRepositoryService();
+// const repositoryService = new MockCircuitRepositoryService();
+const repositoryService = new LocalStorageCircuitRepository();
 var converter;
 
 const apiKey = import.meta.env.VITE_ROBOFLOW_API_KEY;
