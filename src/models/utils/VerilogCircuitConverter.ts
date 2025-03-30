@@ -353,7 +353,7 @@ export class VerilogCircuitConverter {
       
       if (isControlGroup) {
         group.forEach((input, index) => {
-          const y = yBase + (index ) * yComponentSpacing;
+          const y = yBase + (index ) * yComponentSpacing - 100;
           usedPositions.add(y);
           this.componentPositions.set(input.name, {
             x: xBase + 100,
@@ -361,7 +361,7 @@ export class VerilogCircuitConverter {
           });
         });
         
-        yPos = yBase + group.length * yComponentSpacing + 100; 
+        yPos = yBase + group.length * yComponentSpacing; 
       } else {
         
         if (usedPositions.has(yPos)) {
@@ -411,7 +411,7 @@ export class VerilogCircuitConverter {
           const avgY = inputPositions.reduce((sum, pos) => sum + pos.y, 0) / inputPositions.length;
           gateYPos = avgY;
        
-          const minSpacing = 100;
+          const minSpacing = 70;
           const overlappingGate = gates.slice(0, index).find(g => {
             const pos = this.componentPositions.get(g.output);
             return pos && Math.abs(pos.y - gateYPos) < minSpacing;
