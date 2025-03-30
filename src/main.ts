@@ -51,7 +51,8 @@ let welcomeDialog: HTMLElement;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
 const verilogCode = `
-module full_subtractor(input a, b, bin, output diff, bout); wire xor_ab; 
+module full_subtractor(input a, b, bin, output diff, bout); 
+wire xor_ab; 
 wire not_a; 
 wire and_nota_b; 
 wire xnor_ab; 

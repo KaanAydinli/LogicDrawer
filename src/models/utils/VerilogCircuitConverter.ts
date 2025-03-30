@@ -338,7 +338,7 @@ export class VerilogCircuitConverter {
     // 2. Determine circuit depth and width
     const maxLayer = Math.max(...Array.from(signalLayers.values()));
     const xBase = 100;
-    const yBase = 100;
+    const yBase = 0;
     const xLayerSpacing = 180;
     const yComponentSpacing = 200; // Increase this to 200 from whatever it was
     
@@ -348,17 +348,17 @@ export class VerilogCircuitConverter {
     
     inputGroups.forEach(group => {
       const isControlGroup = group.some(input => 
-        input.name.includes('mode') || input.name.includes('sel') || 
+        input.name.includes('mode') || input.name.includes('sel') || input.name === 's' ||
         input.name === 'clk' || input.name === 'reset'
       );
       
       if (isControlGroup) {
         group.forEach((input, index) => {
-          const y = yBase + index * yComponentSpacing;
+          const y = yBase + (index ) * yComponentSpacing;
           usedPositions.add(y);
           this.componentPositions.set(input.name, {
-            x: xBase,
-            y: y
+            x: xBase + 100,
+            y: y 
           });
         });
         
