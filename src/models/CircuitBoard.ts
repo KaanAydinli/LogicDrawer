@@ -94,6 +94,14 @@ export class CircuitBoard {
         }
         return;
       }
+      if (component.type === "clock" && component.containsPoint(mousePos)) {
+          const textComponent = component as Clock;
+          if (typeof textComponent.onDoubleClick === "function") {
+          textComponent.onDoubleClick(mousePos, this.canvas);
+          this.draw();
+        }
+        return;
+      }
       if (component.containsPoint(mousePos)) {
         const logic = component as LogicGate;
         if (logic.type !== "mux2" && logic.type !== "mux4" && typeof logic.rotate === "function") {

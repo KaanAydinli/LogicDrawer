@@ -8,6 +8,8 @@ export class Clock extends Component {
   private editMode: boolean = false;
   private tempIntervalText: string = '';
   private circuitBoard: CircuitBoard | null = null;
+  private editor: HTMLTextAreaElement | null = null;
+  private isEditing: boolean = false;
 
   constructor(position: Point, circuitBoard: CircuitBoard) {
     super('clock', position);
@@ -82,7 +84,7 @@ export class Clock extends Component {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     
-    const displayText = this.editMode ? this.tempIntervalText : `${this.interval}`;
+    const displayText = this.interval + "";
     ctx.fillText(displayText, x + width / 2 + 10, y + height / 2);
     
     
@@ -111,45 +113,6 @@ export class Clock extends Component {
     ctx.moveTo(x + width, outputPort.position.y);
     ctx.lineTo(outputPort.position.x, outputPort.position.y);
     ctx.stroke();
-  }
-
-  onClick(point: Point): void {
-    super.onClick(point);
-
-    if (this.containsPoint(point)) {
-      this.editMode = !this.editMode;
-      if (this.editMode) {
-        this.tempIntervalText = this.interval.toString();
-      } else if (this.tempIntervalText) {
-        const newInterval = parseInt(this.tempIntervalText);
-        if (!isNaN(newInterval) && newInterval >= 100) {
-          this.interval = newInterval;
-          this.restartClock();
-        }
-      }
-      return;
-    }
-  }
-
-  
-  onKeyDown(event: KeyboardEvent): void {
-    if (!this.editMode) return;
-    
-    if (event.key === 'Enter') {
-      this.editMode = false;
-      const newInterval = parseInt(this.tempIntervalText);
-      if (!isNaN(newInterval) && newInterval >= 100) {
-        this.interval = newInterval;
-        this.restartClock();
-      }
-    } else if (event.key === 'Escape') {
-      this.editMode = false;
-    } else if (event.key === 'Backspace') {
-      this.tempIntervalText = this.tempIntervalText.slice(0, -1);
-    } else if (/^\d$/.test(event.key)) {
-      
-      this.tempIntervalText += event.key;
-    }
   }
 
   
@@ -212,6 +175,85 @@ export class Clock extends Component {
     if (state.interval) {
       this.interval = state.interval;
       this.restartClock();
+    }
+  }
+
+  onDoubleClick(point: Point, canvas: HTMLCanvasElement): void {
+    if (this.containsPoint(point) && !this.isEditing) {
+      this.showEditor(canvas);
+    }
+  }
+  cancelEditing(): void {
+    if (this.isEditing && this.editor) {
+      document.body.removeChild(this.editor);
+      this.editor = null;
+      this.isEditing = false;
+    }
+  }
+
+  /**
+   * Display a textarea for editing the text
+   */
+  private showEditor(canvas: HTMLCanvasElement): void {
+  
+  this.editor = document.createElement('textarea');
+  this.editor.value = this.interval + "";
+  this.editor.style.position = 'absolute';
+  this.editor.style.left = `${this.position.x}px`;
+  this.editor.style.top = `${this.position.y - this.size.height / 2}px`;
+  this.editor.style.width = `${this.size.width + 20}px`;
+  this.editor.style.height = `${this.size.height + 10}px`;
+  this.editor.style.border = '1px solid #0099ff';
+  this.editor.style.outline = 'none';
+  this.editor.style.color = '#e0e0e0';
+  this.editor.style.resize = 'none';
+  this.editor.style.overflow = 'hidden';
+  this.editor.style.padding = '2px';
+  this.editor.style.margin = '0';
+  this.editor.style.zIndex = '1000';
+  this.editor.style.background = '#333';  
+  
+  
+  const canvasRect = canvas.getBoundingClientRect();
+  const canvasOffsetX = canvasRect.left;
+  const canvasOffsetY = canvasRect.top;
+  
+  
+  this.editor.style.left = `${canvasOffsetX + this.position.x}px`;
+  this.editor.style.top = `${canvasOffsetY + this.position.y - this.size.height / 2}px`;
+  
+  
+  document.body.appendChild(this.editor);
+  
+  
+  this.editor.select();
+  this.editor.focus();
+  
+
+  this.isEditing = true;
+  
+ 
+  this.editor.addEventListener('blur', () => this.completeEditing());
+  
+
+  
+}
+
+  private completeEditing(): void {
+    if (this.isEditing && this.editor) {
+      
+      this.interval = parseInt(this.editor.value);
+      if (!isNaN(this.interval) && this.interval >= 100) {
+        this.restartClock();
+      } else {
+        this.interval = 1000; 
+        this.restartClock();
+      }
+      
+      
+      document.body.removeChild(this.editor);
+      this.editor = null;
+      this.isEditing = false;
     }
   }
 }

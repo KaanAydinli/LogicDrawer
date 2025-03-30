@@ -21,6 +21,7 @@ export class Constant0 extends Component {
     });
   }
   
+  
   evaluate(): void {
     
     this.outputs[0].value = this.state;

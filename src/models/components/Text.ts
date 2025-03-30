@@ -141,22 +141,17 @@ export class Text extends Component {
  
   this.editor.addEventListener('blur', () => this.completeEditing());
   
-
-  this.editor.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault(); 
-      this.completeEditing(); 
-    }
-  });
 }
 
   private completeEditing(): void {
     if (this.isEditing && this.editor) {
       
       this.setText(this.editor.value);
+    
+        document.body.removeChild(this.editor);
       
       
-      document.body.removeChild(this.editor);
+      
       this.editor = null;
       this.isEditing = false;
     }
