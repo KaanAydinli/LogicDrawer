@@ -1,4 +1,4 @@
-/* Global styles */
+
 :root {
   --primary-bg: #212222;
   --bg-color: #1e1e1e;
@@ -30,7 +30,7 @@ body {
   height: 100vh;
   overflow: hidden;
 }
-/* Add these styles to your CSS file */
+
 
 .image-upload-container {
   margin: 20px 0;
@@ -109,7 +109,7 @@ body {
   height: 100vh;
 }
 
-/* Toolbar styles */
+
 .toolbar {
   display: flex;
   background-color: var(--primary-bg);
@@ -175,7 +175,6 @@ body {
   border-radius: 4px;
 }
 
-/* Main container styles */
 .main-container {
   display: flex;
   flex: 1;
@@ -191,28 +190,28 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 15px; /* Width for vertical scrollbar */
+  width: 15px; 
   height: 10px; 
   
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--component-bg); /* Color of the scrollbar */
+  background: var(--component-bg); 
   border-radius: 10px;
   border: var(--text-color)  2px solid;
-   /* Rounded corners */
+
 }
 
 
 ::-webkit-scrollbar-track {
-  background: var(--text-color); /* Background color */
+  background: var(--text-color); 
   border-radius: 10px;
   border: #000000  2px solid;
 }
 
-/* Scrollbar Handle on Hover */
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #555; /* Darker on hover */
+  background: #555; 
 }
 .component-group {
   margin-bottom: 15px;
@@ -515,7 +514,7 @@ body {
   color: var(--mint);
 }
 
-/* Add image preview styles */
+
 .image-preview {
   max-width: 100%;
   margin: 8px 0;
@@ -527,7 +526,7 @@ body {
   border-radius: 8px;
 }
 
-/* Mobile responsiveness */
+
 @media (max-width: 600px) {
   .ai-chat-container {
     width: 90%;
@@ -585,7 +584,6 @@ body {
   color: var(--bg-color);
 }
 
-/* Active theme style */
 .theme-option.active {
   background-color: var(--text-color);
   color: var(--bg-color);

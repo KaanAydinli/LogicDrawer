@@ -332,19 +332,18 @@ export class VerilogCircuitConverter {
     signalLayers: Map<string, number>,
     signalDependencies: Map<string, string[]>
   ): void {
-    // 1. Group related inputs
+ 
     const inputGroups = this.groupRelatedSignals(module.inputs);
-  
-    // 2. Determine circuit depth and width
+
     const maxLayer = Math.max(...Array.from(signalLayers.values()));
     const xBase = 100;
     const yBase = 0;
     const xLayerSpacing = 180;
-    const yComponentSpacing = 200; // Increase this to 200 from whatever it was
+    const yComponentSpacing = 200; 
     
-    // 3. Position inputs with better spacing
+
     let yPos = yBase;
-    const usedPositions = new Set<number>(); // Track used Y positions
+    const usedPositions = new Set<number>(); 
     
     inputGroups.forEach(group => {
       const isControlGroup = group.some(input => 
@@ -362,11 +361,11 @@ export class VerilogCircuitConverter {
           });
         });
         
-        yPos = yBase + group.length * yComponentSpacing + 100; // Extra spacing after controls
+        yPos = yBase + group.length * yComponentSpacing + 100; 
       } else {
-        // Make sure we don't overlap with any existing positions
+        
         if (usedPositions.has(yPos)) {
-          // Find next available position
+          
           while (usedPositions.has(yPos)) {
             yPos += 100;
           }
@@ -381,11 +380,10 @@ export class VerilogCircuitConverter {
           });
         });
         
-        yPos += group.length * yComponentSpacing + 100; // Increased spacing
+        yPos += group.length * yComponentSpacing + 100; 
       }
     });
-    
-    // 4. Group gates by layer
+
     const gatesByLayer = new Map<number, VerilogGate[]>();
     
     module.gates.forEach(gate => {
@@ -395,14 +393,13 @@ export class VerilogCircuitConverter {
       }
       gatesByLayer.get(layer)!.push(gate);
     });
-    
-    // 5. Position gates by layer
+
     for (let layer = 1; layer <= maxLayer; layer++) {
       const gates = gatesByLayer.get(layer) || [];
       const xPos = xBase + layer * xLayerSpacing;
       
       gates.forEach((gate, index) => {
-        // Try to position gates near their inputs
+        
         const inputPositions = gate.inputs
           .map(input => this.componentPositions.get(input))
           .filter(pos => pos !== undefined) as Point[];
@@ -410,11 +407,10 @@ export class VerilogCircuitConverter {
         let gateYPos = yBase + index * yComponentSpacing;
         
         if (inputPositions.length > 0) {
-          // Find the average Y position of inputs
+      
           const avgY = inputPositions.reduce((sum, pos) => sum + pos.y, 0) / inputPositions.length;
           gateYPos = avgY;
-          
-          // Make sure gates in the same layer don't overlap
+       
           const minSpacing = 100;
           const overlappingGate = gates.slice(0, index).find(g => {
             const pos = this.componentPositions.get(g.output);
@@ -434,22 +430,22 @@ export class VerilogCircuitConverter {
       });
     }
     
-    // 6. Position outputs
-    const outputXPos = xBase + (maxLayer + 1) * xLayerSpacing + 50; // Add extra spacing
+
+    const outputXPos = xBase + (maxLayer + 1) * xLayerSpacing + 50; 
     
-    // Try to group related outputs
+
     const outputGroups = this.groupRelatedSignals(module.outputs);
     
-    // First pass: collect all outputs with their preferred Y positions
+
     const outputPositions: {output: VerilogPort, y: number}[] = [];
     
     yPos = yBase;
     outputGroups.forEach(group => {
       group.forEach((output, index) => {
-        // Try to align with source if possible
+       
         let outputYPos = yPos + index * yComponentSpacing;
         
-        // Find source gate for this output
+        
         const sourceGate = module.gates.find(g => g.output === output.name);
         if (sourceGate) {
           const sourcePos = this.componentPositions.get(sourceGate.output);
@@ -460,8 +456,7 @@ export class VerilogCircuitConverter {
         
         outputPositions.push({output, y: outputYPos});
       });
-      
-      // Calculate next position
+
       const lastPos = group.map(out => 
         outputPositions.find(p => p.output.name === out.name)?.y || 0
       );
@@ -471,11 +466,10 @@ export class VerilogCircuitConverter {
         yPos += group.length * yComponentSpacing + 20;
       }
     });
-    
-    // Second pass: fix overlapping outputs by ensuring minimum spacing
+   
     outputPositions.sort((a, b) => a.y - b.y);
     for (let i = 1; i < outputPositions.length; i++) {
-      const minSpacing = 100; // Minimum spacing between bulbs
+      const minSpacing = 100; 
       const prev = outputPositions[i-1];
       const current = outputPositions[i];
       
@@ -484,7 +478,7 @@ export class VerilogCircuitConverter {
       }
     }
     
-    // Apply final positions
+
     outputPositions.forEach(({output, y}) => {
       this.componentPositions.set(output.name, {
         x: outputXPos,
@@ -496,49 +490,47 @@ export class VerilogCircuitConverter {
   private groupRelatedSignals(signals: VerilogPort[]): VerilogPort[][] {
     const groups: { [key: string]: VerilogPort[] } = {};
     
-    // First, group by naming patterns
+    
     signals.forEach(signal => {
       const match = signal.name.match(/^([a-zA-Z_]+)(\d+)$/);
       
       if (match) {
-        // Signal with numeric suffix (a0, a1, etc.)
+        
         const baseName = match[1];
         if (!groups[baseName]) groups[baseName] = [];
         groups[baseName].push(signal);
       } else {
-        // Special signals like mode, cin, etc.
-        // Special groups for control-like signals
+
         if (signal.name === 'mode' || signal.name === 'cin' || signal.name === 'reset' || 
             signal.name === 'clk' || signal.name.includes('sel')) {
           if (!groups['control']) groups['control'] = [];
           groups['control'].push(signal);
         } else {
-          // No pattern match, treat as unique
+     
           if (!groups[signal.name]) groups[signal.name] = [];
           groups[signal.name].push(signal);
         }
       }
     });
     
-    // Sort each group - numeric suffixes in descending order (MSB first)
+
     Object.values(groups).forEach(group => {
       group.sort((a, b) => {
         const numA = parseInt(a.name.replace(/^\D+/g, "") || "0");
         const numB = parseInt(b.name.replace(/^\D+/g, "") || "0");
-        return numB - numA; // Descending order (MSB first)
+        return numB - numA; 
       });
     });
     
-    // Convert to array of groups
+   
     return Object.values(groups);
   }
   
   private groupGatesByBitPosition(module: VerilogModule): { [key: number]: VerilogGate[] } {
     const result: { [key: number]: VerilogGate[] } = {};
-    
-    // Try to determine which bit each gate operates on
+   
     module.gates.forEach(gate => {
-      // Try to extract bit index from inputs
+
       const bitIndices = gate.inputs
         .map(input => {
           const match = input.match(/(\d+)$/);

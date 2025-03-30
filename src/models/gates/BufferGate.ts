@@ -3,18 +3,18 @@ import { LogicGate } from '../LogicGate';
 
 export class BufferGate extends LogicGate {
   constructor(position: Point) {
-    // NOT kapısının sadece bir girişi vardır
+    
     super('buffer', position, 1);
   }
 
   evaluate(): void {
-    // NOT mantığı: Girişin tersini alır
+    
     this.outputs[0].value = this.inputs[0].value;
   }
 
-  // NOT kapısının özel çizim şekli
+  
   draw(ctx: CanvasRenderingContext2D): void {
-    // Renkleri belirle
+    
     ctx.strokeStyle = this.selected ? '#0B6E4F' : '#cdcfd0';
     ctx.lineWidth = 2;
     ctx.fillStyle = this.selected ? 'rgba(80, 200, 120, 0.1)' : 'rgba(53, 53, 53, 0.8)';
@@ -24,11 +24,11 @@ export class BufferGate extends LogicGate {
     const width = this.size.width;
     const height = this.size.height;
 
-    // NOT kapısının üçgen kısmını çiz
+    
     ctx.beginPath();
-    ctx.moveTo(x, y); // Sol üst köşe
-    ctx.lineTo(x, y + height); // Sol alt köşe
-    ctx.lineTo(x + width - 10, y + height / 2); // Sağ orta nokta
+    ctx.moveTo(x, y); 
+    ctx.lineTo(x, y + height); 
+    ctx.lineTo(x + width - 10, y + height / 2); 
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -36,7 +36,7 @@ export class BufferGate extends LogicGate {
     ctx.fill();
     ctx.stroke();
 
-    // Portları çiz
+    
     this.drawPorts(ctx);
   }
 }

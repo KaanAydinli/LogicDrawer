@@ -1150,13 +1150,12 @@ export class CircuitRepositoryController {
     try {
       const comment = {
         authorId: this.currentUserId,
-        authorName: 'Current User', // In a real app, you'd get this from user profile
+        authorName: 'Current User', 
         text: text.trim()
       };
       
       await this.repositoryService.addComment(circuitId, comment);
       
-      // Refresh circuit details to show the new comment
       this.viewCircuitDetails(circuitId);
     } catch (error) {
       console.error('Comment failed:', error);

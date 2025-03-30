@@ -27,8 +27,8 @@ import { ImageUploader } from "./ai/ImageUploader";
 import { Decoder } from "./models/gates/Decoder";
 import { BufferGate } from "./models/gates/BufferGate";
 import { HexDigit } from "./models/components/HexDigit";
+import { Text } from "./models/components/Text";
 
-// Create repository service
 const repositoryService = new MockCircuitRepositoryService();
 var converter;
 
@@ -37,17 +37,12 @@ const workflowId = import.meta.env.VITE_ROBOFLOW_WORKFLOW_ID;
 
 var roboflow;
 
-// After your circuit board is initialized
 var imageUploader: ImageUploader;
 
 const fileUpload = document.getElementById("file-upload") as HTMLInputElement;
 
-// Create repository component
-
-// DOM elementlerine referanslar
 let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
-let welcomeDialog: HTMLElement;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
 const verilogCode = `
@@ -135,24 +130,15 @@ Always end your module with endmodule`;
 
 const storage = document.querySelector(".storage") as HTMLElement;
 
-// Ana başlangıç fonksiyonu
 function initApp() {
-  // Canvas referansını al
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
 
-  // Welcome dialog referansını al
-
-  // Dialog kapatma işlevleri
-
-  // Devre tahtasını başlat
   initCircuitBoard();
 
   converter = new VerilogCircuitConverter(circuitBoard);
 
-  // Bileşen ekleme işlevleri için event listener'ları ekle
   setupComponentAddListeners();
 
-  // Klavye kısayollarını ekle
   setupKeyboardShortcuts();
 
   setupZoomControls();
@@ -179,26 +165,17 @@ function initApp() {
 }
 
 function setupZoomControls() {
-  // Fare tekerleğiyle zoom
   canvas.addEventListener("wheel", (event) => {
     event.preventDefault();
 
-    // Transformasyonu uygula
-    const mouseX = event.clientX;
-    const mouseY = event.clientY;
-
     if (event.deltaY < 0) {
-      // Zoom in
       circuitBoard.zoomIn();
     } else {
-      // Zoom out
       circuitBoard.zoomOut();
     }
   });
 
-  // Orta fare tuşuyla canvas'ı sürükle
   canvas.addEventListener("mousedown", (event) => {
-    // Orta fare tuşu (tekerlek) tıklandığında
     if (event.button === 1) {
       event.preventDefault();
       circuitBoard.isDraggingCanvas = true;
@@ -225,14 +202,10 @@ function setupZoomControls() {
     }
   });
 
-  // Tüm pencere için mouseup olayı ekle
   window.addEventListener("mouseup", () => {
     circuitBoard.isDraggingCanvas = false;
   });
 
-  // Klavye kısayolları
-  
-  // Opsiyonel: Butonlarla zoom kontrolü
   const zoomInButton = document.getElementById("zoom-in-button");
   const zoomOutButton = document.getElementById("zoom-out-button");
   const zoomResetButton = document.getElementById("zoom-reset-button");
@@ -250,15 +223,12 @@ function setupZoomControls() {
   }
 }
 
-// Devre tahtasını başlat
 function initCircuitBoard() {
   circuitBoard = new CircuitBoard(canvas);
 
-  // Başlangıçta örnek bir devre oluştur
   createExampleCircuit();
 }
 
-// Bileşen ekleme işlevleri
 function setupComponentAddListeners() {
   const components = document.querySelectorAll(".component");
 
@@ -267,7 +237,6 @@ function setupComponentAddListeners() {
       event.preventDefault();
       const type = component.getAttribute("data-type");
 
-      // Canvas'ın ortasına bileşen ekle
       const canvasRect = canvas.getBoundingClientRect();
       const centerX = canvasRect.width / 2;
       const centerY = canvasRect.height / 2;
@@ -277,7 +246,6 @@ function setupComponentAddListeners() {
   });
 }
 
-// Bileşen tipine göre ekleme yap
 function addComponentByType(type: string, position: Point) {
   let component;
 
@@ -342,17 +310,18 @@ function addComponentByType(type: string, position: Point) {
     case "hex":
       component = new HexDigit(position);
       break;
+    case "text":
+      component = new Text(position);
+      break;
     default:
-      return; // Geçersiz tip ise çık
+      return;
   }
 
   circuitBoard.addComponent(component);
 }
 
-// Klavye kısayolları
 function setupKeyboardShortcuts() {
   document.addEventListener("keydown", (event) => {
-    // Delete tuşu - seçili bileşeni sil
     if (event.key === "Delete") {
       circuitBoard.deleteSelected();
     }
@@ -361,10 +330,9 @@ function setupKeyboardShortcuts() {
       circuitBoard.deleteSelected();
     }
 
-    // G tuşu - ızgarayı göster/gizle
-    if (event.key === "g" || event.key === "G") {
-      circuitBoard.toggleGrid();
-    }
+    // if (event.key === "g" || event.key === "G") {
+    //   circuitBoard.toggleGrid();
+    // }
     // if (event.key === "l" || event.key === "L") {
     //   const converter = new VerilogCircuitConverter(circuitBoard);
     //   const success = converter.importVerilogCode(verilogCode);
@@ -379,6 +347,11 @@ function setupKeyboardShortcuts() {
     if (event.key === "Escape") {
       circuitBoard.clearCurrentWire();
     }
+
+    if(event.key === "Enter"){
+      circuitBoard.simulate();
+      circuitBoard.draw();
+    }
   });
 }
 
@@ -390,7 +363,6 @@ function setUpAI() {
   const chatInput = document.getElementById("ai-chat-input") as HTMLInputElement;
   const messagesContainer = document.getElementById("ai-chat-messages") as HTMLElement;
 
-  // Toggle chat interface
   aiLogo.addEventListener("click", function () {
     chatContainer.classList.toggle("open");
 
@@ -439,8 +411,7 @@ function setUpAI() {
           messages: [
             {
               role: "system",
-              content:
-                promptAI
+              content: promptAI,
             },
 
             { role: "user", content: userMessage },
@@ -448,7 +419,6 @@ function setUpAI() {
         }),
       });
 
-      // Remove loading message
       messagesContainer.removeChild(loadingMessageDiv);
 
       if (!response.ok) {
@@ -471,18 +441,14 @@ function setUpAI() {
     }
   }
 
-  // Send message function
   async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") return;
 
-    // Add user message to chat
     addUserMessage(message);
 
-    // Clear input
     chatInput.value = "";
 
-    // Simulate AI response (replace with actual AI integration)
     try {
       const aiResponse = await callMistralAPI(message);
       addAIMessage(aiResponse);
@@ -492,17 +458,14 @@ function setUpAI() {
     }
   }
 
-  // Send message on button click
   sendButton.addEventListener("click", sendMessage);
 
-  // Send message on Enter key
   chatInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
       sendMessage();
     }
   });
 
-  // Handle file uploads
   fileUpload.addEventListener("change", function (event) {
     const target = event.target as HTMLInputElement | null;
     const file = target?.files?.[0];
@@ -522,7 +485,6 @@ function setUpAI() {
         }
       }
 
-      // Simulate AI response to image
       setTimeout(() => {
         addAIMessage("Let me draw this circuit for you...");
       }, 1000);
@@ -530,7 +492,6 @@ function setUpAI() {
     reader.readAsDataURL(file);
   });
 
-  // Helper functions to add messages
   function addUserMessage(text: string) {
     const messageDiv = document.createElement("div");
     messageDiv.className = "user-message";
@@ -602,13 +563,10 @@ function setUpAI() {
   }
 }
 
-// Örnek bir devre oluştur
 function createExampleCircuit() {
-  // İki anahtar ekleyelim
   const switch1 = new ToggleSwitch({ x: 300, y: 200 });
   const switch2 = new ToggleSwitch({ x: 300, y: 300 });
 
-  // Bir AND kapısı ekleyelim
   const andGate = new AndGate({ x: 500, y: 250 });
 
   const wire1 = new Wire(switch1.outputs[0]);
@@ -619,21 +577,18 @@ function createExampleCircuit() {
   wire2.connect(andGate.inputs[1]);
   circuitBoard.addWire(wire2);
 
-  // Bir ampul ekleyelim
   const lightBulb = new LightBulb({ x: 700, y: 250 });
 
   const wire3 = new Wire(andGate.outputs[0]);
   wire3.connect(lightBulb.inputs[0]);
   circuitBoard.addWire(wire3);
 
-  // Bileşenleri devre tahtasına ekleyelim
   circuitBoard.addComponent(switch1);
   circuitBoard.addComponent(switch2);
   circuitBoard.addComponent(andGate);
   circuitBoard.addComponent(lightBulb);
 }
 
-// Dosya yükleme işlemi
 const fileInput = document.getElementById("loadFile") as HTMLInputElement;
 fileInput?.addEventListener("change", handleFileSelect);
 
@@ -645,7 +600,6 @@ function handleFileSelect(event: Event) {
   }
 }
 function setTheme() {
-  // Get references to existing HTML elements
   const themeButton = document.querySelector(".Theme") as HTMLElement;
   const themeDropdown = document.querySelector(".theme-dropdown") as HTMLElement;
   const themeOptions = document.querySelectorAll(".theme-option") as NodeListOf<HTMLElement>;
@@ -655,63 +609,46 @@ function setTheme() {
     return;
   }
 
-  
   themeButton.addEventListener("click", function (e) {
     e.stopPropagation();
     themeDropdown.classList.toggle("show");
   });
-  themeButton.addEventListener('mouseenter', (event: MouseEvent) => {
-    
+  themeButton.addEventListener("mouseenter", (event: MouseEvent) => {
     themeDropdown.classList.toggle("show");
   });
-  themeDropdown.addEventListener('mouseleave', (event: MouseEvent) => {
+  themeDropdown.addEventListener("mouseleave", (event: MouseEvent) => {
     themeDropdown.classList.remove("show");
   });
 
-  
-
-  // Hide dropdown when clicking elsewhere
   document.addEventListener("click", function () {
     themeDropdown.classList.remove("show");
   });
 
-  // Prevent clicks within dropdown from closing it
   themeDropdown.addEventListener("click", function (e) {
     e.stopPropagation();
   });
 
-  // Handle theme selection
   themeOptions.forEach((option) => {
     option.addEventListener("click", function () {
       const selectedTheme = this.getAttribute("data-theme");
       if (!selectedTheme) return;
 
-      // Remove active class from all options
       themeOptions.forEach((opt) => opt.classList.remove("active"));
 
-      // Add active class to selected option
       this.classList.add("active");
 
-      // Apply the selected theme
       applyTheme(selectedTheme);
-
-      // Close the dropdown after selection
       themeDropdown.classList.remove("show");
     });
   });
 
-  // Function to apply the selected theme
   function applyTheme(themeName: string): void {
     console.log(`Applying theme: ${themeName}`);
-    const component = document.querySelector(".component") as HTMLElement;
 
-    // Remove any previous theme classes
     document.body.classList.remove("theme-dark", "theme-light", "theme-forest", "theme-midnight");
 
-    // Add the new theme class
     document.body.classList.add(`theme-${themeName}`);
 
-    // Update CSS variables for theming
     switch (themeName) {
       case "light":
         document.documentElement.style.setProperty("--bg-color", "#f0f5f9");
@@ -751,22 +688,18 @@ function setTheme() {
         break;
     }
 
-    // Save the selected theme to localStorage
     localStorage.setItem("selectedTheme", themeName);
   }
 
-  // Load saved theme on initialization
   const savedTheme = localStorage.getItem("selectedTheme");
   if (savedTheme) {
     applyTheme(savedTheme);
 
-    // Mark the saved theme as active in the dropdown
     const activeOption = document.querySelector(`.theme-option[data-theme="${savedTheme}"]`);
     if (activeOption) {
       activeOption.classList.add("active");
     }
   } else {
-    // Set a default theme if none is saved
     const defaultOption = document.querySelector('.theme-option[data-theme="forest"]');
     if (defaultOption) {
       defaultOption.classList.add("active");
@@ -781,12 +714,12 @@ function readJSONFile(file: File) {
   reader.onload = function (event) {
     try {
       const jsonContent = event.target?.result as string;
-      // CircuitBoard'a JSON verisini gönder
+
       const success = circuitBoard.importCircuit(jsonContent);
 
       if (success) {
         console.log("Devre başarıyla yüklendi!");
-        // İsterseniz kullanıcıya bilgi verebilirsiniz
+
         alert("Devre başarıyla yüklendi!");
       } else {
         console.error("Devre yüklenirken bir hata oluştu.");
@@ -817,5 +750,4 @@ inputText.addEventListener("keydown", (event) => {
   }
 });
 
-// Sayfa yüklendiğinde uygulamayı başlat
 window.addEventListener("DOMContentLoaded", initApp);

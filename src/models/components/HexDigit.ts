@@ -9,7 +9,7 @@ export class HexDigit extends Component {
     this.state = true;
     this.value = "0";
     
-    // Butonun çıkışı
+    
     for (let i = 0; i < 4; i++) {
         const portPosition = {
           x: this.position.x - 10,
@@ -27,7 +27,7 @@ export class HexDigit extends Component {
   }
   
   evaluate(): void {
-    // Çıkış portunu güncelle
+    
     let outputValue = 0;
     for(let i = 0; i < 4; i++){
 
@@ -59,7 +59,7 @@ export class HexDigit extends Component {
   
 
   draw(ctx: CanvasRenderingContext2D): void {
-    // Buton seçiliyse farklı renk çiz
+    
     ctx.strokeStyle = this.selected ? '#0B6E4F' : '#cdcfd0';
     ctx.lineWidth = 2;
     ctx.fillStyle = this.selected ? 'rgba(80, 200, 120, 0.1)' : 'rgba(53, 53, 53, 0.8)';
@@ -69,13 +69,13 @@ export class HexDigit extends Component {
     const width = this.size.width;
     const height = this.size.height;
     
-    // Constant 1'in ana dikdörtgenini çiz
+    
     ctx.beginPath();
     ctx.roundRect(x, y, width, height, 5);
     ctx.fill();
     ctx.stroke();
     
-    // Constant 1 metni
+    
     ctx.fillStyle = '#ffffff';
     ctx.font = '48px Pixelify Sans';
     ctx.textAlign = 'center';
@@ -83,24 +83,24 @@ export class HexDigit extends Component {
     ctx.fillText(this.value, x + width / 2, y + height / 2);
     
     
-    // Çıkış portunu çiz
+    
     
     this.drawPorts(ctx);
   }
   protected drawPorts(ctx: CanvasRenderingContext2D): void {
-    // Giriş portlarını çiz
+    
     this.inputs.forEach(port => {
       ctx.beginPath();
       ctx.arc(port.position.x - 5, port.position.y, 5, 0, Math.PI * 2);
 
-      // Port değerine göre dolgu rengi
+      
       ctx.fillStyle = port.value ? '#0B6E4F' : '#353535';
       ctx.fill();
 
       ctx.strokeStyle = '#cdcfd0';
       ctx.stroke();
 
-      // Bağlantı çizgisini çiz (port ile kapı arasında)
+      
       ctx.beginPath();
       ctx.moveTo(port.position.x, port.position.y);
       ctx.lineTo(this.position.x, port.position.y);

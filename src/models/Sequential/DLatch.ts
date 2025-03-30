@@ -8,7 +8,7 @@ export class DLatch extends Component {
     super('dlatch', position);
     this.size = { width: 80, height: 70 };
     
-    // Create D input port
+    
     this.inputs.push({
       id: `${this.id}-input-0`,
       type: 'input',
@@ -21,7 +21,7 @@ export class DLatch extends Component {
       component: this
     });
     
-    // Create CLK input port
+    
     this.inputs.push({
       id: `${this.id}-input-1`,
       type: 'input',
@@ -34,7 +34,7 @@ export class DLatch extends Component {
       component: this
     });
     
-    // Create Q output port
+    
     this.outputs.push({
       id: `${this.id}-output-0`,
       type: 'output',
@@ -47,7 +47,7 @@ export class DLatch extends Component {
       component: this
     });
     
-    // Create Q' (not Q) output port
+    
     this.outputs.push({
       id: `${this.id}-output-1`,
       type: 'output',
@@ -65,16 +65,16 @@ export class DLatch extends Component {
     const dataIn = this.inputs[0].value;
     const clockIn = this.inputs[1].value;
     
-    // If clock is high (transparent mode), update the output to match input
+    
     if (clockIn) {
       this.qValue = dataIn;
     }
-    // If clock is low (latch mode), maintain the current value
-    // (qValue doesn't change)
     
-    // Update the outputs
-    this.outputs[0].value = this.qValue;         // Q
-    this.outputs[1].value = !this.qValue;        // Q'
+    
+    
+    
+    this.outputs[0].value = this.qValue;         
+    this.outputs[1].value = !this.qValue;        
     
     
   }
@@ -85,36 +85,36 @@ export class DLatch extends Component {
     const width = this.size.width;
     const height = this.size.height;
     
-    // Draw component body
+    
     ctx.fillStyle = '#333355';
     ctx.fillRect(x, y, width, height);
     
-    // Draw border
+    
     ctx.strokeStyle = this.selected ? '#ffcc00' : '#8899ff';
     ctx.lineWidth = this.selected ? 3 : 2;
     ctx.strokeRect(x, y, width, height);
     
-    // Draw component label
+    
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 14px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('D Latch', x + width / 2, y + 15);
     
-    // Draw port labels
+    
     ctx.font = '12px Arial';
     
-    // Input labels
+    
     ctx.textAlign = 'left';
     ctx.fillText('D', x + 10, y + 20);
     ctx.fillText('CLK', x + 10, y + 50);
     
-    // Output labels
+    
     ctx.textAlign = 'right';
     ctx.fillText('Q', x + width - 10, y + 20);
     ctx.fillText('Q\'', x + width - 10, y + 50);
     
-    // Stored value indicator
+    
     const stateX = x + width / 2;
     const stateY = y + height / 2 + 10;
     const stateRadius = 8;
@@ -127,7 +127,7 @@ export class DLatch extends Component {
     ctx.lineWidth = 1;
     ctx.stroke();
     
-    // Draw input ports
+    
     this.inputs.forEach(input => {
       ctx.beginPath();
       ctx.arc(input.position.x, input.position.y, 5, 0, Math.PI * 2);
@@ -137,14 +137,14 @@ export class DLatch extends Component {
       ctx.lineWidth = 1;
       ctx.stroke();
       
-      // Input lines
+      
       ctx.beginPath();
       ctx.moveTo(input.position.x, input.position.y);
       ctx.lineTo(x, input.position.y);
       ctx.stroke();
     });
     
-    // Draw output ports
+    
     this.outputs.forEach(output => {
       ctx.beginPath();
       ctx.arc(output.position.x, output.position.y, 5, 0, Math.PI * 2);
@@ -154,7 +154,7 @@ export class DLatch extends Component {
       ctx.lineWidth = 1;
       ctx.stroke();
       
-      // Output lines
+      
       ctx.beginPath();
       ctx.moveTo(output.position.x, output.position.y);
       ctx.lineTo(x + width, output.position.y);
@@ -162,11 +162,11 @@ export class DLatch extends Component {
     });
   }
   
-  // Update port positions when component is moved
+  
   move(position: Point): void {
     super.move(position);
     
-    // Update input port positions
+    
     if (this.inputs.length >= 2) {
       this.inputs[0].position = {
         x: this.position.x - 10,
@@ -179,7 +179,7 @@ export class DLatch extends Component {
       };
     }
     
-    // Update output port positions
+    
     if (this.outputs.length >= 2) {
       this.outputs[0].position = {
         x: this.position.x + this.size.width + 10,
@@ -193,7 +193,7 @@ export class DLatch extends Component {
     }
   }
   
-  // For circuit serialization
+  
   getState(): any {
     const state = super.getState();
     return {
@@ -202,7 +202,7 @@ export class DLatch extends Component {
     };
   }
   
-  // For circuit deserialization
+  
   setState(state: any): void {
     super.setState(state);
     if (state.qValue !== undefined) {

@@ -15,6 +15,7 @@ export class Decoder extends LogicGate {
   
         this.outputs.push({
           id: `${this.id}-output-${i}`,
+          
           type: 'output',
           position: portPosition,
           value: false,
@@ -25,7 +26,7 @@ export class Decoder extends LogicGate {
   }
 
   evaluate(): void {
-    // AND mantığı: Tüm girişler true ise çıkış true olur
+    
     for (let i = 0; i < 4; i++) {
       this.outputs[i].value = false;
     }
@@ -33,23 +34,23 @@ export class Decoder extends LogicGate {
     let inputValue = 0;
     for (let i = 0; i < 2; i++) {
       if (this.inputs[i].value) {
-        // 2^i ile çarp ve topla (LSB sağda)
+        
         inputValue |= (1 << i);
       }
     }
     
-    // Tüm çıkışları sıfırla
+    
     for (let i = 0; i < 2; i++) {
       this.outputs[i].value = false;
     }
     
-    // Sadece seçilen çıkışı aktifleştir
+    
     this.outputs[inputValue].value = true;
   }
 
-  // AND kapısının özel çizim şekli
+  
   draw(ctx: CanvasRenderingContext2D): void {
-    // Renkleri belirle
+    
     ctx.strokeStyle = this.selected ? '#0B6E4F' : '#cdcfd0';
     ctx.lineWidth = 2;
     ctx.fillStyle = this.selected ? 'rgba(80, 200, 120, 0.1)' : 'rgba(53, 53, 53, 0.8)';
