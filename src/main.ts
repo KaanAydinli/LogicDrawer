@@ -179,20 +179,53 @@ function initApp() {
   sidebarClose.classList.add("close");
 
 
-  sidebarClose.addEventListener("click", () => {
-    if (sidebar.classList.contains("close")) {
-      sidebar.classList.remove("close");
-      sidebarClose.classList.remove("open");
-      sidebarClose.classList.add("close");
-      sidebar.classList.add("open");
+  window.addEventListener('resize', handleResize);
+
+  // Update your sidebar toggle function to call resize after toggle
+  sidebarClose.addEventListener('click', () => {
+    if (sidebar.classList.contains('close')) {
+      // Toggle sidebar on
+      sidebar.classList.remove('close');
+      sidebar.classList.add('open');
+      sidebarClose.classList.remove('open');
+      sidebarClose.classList.add('close');
     } else {
-      sidebar.classList.remove("open");
-      sidebar.classList.add("close");
-      sidebarClose.classList.remove("close");
-      sidebarClose.classList.add("open");
+      // Toggle sidebar off
+      sidebar.classList.remove('open');
+      sidebar.classList.add('close');
+      sidebarClose.classList.remove('close');
+      sidebarClose.classList.add('open');
     }
+    
+    // Call handleResize after animation completes
+    requestAnimationFrame(syncCanvasWithAnimation);
   });
+  
+  // Call once on init to set proper size
+  handleResize();
 }
+function syncCanvasWithAnimation() {
+  // Get computed style to check if transition is still active
+  const sidebarStyles = window.getComputedStyle(sidebar);
+  const isTransitioning = sidebarStyles.transitionProperty !== 'none' && 
+                          sidebarStyles.transitionDuration !== '0s';
+  
+  // Resize canvas to match current state
+  handleResize();
+  
+  // Continue animation loop if transition is still active
+  if (isTransitioning) {
+    requestAnimationFrame(syncCanvasWithAnimation);
+  } else {
+    // Final resize when animation completes
+    handleResize();
+  }
+}
+function handleResize() {
+  circuitBoard.resizeCanvas();
+}
+
+
 function extractVerilogFromPrompt(prompt: string): string | null {
   // Regular expression to match Verilog modules (case-insensitive)
   // This pattern matches from "module" keyword to "endmodule" keyword

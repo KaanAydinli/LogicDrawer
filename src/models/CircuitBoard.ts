@@ -88,15 +88,6 @@ export class CircuitBoard {
     ctx.scale(this.scale, this.scale);
   }
 
-  private resizeCanvas(): void {
-    const container = this.canvas.parentElement;
-    if (container) {
-      this.canvas.width = container.clientWidth;
-      this.canvas.height = container.clientHeight;
-      this.draw();
-    }
-  }
-
   private handleDoubleClick(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
     this.selectedComponent = null;
@@ -225,6 +216,21 @@ private isDraggingMinimap: boolean = false;
 private handleMinimapClick(event: MouseEvent): void {
   this.isDraggingMinimap = true;
   this.handleMinimapMove(event);
+}
+public resizeCanvas(): void {
+  // Update canvas size while preserving content
+  const oldWidth = this.canvas.width;
+  const oldHeight = this.canvas.height;
+  
+  // Get new dimensions from the container
+  const container = this.canvas.parentElement;
+  if (container) {
+    this.canvas.width = container.clientWidth;
+    this.canvas.height = container.clientHeight;
+  }
+  
+  // Redraw with scale adjustments if needed
+  this.draw();
 }
 
 private handleMinimapMove(event: MouseEvent): void {
