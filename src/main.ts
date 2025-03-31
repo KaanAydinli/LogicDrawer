@@ -139,7 +139,7 @@ Always end your module with endmodule`;
 const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
 const sidebar = document.querySelector(".sidebar") as HTMLElement;
-const sidebarClose =   document.querySelector(".closeSide") as HTMLElement;
+const sidebarClose = document.querySelector(".closeSide") as HTMLElement;
 var minimap: HTMLCanvasElement;
 
 function initApp() {
@@ -178,46 +178,39 @@ function initApp() {
   setTheme();
   sidebarClose.classList.add("close");
 
+  window.addEventListener("resize", handleResize);
 
-  window.addEventListener('resize', handleResize);
-
-  // Update your sidebar toggle function to call resize after toggle
-  sidebarClose.addEventListener('click', () => {
-    if (sidebar.classList.contains('close')) {
-      // Toggle sidebar on
-      sidebar.classList.remove('close');
-      sidebar.classList.add('open');
-      sidebarClose.classList.remove('open');
-      sidebarClose.classList.add('close');
+  
+  sidebarClose.addEventListener("click", () => {
+    if (sidebar.classList.contains("close")) {
+      
+      sidebar.classList.remove("close");
+      sidebar.classList.add("open");
+      sidebarClose.classList.remove("open");
+      sidebarClose.classList.add("close");
     } else {
-      // Toggle sidebar off
-      sidebar.classList.remove('open');
-      sidebar.classList.add('close');
-      sidebarClose.classList.remove('close');
-      sidebarClose.classList.add('open');
+      
+      sidebar.classList.remove("open");
+      sidebar.classList.add("close");
+      sidebarClose.classList.remove("close");
+      sidebarClose.classList.add("open");
     }
-    
-    // Call handleResize after animation completes
+
     requestAnimationFrame(syncCanvasWithAnimation);
   });
-  
-  // Call once on init to set proper size
+
   handleResize();
 }
 function syncCanvasWithAnimation() {
-  // Get computed style to check if transition is still active
   const sidebarStyles = window.getComputedStyle(sidebar);
-  const isTransitioning = sidebarStyles.transitionProperty !== 'none' && 
-                          sidebarStyles.transitionDuration !== '0s';
-  
-  // Resize canvas to match current state
+  const isTransitioning =
+    sidebarStyles.transitionProperty !== "none" && sidebarStyles.transitionDuration !== "0s";
+
   handleResize();
-  
-  // Continue animation loop if transition is still active
+
   if (isTransitioning) {
     requestAnimationFrame(syncCanvasWithAnimation);
   } else {
-    // Final resize when animation completes
     handleResize();
   }
 }
@@ -225,20 +218,17 @@ function handleResize() {
   circuitBoard.resizeCanvas();
 }
 
-
 function extractVerilogFromPrompt(prompt: string): string | null {
-  // Regular expression to match Verilog modules (case-insensitive)
-  // This pattern matches from "module" keyword to "endmodule" keyword
+
   const moduleRegex = /\b(module\s+[\w\s\(\),;]*[\s\S]*?endmodule)\b/gi;
 
-  // Find all matches
+
   const matches = prompt.match(moduleRegex);
 
   if (!matches || matches.length === 0) {
     return null;
   }
 
-  // If there are multiple modules, join them with newlines
   return matches.join("\n\n");
 }
 
@@ -725,6 +715,7 @@ function setupSettings() {
   const minimapSizeSelect = document.getElementById("minimap-size") as HTMLSelectElement;
   const showGridToggle = document.getElementById("show-grid") as HTMLInputElement;
   const minimapElement = document.querySelector(".minimap") as HTMLElement;
+  const canvasBackground = document.getElementById("canvasBackground") as HTMLInputElement;
 
   // Open settings panel
   settingsIcon?.addEventListener("click", () => {
@@ -764,6 +755,12 @@ function setupSettings() {
       // Update minimap
       circuitBoard.draw();
     }
+  });
+  canvasBackground?.addEventListener("change", () => {
+    const selectedColor = canvasBackground.value;
+    circuitBoard.canvas.style.backgroundColor = selectedColor;
+    circuitBoard.minimap.style.backgroundColor = selectedColor;
+    circuitBoard.draw();
   });
 
   // Handle grid visibility
