@@ -36,7 +36,7 @@ export interface CircuitRepositoryService {
     >,
   ): Promise<CircuitEntry>;
   likeCircuit(id: string): Promise<void>;
-  downloadCircuit(id: string): Promise<string>; // Returns Verilog code
+  downloadCircuit(id: string): Promise<string>; 
   addComment(circuitId: string, comment: Omit<Comment, "id" | "date" | "likes">): Promise<Comment>;
   deleteCircuit(id: string): Promise<void>;
 }
@@ -768,26 +768,26 @@ export class CircuitRepositoryController {
   }
 
   private initializeUI(): void {
-    // Add styles to document
+    
     addRepositoryStyles();
 
-    // Create and add repository UI to container
+    
     const repoUI = createRepositoryUI();
     this.container.appendChild(repoUI);
     this.modalElement = repoUI;
 
-    // Cache element references
+    
     this.circuitGridElement = document.getElementById("circuit-grid");
     this.detailViewElement = document.getElementById("circuit-detail");
     this.uploadFormElement = document.getElementById("upload-form");
     this.searchInput = document.getElementById("circuit-search") as HTMLInputElement;
 
-    // Set up event listeners
+    
     this.setupEventListeners();
   }
 
   private setupEventListeners(): void {
-    // Close button
+    
     const closeBtn = document.getElementById("repo-close-btn");
     if (closeBtn) {
       closeBtn.addEventListener("click", () => this.close());
@@ -799,7 +799,7 @@ export class CircuitRepositoryController {
       }
     });
 
-    // Tab switching
+    
     const tabs = document.querySelectorAll(".tab");
     tabs.forEach((tab) => {
       tab.addEventListener("click", (e) => {
@@ -810,7 +810,7 @@ export class CircuitRepositoryController {
       });
     });
 
-    // Search input
+    
     if (this.searchInput) {
       this.searchInput.addEventListener("input", (e) => {
         const query = (e.target as HTMLInputElement).value;
@@ -818,25 +818,25 @@ export class CircuitRepositoryController {
       });
     }
 
-    // Upload button
+    
     const uploadBtn = document.getElementById("upload-circuit-btn");
     if (uploadBtn) {
       uploadBtn.addEventListener("click", () => this.showUploadForm());
     }
 
-    // Close upload form
+    
     const closeUploadBtn = document.getElementById("close-upload-form");
     if (closeUploadBtn) {
       closeUploadBtn.addEventListener("click", () => this.hideUploadForm());
     }
 
-    // Upload form submission
+    
     const uploadForm = document.getElementById("circuit-upload-form");
     if (uploadForm) {
       uploadForm.addEventListener("submit", (e) => this.handleUploadSubmit(e));
     }
 
-    // Back to grid button
+    
     const backBtn = document.getElementById("back-to-grid-btn");
     if (backBtn) {
       backBtn.addEventListener("click", () => this.showCircuitGrid());
@@ -846,14 +846,14 @@ export class CircuitRepositoryController {
   private async loadCircuits(): Promise<void> {
     if (!this.circuitGridElement) return;
 
-    // Show loading state
+    
     this.circuitGridElement.innerHTML = `<div class="loading-indicator">Loading circuits...</div>`;
 
     try {
       if (this.currentTab === "browse") {
         this.currentCircuits = await this.repositoryService.getCircuits();
       } else {
-        // For 'my-circuits', filter by current user
+        
         const allCircuits = await this.repositoryService.getCircuits();
         this.currentCircuits = allCircuits.filter(
           (c: { authorId: string }) => c.authorId === this.currentUserId,
@@ -928,10 +928,10 @@ export class CircuitRepositoryController {
       const circuit = await this.repositoryService.getCircuitById(circuitId);
       this.selectedCircuitId = circuitId;
 
-      // Render detail view
+      
       this.renderCircuitDetail(circuit);
 
-      // Show detail view, hide grid
+      
       this.circuitGridElement.style.display = "none";
       this.detailViewElement.style.display = "block";
     } catch (error) {
@@ -946,7 +946,7 @@ export class CircuitRepositoryController {
     const detailContainer = document.getElementById("detail-container");
     if (!detailContainer) return;
 
-    const isLiked = false; // In a real app, you'd check if the current user has liked this circuit
+    const isLiked = false; 
 
     detailContainer.innerHTML = `
       <div class="detail-header">
@@ -1020,30 +1020,30 @@ export class CircuitRepositoryController {
       </div>
     `;
 
-    // Set up event listeners for detail view
+    
     this.setupDetailViewEvents(circuit);
   }
 
   private setupDetailViewEvents(circuit: CircuitEntry): void {
-    // Use circuit button
+    
     const useBtn = document.getElementById("use-circuit-btn");
     if (useBtn) {
       useBtn.addEventListener("click", () => this.useCircuit(circuit));
     }
 
-    // Download button
+    
     const downloadBtn = document.getElementById("download-circuit-btn");
     if (downloadBtn) {
       downloadBtn.addEventListener("click", () => this.downloadCircuit(circuit));
     }
 
-    // Like button
+    
     const likeBtn = document.getElementById("like-circuit-btn");
     if (likeBtn) {
       likeBtn.addEventListener("click", () => this.likeCircuit(circuit.id));
     }
 
-    // Comment button
+    
     const commentBtn = document.getElementById("post-comment-btn");
     const commentText = document.getElementById("comment-text") as HTMLTextAreaElement;
     if (commentBtn && commentText) {
@@ -1059,7 +1059,7 @@ export class CircuitRepositoryController {
   private switchTab(tab: "browse" | "my-circuits"): void {
     this.currentTab = tab;
 
-    // Update active tab UI
+    
     const tabs = document.querySelectorAll(".tab");
     tabs.forEach((t) => {
       if (t.getAttribute("data-tab") === tab) {
@@ -1069,10 +1069,10 @@ export class CircuitRepositoryController {
       }
     });
 
-    // Reload circuits for this tab
+    
     this.loadCircuits();
 
-    // Reset to grid view
+    
     this.showCircuitGrid();
   }
 
@@ -1086,14 +1086,14 @@ export class CircuitRepositoryController {
 
   private async searchCircuits(query: string): Promise<void> {
     if (query.trim() === "") {
-      // If search is empty, just load all circuits
+      
       return this.loadCircuits();
     }
 
     try {
       const searchResults = await this.repositoryService.searchCircuits(query);
 
-      // If in 'my-circuits' tab, filter by user
+      
       if (this.currentTab === "my-circuits") {
         this.currentCircuits = searchResults.filter((c) => c.authorId === this.currentUserId);
       } else {
@@ -1116,7 +1116,7 @@ export class CircuitRepositoryController {
     if (this.uploadFormElement) {
       this.uploadFormElement.style.display = "none";
 
-      // Clear form fields
+      
       const form = document.getElementById("circuit-upload-form") as HTMLFormElement;
       if (form) form.reset();
     }
@@ -1150,15 +1150,15 @@ export class CircuitRepositoryController {
         title,
         description,
         authorId: this.currentUserId,
-        authorName: "Current User", // In a real app, you'd get this from user profile
+        authorName: "Current User", 
         tags,
         verilogCode,
-        thumbnailUrl: undefined, // Could generate a thumbnail here
+        thumbnailUrl: undefined, 
       };
 
       await this.repositoryService.uploadCircuit(circuitData);
 
-      // Hide form and reload circuits
+      
       this.hideUploadForm();
       this.loadCircuits();
     } catch (error) {
@@ -1169,10 +1169,10 @@ export class CircuitRepositoryController {
 
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
-      // Import the circuit into the editor
+      
       this.verilogConverter.importVerilogCode(circuit.verilogCode);
 
-      // Close the repository modal
+      
       this.close();
     } catch (error) {
       console.error("Failed to use circuit:", error);
@@ -1184,7 +1184,7 @@ export class CircuitRepositoryController {
     try {
       await this.repositoryService.downloadCircuit(circuit.id);
 
-      // Create download link
+      
       const blob = new Blob([circuit.verilogCode], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
 
@@ -1205,7 +1205,7 @@ export class CircuitRepositoryController {
     try {
       await this.repositoryService.likeCircuit(circuitId);
 
-      // Refresh circuit details to show updated like count
+      
       this.viewCircuitDetails(circuitId);
     } catch (error) {
       console.error("Like operation failed:", error);

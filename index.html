@@ -25,44 +25,49 @@
           <div class="logo">
             <span>Bilkent Logic Drawer</span>
           </div>
-        <input type="text" class = "docName" placeholder="Untitled" ></input>
-        <div class = "rightContainer">
-          <div class = "storage" >Circuits</div>
-      
-          <div class="theme-container">
-            <div id="test" class="Theme">Themes</div>
-            <div class="theme-dropdown">
-              <div class="theme-option" data-theme="dark">Dark Mode</div>
-              <div class="theme-option" data-theme="light">Light Mode</div>
-              <div class="theme-option" data-theme="forest">Forest Theme</div>
-              <div class="theme-option" data-theme="midnight">Midnight Blue</div>
+          <input type="text" class = "docName" placeholder="Untitled" ></input>
+          <div class = "rightContainer">
+            <div class = "storage" >Circuits</div>
+            
+            <label for="loadFile" class="load">Load
+              <input type="file" id="loadFile" accept=".json" style="display: none;">
+            </label>
+
+            <div class = "aiLogo" >
+              <!-- <svg width = 40 height = 40 xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
+                
+                <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+                
+              </svg> -->
+              AI
             </div>
+            
+            <svg class = "screenshot" xmlns="http://www.w3.org/2000/svg" width = "30px" height = "30px" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" /><circle cx="12" cy="13" r="4" /><line x1="9" y1="3" x2="15" y2="3" /><line x1="18" y1="9" x2="20" y2="9" /></svg>
+            
+            
+            <div class="settings-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </div>
+            
+            <div class="theme-container">
+              <div id="test" class="Theme">Themes</div>
+              <div class="theme-dropdown">
+                <div class="theme-option" data-theme="dark">Dark Mode</div>
+                <div class="theme-option" data-theme="light">Light Mode</div>
+                <div class="theme-option" data-theme="forest">Forest Theme</div>
+                <div class="theme-option" data-theme="midnight">Midnight Blue</div>
+              </div>
+            </div>
+            
+            
+            
           </div>
           
-          <svg class = "screenshot" xmlns="http://www.w3.org/2000/svg" width = "30px" height = "30px" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" /><circle cx="12" cy="13" r="4" /><line x1="9" y1="3" x2="15" y2="3" /><line x1="18" y1="9" x2="20" y2="9" /></svg>
-
-          <div class = "aiLogo" >
-            <svg width = 40 height = 40 xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
-              
-              <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
-              
-            </svg>
-
-
-
-          </div>
-
-  
-       
-      </div>
-      
-      
-      <div class="circuit-controls">
-        
-        <label for="loadFile" class="load">Load
-          <input type="file" id="loadFile" accept=".json" style="display: none;">
-        </label>
-      </div>
+          
+          
     </div>
 
     <div class="main-container">
@@ -86,7 +91,7 @@
               <div class="component-label">High Constant</div>
             </div>
             <div class="component" data-type="toggle">
-              <div class="component-icon toggle-switch">
+              <div class="component-icon toggle">
 
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width = "60px" height = "60px" fill="none" stroke="currentColor" stroke-width="2"><circle cx="16" cy="12" r="6"/><line x1="2" y1="12" x2="10" y2="12"/></svg>
 
@@ -247,6 +252,75 @@
               <div class="component-label">Text</div>
             </div>
 
+            <div class="component" data-type="state">
+              <div class="component-icon state">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width = 60 height = 60 fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+                
+              </div>
+              <div class="component-label">State</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      <div id="settings-panel" class="settings-panel">
+        <div class="settings-header">
+          <h3>Settings</h3>
+          <button id="close-settings" class="close-settings-button">×</button>
+        </div>
+        
+        <div class="settings-content">
+          <div class="settings-section">
+            <h4>Display Settings</h4>
+            
+            <!-- Update your settings items to remove the "for" attribute from labels -->
+            <div class="setting-item">
+              <label>Show Minimap</label>
+              <div class="toggle-switch">
+                <input class="mini" type="checkbox" id="show-minimap" checked>
+                <span class="toggle-slider"></span>
+              </div>
+            </div>
+
+            <div class="setting-item">
+              <label>Minimap Size</label>
+              <select id="minimap-size">
+                <option value="small">Small</option>
+                <option value="medium" selected>Medium</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+
+            <div class="setting-item">
+              <label>Show Grid</label>
+              <div class="toggle-switch">
+                <input class="grid" type="checkbox" id="show-grid" checked>
+                <span class="toggle-slider"></span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="settings-section">
+            <h4>Keyboard Shortcuts</h4>
+            
+            <div class="shortcut-item">
+              <span class="shortcut-action">Delete Component</span>
+              <div class="shortcut-key">Delete</div>
+            </div>
+            
+            
+            
+            <div class="shortcut-item">
+              <span class="shortcut-action">Rotate Component</span>
+              <div class="shortcut-key">Double Click</div>
+            </div>
+            
+            <div class="shortcut-item">
+              <span class="shortcut-action">Increase Input</span>
+              <div class="shortcut-key">+</div>
+            </div>
+            
+            
           </div>
         </div>
       </div>
@@ -254,9 +328,11 @@
       <div class="canvas-container">
         <canvas id="circuit-canvas"></canvas>
       </div>
-    </div>
 
-    
+      <div class = "minimap">
+        <canvas id = "minicanvas"></canvas>
+      </div>
+    </div>
 
     <div id="ai-chat-container" class="ai-chat-container">
       <div class="ai-chat-header">
@@ -292,6 +368,8 @@
           </svg>
         </button>
       </div>
+
+
    
 
   <script type="module" src="/src/main.ts"></script>

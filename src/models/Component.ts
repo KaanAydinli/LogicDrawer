@@ -21,11 +21,12 @@ export abstract class Component {
   outputs: Port[];
   selected: boolean;
 
-  constructor(type: string, position: Point) {
+  constructor(type: string, position: Point, size?: { width: number; height: number }) {
+    this.size = size || { width: 60, height: 60 };
     this.id = Math.random().toString(36).substring(2, 15);
     this.type = type;
     this.position = position;
-    this.size = { width: 60, height: 60 };
+   
     this.inputs = [];
     this.outputs = [];
     this.selected = false;

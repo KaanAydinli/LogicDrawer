@@ -30,6 +30,7 @@ import { HexDigit } from "./models/components/HexDigit";
 import { Text } from "./models/components/Text";
 import { LocalStorageCircuitRepository } from "./Repository/LocalStorageCircuitRepository";
 import { LogicGate } from "./models/LogicGate";
+import { State } from "./models/other/State";
 
 // const repositoryService = new MockCircuitRepositoryService();
 const repositoryService = new LocalStorageCircuitRepository();
@@ -136,9 +137,12 @@ Always declare ALL intermediate signals before using them.
 Always end your module with endmodule`;
 
 const storage = document.querySelector(".storage") as HTMLElement;
+const settingsPanel = document.getElementById('settings-panel');
+var minimap: HTMLCanvasElement;
 
 function initApp() {
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
+  minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
 
   initCircuitBoard();
 
@@ -168,6 +172,7 @@ function initApp() {
   imageUploader = new ImageUploader(roboflow, circuitBoard);
 
   setUpAI();
+  setupSettings();
   setTheme();
 }
 function extractVerilogFromPrompt(prompt: string): string | null {
@@ -228,25 +233,14 @@ function setupZoomControls() {
     circuitBoard.isDraggingCanvas = false;
   });
 
-  const zoomInButton = document.getElementById("zoom-in-button");
-  const zoomOutButton = document.getElementById("zoom-out-button");
-  const zoomResetButton = document.getElementById("zoom-reset-button");
-
-  if (zoomInButton) {
-    zoomInButton.addEventListener("click", () => circuitBoard.zoomIn());
-  }
-
-  if (zoomOutButton) {
-    zoomOutButton.addEventListener("click", () => circuitBoard.zoomOut());
-  }
-
-  if (zoomResetButton) {
-    zoomResetButton.addEventListener("click", () => circuitBoard.resetZoom());
-  }
+  canvas.addEventListener("mousedown", () => {
+    
+    settingsPanel?.classList.remove('active');
+  });
 }
 
 function initCircuitBoard() {
-  circuitBoard = new CircuitBoard(canvas);
+  circuitBoard = new CircuitBoard(canvas,minimap);
 
   createExampleCircuit();
 }
@@ -259,18 +253,17 @@ function setupComponentAddListeners() {
       event.preventDefault();
       const type = component.getAttribute("data-type");
 
-      // Get canvas rect to determine viewport dimensions
+     
       const canvasRect = canvas.getBoundingClientRect();
 
-      // Calculate the viewport center in world coordinates
-      // This accounts for panning and zoom
+      
       const viewportCenterX = (canvasRect.width / 2 - circuitBoard.offsetX) / circuitBoard.scale;
       const viewportCenterY = (canvasRect.height / 2 - circuitBoard.offsetY) / circuitBoard.scale;
 
-      // Add the component at the viewport center
-      addComponentByType(type as string, { 
-        x: viewportCenterX, 
-        y: viewportCenterY 
+ 
+      addComponentByType(type as string, {
+        x: viewportCenterX,
+        y: viewportCenterY,
       });
     });
   });
@@ -342,6 +335,9 @@ function addComponentByType(type: string, position: Point) {
     case "text":
       component = new Text(position);
       break;
+    case "state":
+      component = new State(position);
+      break;
     default:
       return;
   }
@@ -381,17 +377,18 @@ function setupKeyboardShortcuts() {
       circuitBoard.simulate();
       circuitBoard.draw();
     }
-    if(event.key === "+") {
-      
-      if(circuitBoard.selectedComponent){
+    if (event.key === "+") {
+      if (circuitBoard.selectedComponent) {
         const component = circuitBoard.selectedComponent;
-        if(component instanceof LogicGate && component.type !== "buffer" && component.type !== "not"){
+        if (
+          component instanceof LogicGate &&
+          component.type !== "buffer" &&
+          component.type !== "not"
+        ) {
           component.increaseInputCount();
           circuitBoard.draw();
         }
       }
-      
-      
     }
   });
 }
@@ -414,6 +411,8 @@ function setUpAI() {
     }
 
     if (chatContainer.classList.contains("open")) {
+       circuitBoard.selectedComponent = null;
+       circuitBoard.selectedComponents = [];
       chatInput.focus();
     }
   });
@@ -492,7 +491,6 @@ function setUpAI() {
 
     const code = extractVerilogFromPrompt(message);
     if (code) {
-     
       if (
         message.toLowerCase().includes("draw") ||
         message.toLowerCase().includes("create") ||
@@ -501,7 +499,6 @@ function setUpAI() {
         message.toLowerCase().includes("build") ||
         message.toLowerCase().includes("convert")
       ) {
-   
         const converter = new VerilogCircuitConverter(circuitBoard);
         const success = converter.importVerilogCode(code);
 
@@ -514,7 +511,7 @@ function setUpAI() {
             "I found Verilog code in your message, but I couldn't create a valid circuit from it. Please check for syntax errors or unsupported features.",
           );
         }
-        return; 
+        return;
       }
     }
 
@@ -532,6 +529,11 @@ function setUpAI() {
   chatInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
       sendMessage();
+    }
+
+    if(event.key === "Backspace" || event.key === "Delete") {
+      circuitBoard.selectedComponent = null;
+       circuitBoard.selectedComponents = [];
     }
   });
 
@@ -667,6 +669,63 @@ function handleFileSelect(event: Event) {
     const file = input.files[0];
     readJSONFile(file);
   }
+}
+function setupSettings() {
+  const settingsIcon = document.querySelector('.settings-icon');
+  
+  const closeSettings = document.getElementById('close-settings');
+  const showMinimapToggle = document.getElementById('show-minimap') as HTMLInputElement;
+  const minimapSizeSelect = document.getElementById('minimap-size') as HTMLSelectElement;
+  const showGridToggle = document.getElementById('show-grid') as HTMLInputElement;
+  const minimapElement = document.querySelector('.minimap') as HTMLElement;
+  
+  // Open settings panel
+  settingsIcon?.addEventListener('click', () => {
+    settingsPanel?.classList.add('active');
+  });
+  
+  // Close settings panel
+  closeSettings?.addEventListener('click', () => {
+    settingsPanel?.classList.remove('active');
+  });
+  
+  // Handle minimap visibility - only when checkbox or slider is clicked
+  showMinimapToggle?.addEventListener('change', () => {
+    if (minimapElement) {
+      minimapElement.style.display = showMinimapToggle.checked ? 'block' : 'none';
+    }
+  });
+  
+  // Handle minimap size
+  minimapSizeSelect?.addEventListener('change', () => {
+    if (minimapElement) {
+      
+      
+      switch (minimapSizeSelect.value) {
+        case 'small':
+          minimapElement.style.height = "100px";
+          minimapElement.style.width = "100px";
+          break;
+        case 'medium':
+          minimapElement.style.height = "200px";
+          minimapElement.style.width = "200px";
+          break;
+        case 'large':
+          minimapElement.style.height = "300px";
+          minimapElement.style.width = "300px";
+          break;
+      }
+      
+      // Update minimap
+      circuitBoard.draw();
+    }
+  });
+  
+  // Handle grid visibility
+  showGridToggle?.addEventListener('change', () => {
+    circuitBoard.grid = showGridToggle.checked;
+    circuitBoard.draw();
+  });
 }
 function setTheme() {
   const themeButton = document.querySelector(".Theme") as HTMLElement;

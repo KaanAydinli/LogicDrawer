@@ -22,12 +22,15 @@ import { BufferGate } from "./gates/BufferGate";
 import { HexDigit } from "./components/HexDigit";
 import { Text } from "./components/Text";
 import { LogicGate } from "./LogicGate";
+import { State } from "./other/State";
 
 export class CircuitBoard {
   components: Component[];
   wires: Wire[];
   canvas: HTMLCanvasElement;
+  minimap: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
+  minimapCtx: any ;
   selectedComponent: Component | null;
   draggedComponent: Component | null;
   selectedWire: Wire | null;
@@ -40,12 +43,14 @@ export class CircuitBoard {
   isDraggingCanvas: boolean = false;
   lastMouseX: number = 0;
   lastMouseY: number = 0;
+  public minimapWidth: number = 200;
+  public minimapHeight: number = 200;
 
   private selectionRect: { start: Point; end: Point } | null = null;
   private isSelecting: boolean = false;
-  private selectedComponents: Component[] = [];
+  public selectedComponents: Component[] = [];
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, minimap: HTMLCanvasElement) {
     this.components = [];
     this.wires = [];
     this.canvas = canvas;
@@ -56,6 +61,16 @@ export class CircuitBoard {
     this.dragOffset = { x: 0, y: 0 };
     this.currentWire = null;
     this.grid = true;
+    this.minimap = minimap || null;
+
+
+    this.selectedComponents = [];
+
+
+    if(this.minimap){
+      this.minimapCtx = this.minimap.getContext("2d") as CanvasRenderingContext2D;
+      this.setupMinimap();
+    }
 
     this.setupCanvas();
     this.setupEvents();
@@ -84,6 +99,7 @@ export class CircuitBoard {
 
   private handleDoubleClick(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
+    this.selectedComponent = null;
 
     for (const component of this.components) {
       if (component.type === "text" && component.containsPoint(mousePos)) {
@@ -95,8 +111,8 @@ export class CircuitBoard {
         return;
       }
       if (component.type === "clock" && component.containsPoint(mousePos)) {
-          const textComponent = component as Clock;
-          if (typeof textComponent.onDoubleClick === "function") {
+        const textComponent = component as Clock;
+        if (typeof textComponent.onDoubleClick === "function") {
           textComponent.onDoubleClick(mousePos, this.canvas);
           this.draw();
         }
@@ -104,7 +120,7 @@ export class CircuitBoard {
       }
       if (component.containsPoint(mousePos)) {
         const logic = component as LogicGate;
-        if (logic.type !== "mux2" && logic.type !== "mux4" && typeof logic.rotate === "function") {
+        if (logic.type !== "mux2" && logic.type !== "mux4" && logic.type !== "state" && typeof logic.rotate === "function") {
           logic.rotate();
           this.draw();
         }
@@ -112,6 +128,7 @@ export class CircuitBoard {
       }
     }
   }
+
 
   private setupEvents(): void {
     this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
@@ -189,13 +206,218 @@ export class CircuitBoard {
     const y = (clientY - rect.top - this.offsetY) / this.scale;
     return { x, y };
   }
+  // Add these methods to your CircuitBoard class
+
+private setupMinimap(): void {
+  // Set up the minimap canvas size
+  this.minimap.width = this.minimapWidth;  
+  this.minimap.height = this.minimapHeight;
+  
+  // Add event listeners for minimap interaction
+  this.minimap.addEventListener("mousedown", this.handleMinimapClick.bind(this));
+  this.minimap.addEventListener("mousemove", this.handleMinimapMove.bind(this));
+  this.minimap.addEventListener("mouseup", this.handleMinimapUp.bind(this));
+  this.minimap.addEventListener("mouseleave", this.handleMinimapLeave.bind(this));
+}
+
+private isDraggingMinimap: boolean = false;
+
+private handleMinimapClick(event: MouseEvent): void {
+  this.isDraggingMinimap = true;
+  this.handleMinimapMove(event);
+}
+
+private handleMinimapMove(event: MouseEvent): void {
+  if (!this.isDraggingMinimap) return;
+  
+
+  const rect = this.minimap.getBoundingClientRect();
+  const minimapX = event.clientX - rect.left;
+  const minimapY = event.clientY - rect.top;
+  
+  
+  const { bounds } = this.calculateCircuitBounds();
+  const minimapScale = this.getMinimapScale();
+
+  const translateX = (this.minimap.width - (bounds.right - bounds.left) * minimapScale) / 2 - bounds.left * minimapScale;
+  const translateY = (this.minimap.height - (bounds.bottom - bounds.top) * minimapScale) / 2 - bounds.top * minimapScale;
+  
+
+  const adjustedX = (minimapX - translateX) / minimapScale;
+  const adjustedY = (minimapY - translateY) / minimapScale;
+  
+
+  this.centerViewOn(adjustedX, adjustedY);
+}
+
+private handleMinimapUp(): void {
+  this.isDraggingMinimap = false;
+}
+
+private handleMinimapLeave(): void {
+  this.isDraggingMinimap = false;
+}
+
+private centerViewOn(worldX: number, worldY: number): void {
+  // Calculate how to position the view to center on worldX, worldY
+  const centerX = this.canvas.width / 2;
+  const centerY = this.canvas.height / 2;
+  
+  this.offsetX = centerX - (worldX * this.scale);
+  this.offsetY = centerY - (worldY * this.scale);
+  
+  this.draw();
+}
+
+private minimapToWorldX(minimapX: number): number {
+  const minimapScale = this.getMinimapScale();
+  return minimapX / minimapScale;
+}
+
+private minimapToWorldY(minimapY: number): number {
+  const minimapScale = this.getMinimapScale();
+  return minimapY / minimapScale;
+}
+
+private getMinimapScale(): number {
+  const { bounds, width, height } = this.calculateCircuitBounds();
+  
+  // Handle empty circuit case
+  if (width === 0 || height === 0) {
+    return 1;
+  }
+  
+  // Calculate scale to fit circuit in minimap
+  const scaleX = this.minimap.width / width;
+  const scaleY = this.minimap.height / height;
+  
+  // Use the smaller scale to ensure the entire circuit fits
+  return Math.min(scaleX, scaleY) * 0.9; // 0.9 for a small margin
+}
+
+private calculateCircuitBounds(): { bounds: { left: number, top: number, right: number, bottom: number }, width: number, height: number } {
+  // Find the bounds of the entire circuit
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  
+  // Check component bounds
+  this.components.forEach(component => {
+    const box = component.getBoundingBox();
+    left = Math.min(left, box.x);
+    top = Math.min(top, box.y);
+    right = Math.max(right, box.x + box.width);
+    bottom = Math.max(bottom, box.y + box.height);
+  });
+  
+  // Check wire bounds
+  this.wires.forEach(wire => {
+    const points = wire.getAllPoints();
+    points.forEach(point => {
+      left = Math.min(left, point.x);
+      top = Math.min(top, point.y);
+      right = Math.max(right, point.x);
+      bottom = Math.max(bottom, point.y);
+    });
+  });
+  
+  // Handle empty circuit case
+  if (left === Infinity) {
+    left = 0;
+    top = 0;
+    right = this.canvas.width;
+    bottom = this.canvas.height;
+  }
+  
+  const width = right - left;
+  const height = bottom - top;
+  
+  return { 
+    bounds: { left, top, right, bottom },
+    width,
+    height
+  };
+}
+
+private drawMinimap(): void {
+  if (!this.minimap || !this.minimapCtx) return;
+  
+  // Clear the minimap
+  this.minimapCtx.fillStyle = "rgb(39, 39, 39)";
+  this.minimapCtx.fillRect(0, 0, this.minimap.width, this.minimap.height);
+  
+  const { bounds } = this.calculateCircuitBounds();
+  const minimapScale = this.getMinimapScale();
+  
+  // Draw a border around minimap
+  this.minimapCtx.strokeStyle = "#3a3a3a";
+  this.minimapCtx.lineWidth = 2;
+  this.minimapCtx.strokeRect(0, 0, this.minimap.width, this.minimap.height);
+  
+  // Translate minimap to center circuit
+  this.minimapCtx.save();
+  this.minimapCtx.translate(
+    (this.minimap.width - (bounds.right - bounds.left) * minimapScale) / 2 - bounds.left * minimapScale,
+    (this.minimap.height - (bounds.bottom - bounds.top) * minimapScale) / 2 - bounds.top * minimapScale
+  );
+  this.minimapCtx.scale(minimapScale, minimapScale);
+  
+  // Draw wires
+  this.wires.forEach(wire => {
+    this.minimapCtx.strokeStyle = wire.selected ? "#0B6E4F" : "#cdcfd0";
+    this.minimapCtx.lineWidth = 1 / minimapScale;
+    
+    const points = wire.getAllPoints();
+    if (points.length > 1) {
+      this.minimapCtx.beginPath();
+      this.minimapCtx.moveTo(points[0].x, points[0].y);
+      
+      for (let i = 1; i < points.length; i++) {
+        this.minimapCtx.lineTo(points[i].x, points[i].y);
+      }
+      
+      this.minimapCtx.stroke();
+    }
+  });
+  
+  // Draw components as simpler rectangles
+  this.components.forEach(component => {
+    component.draw(this.minimapCtx);
+  });
+  
+  // Draw current viewport
+  this.drawViewport();
+  
+  this.minimapCtx.restore();
+}
+
+private drawViewport(): void {
+  // Calculate the current viewport in world coordinates
+  const viewLeft = -this.offsetX / this.scale;
+  const viewTop = -this.offsetY / this.scale;
+  const viewWidth = this.canvas.width / this.scale;
+  const viewHeight = this.canvas.height / this.scale;
+  
+  // Draw the viewport rectangle
+  this.minimapCtx.strokeStyle = "#ff5533";
+  this.minimapCtx.lineWidth = 2 / this.getMinimapScale();
+  this.minimapCtx.strokeRect(viewLeft, viewTop, viewWidth, viewHeight);
+  
+  // Semi-transparent fill
+  this.minimapCtx.fillStyle = "rgba(255, 255, 255, 0.1)";
+  this.minimapCtx.fillRect(viewLeft, viewTop, viewWidth, viewHeight);
+}
 
   draw(): void {
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.applyTransform();
 
+
+    if(this.grid) {
     this.drawGrid();
+  }
 
     this.wires.forEach((wire) => {
       wire.draw(this.ctx);
@@ -221,6 +443,10 @@ export class CircuitBoard {
     if (this.currentWire) {
       this.currentWire.draw(this.ctx);
     }
+
+    this.drawMinimap();
+
+   
   }
 
   private drawGrid(): void {
@@ -241,11 +467,14 @@ export class CircuitBoard {
     this.ctx.strokeStyle = "rgba(80, 80, 80, 0.2)";
     this.ctx.lineWidth = 1 / this.scale;
 
+
     for (let x = startX; x <= endX; x += gridSize) {
       this.ctx.beginPath();
       this.ctx.moveTo(x, visibleTop);
       this.ctx.lineTo(x, visibleBottom);
       this.ctx.stroke();
+
+      
     }
 
     for (let y = startY; y <= endY; y += gridSize) {
@@ -254,6 +483,11 @@ export class CircuitBoard {
       this.ctx.lineTo(endX, y);
       this.ctx.stroke();
     }
+
+
+ 
+
+
   }
 
   private handleClick(event: MouseEvent): void {
@@ -731,7 +965,8 @@ export class CircuitBoard {
         return new HexDigit(position);
       case "text":
         return new Text(position);
-
+      case "state":
+        return new State(position);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;
@@ -772,6 +1007,9 @@ export class CircuitBoard {
 
   deleteSelected(): void {
     if (this.selectedComponent) {
+      if (this.selectedComponent.type === "state") {
+        State.idCounter--;                   
+      }
       this.wires = this.wires.filter((wire) => {
         const isConnectedToSelected =
           wire.from.component === this.selectedComponent ||
