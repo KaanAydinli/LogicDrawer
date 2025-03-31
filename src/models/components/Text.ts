@@ -102,22 +102,23 @@ export class Text extends Component {
   
   this.editor = document.createElement('textarea');
   this.editor.value = this.text;
+  const scale = canvas.getContext('2d')?.getTransform().a || 1;
+
   this.editor.style.position = 'absolute';
-  this.editor.style.left = `${this.position.x}px`;
-  this.editor.style.top = `${this.position.y - this.size.height / 2}px`;
-  this.editor.style.width = `${this.size.width + 20}px`;
-  this.editor.style.height = `${this.size.height + 10}px`;
-  this.editor.style.fontFamily = this.fontFamily;
-  this.editor.style.fontSize = `${this.fontSize}px`;
-  this.editor.style.color = this.color;
+  this.editor.style.left = `${this.position.x  / scale}px`;
+  this.editor.style.top = `${(this.position.y - this.size.height / 2) / scale}px`;
+  this.editor.style.width = `${(this.size.width + 20) * scale  }px`;
+  this.editor.style.height = `${(this.size.height + 10) * scale}px`;
+  this.editor.style.fontSize = `${12 * scale}px`;
   this.editor.style.border = '1px solid #0099ff';
   this.editor.style.outline = 'none';
+  this.editor.style.color = '#e0e0e0';
   this.editor.style.resize = 'none';
   this.editor.style.overflow = 'hidden';
   this.editor.style.padding = '2px';
   this.editor.style.margin = '0';
   this.editor.style.zIndex = '1000';
-  this.editor.style.background = '#333';  
+  this.editor.style.background = '#333'; 
   
   
   const canvasRect = canvas.getBoundingClientRect();
