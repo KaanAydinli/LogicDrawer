@@ -629,10 +629,11 @@ function setUpAI() {
   function addAIMessage(text: string) {
     const messageDiv = document.createElement("div");
     var aiText = escapeHTML(text);
+    const code = extractVerilogFromPrompt(aiText);
 
-    if (aiText.startsWith("module")) {
+    if (code) {
       const converter = new VerilogCircuitConverter(circuitBoard);
-      const success = converter.importVerilogCode(aiText);
+      const success = converter.importVerilogCode(code);
       if (success) {
         console.log("Verilog import successful!");
       } else {
@@ -761,7 +762,17 @@ function setupSettings() {
     circuitBoard.canvas.style.backgroundColor = selectedColor;
     circuitBoard.minimap.style.backgroundColor = selectedColor;
     circuitBoard.draw();
+    localStorage.setItem("canvasBackgroundColor", selectedColor);
   });
+  const savedColor = localStorage.getItem("canvasBackgroundColor");
+  if (savedColor) {
+    circuitBoard.canvas.style.backgroundColor = savedColor;
+    circuitBoard.minimap.style.backgroundColor = savedColor;
+    canvasBackground.value = savedColor;
+  } else {
+    circuitBoard.canvas.style.backgroundColor = "#1e1e1e";
+    circuitBoard.minimap.style.backgroundColor = "#1e1e1e";
+  }
 
   // Handle grid visibility
   showGridToggle?.addEventListener("change", () => {
