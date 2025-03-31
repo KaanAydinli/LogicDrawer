@@ -137,7 +137,9 @@ Always declare ALL intermediate signals before using them.
 Always end your module with endmodule`;
 
 const storage = document.querySelector(".storage") as HTMLElement;
-const settingsPanel = document.getElementById('settings-panel');
+const settingsPanel = document.getElementById("settings-panel");
+const sidebar = document.querySelector(".sidebar") as HTMLElement;
+const sidebarClose =   document.querySelector(".closeSide") as HTMLElement;
 var minimap: HTMLCanvasElement;
 
 function initApp() {
@@ -174,6 +176,22 @@ function initApp() {
   setUpAI();
   setupSettings();
   setTheme();
+  sidebarClose.classList.add("close");
+
+
+  sidebarClose.addEventListener("click", () => {
+    if (sidebar.classList.contains("close")) {
+      sidebar.classList.remove("close");
+      sidebarClose.classList.remove("open");
+      sidebarClose.classList.add("close");
+      sidebar.classList.add("open");
+    } else {
+      sidebar.classList.remove("open");
+      sidebar.classList.add("close");
+      sidebarClose.classList.remove("close");
+      sidebarClose.classList.add("open");
+    }
+  });
 }
 function extractVerilogFromPrompt(prompt: string): string | null {
   // Regular expression to match Verilog modules (case-insensitive)
@@ -234,13 +252,12 @@ function setupZoomControls() {
   });
 
   canvas.addEventListener("mousedown", () => {
-    
-    settingsPanel?.classList.remove('active');
+    settingsPanel?.classList.remove("active");
   });
 }
 
 function initCircuitBoard() {
-  circuitBoard = new CircuitBoard(canvas,minimap);
+  circuitBoard = new CircuitBoard(canvas, minimap);
 
   createExampleCircuit();
 }
@@ -253,14 +270,11 @@ function setupComponentAddListeners() {
       event.preventDefault();
       const type = component.getAttribute("data-type");
 
-     
       const canvasRect = canvas.getBoundingClientRect();
 
-      
       const viewportCenterX = (canvasRect.width / 2 - circuitBoard.offsetX) / circuitBoard.scale;
       const viewportCenterY = (canvasRect.height / 2 - circuitBoard.offsetY) / circuitBoard.scale;
 
- 
       addComponentByType(type as string, {
         x: viewportCenterX,
         y: viewportCenterY,
@@ -411,8 +425,8 @@ function setUpAI() {
     }
 
     if (chatContainer.classList.contains("open")) {
-       circuitBoard.selectedComponent = null;
-       circuitBoard.selectedComponents = [];
+      circuitBoard.selectedComponent = null;
+      circuitBoard.selectedComponents = [];
       chatInput.focus();
     }
   });
@@ -531,9 +545,9 @@ function setUpAI() {
       sendMessage();
     }
 
-    if(event.key === "Backspace" || event.key === "Delete") {
+    if (event.key === "Backspace" || event.key === "Delete") {
       circuitBoard.selectedComponent = null;
-       circuitBoard.selectedComponents = [];
+      circuitBoard.selectedComponents = [];
     }
   });
 
@@ -671,58 +685,56 @@ function handleFileSelect(event: Event) {
   }
 }
 function setupSettings() {
-  const settingsIcon = document.querySelector('.settings-icon');
-  
-  const closeSettings = document.getElementById('close-settings');
-  const showMinimapToggle = document.getElementById('show-minimap') as HTMLInputElement;
-  const minimapSizeSelect = document.getElementById('minimap-size') as HTMLSelectElement;
-  const showGridToggle = document.getElementById('show-grid') as HTMLInputElement;
-  const minimapElement = document.querySelector('.minimap') as HTMLElement;
-  
+  const settingsIcon = document.querySelector(".settings-icon");
+
+  const closeSettings = document.getElementById("close-settings");
+  const showMinimapToggle = document.getElementById("show-minimap") as HTMLInputElement;
+  const minimapSizeSelect = document.getElementById("minimap-size") as HTMLSelectElement;
+  const showGridToggle = document.getElementById("show-grid") as HTMLInputElement;
+  const minimapElement = document.querySelector(".minimap") as HTMLElement;
+
   // Open settings panel
-  settingsIcon?.addEventListener('click', () => {
-    settingsPanel?.classList.add('active');
+  settingsIcon?.addEventListener("click", () => {
+    settingsPanel?.classList.add("active");
   });
-  
+
   // Close settings panel
-  closeSettings?.addEventListener('click', () => {
-    settingsPanel?.classList.remove('active');
+  closeSettings?.addEventListener("click", () => {
+    settingsPanel?.classList.remove("active");
   });
-  
+
   // Handle minimap visibility - only when checkbox or slider is clicked
-  showMinimapToggle?.addEventListener('change', () => {
+  showMinimapToggle?.addEventListener("change", () => {
     if (minimapElement) {
-      minimapElement.style.display = showMinimapToggle.checked ? 'block' : 'none';
+      minimapElement.style.display = showMinimapToggle.checked ? "block" : "none";
     }
   });
-  
+
   // Handle minimap size
-  minimapSizeSelect?.addEventListener('change', () => {
+  minimapSizeSelect?.addEventListener("change", () => {
     if (minimapElement) {
-      
-      
       switch (minimapSizeSelect.value) {
-        case 'small':
+        case "small":
           minimapElement.style.height = "100px";
           minimapElement.style.width = "100px";
           break;
-        case 'medium':
+        case "medium":
           minimapElement.style.height = "200px";
           minimapElement.style.width = "200px";
           break;
-        case 'large':
+        case "large":
           minimapElement.style.height = "300px";
           minimapElement.style.width = "300px";
           break;
       }
-      
+
       // Update minimap
       circuitBoard.draw();
     }
   });
-  
+
   // Handle grid visibility
-  showGridToggle?.addEventListener('change', () => {
+  showGridToggle?.addEventListener("change", () => {
     circuitBoard.grid = showGridToggle.checked;
     circuitBoard.draw();
   });

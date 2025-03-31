@@ -116,6 +116,59 @@ body {
   overflow-y: auto;
 }
 
+.sidebar.close{
+  width: 0;
+  overflow: hidden;
+  transition: width 0.5s ease-in-out;
+}
+.sidebar.open{
+  width: 250px;
+  overflow-y: auto;
+  transition: width 0.5s ease-in-out;
+}
+.sidebar-header {
+  
+
+  display: flex;
+  align-items: center;
+  font-size: 30px;
+  
+}
+.sidebar-header div{
+  
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: "Pixelify Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 900;
+  font-size: larger;
+  font-style: normal;
+  transition: 0.5s;
+
+  border-radius: 10px;
+}
+.closeSide.open{
+  transform: rotate(180deg);
+}
+.closeSide.close{
+  transform: rotate(0deg);
+}
+.side{
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+}
+.sidebar-header div.open:hover{
+  background-color: var(--text-color);
+  color: var(--component-bg);
+  transform: scale(1.1) rotate(180deg);
+}
+.sidebar-header div.close:hover{
+  background-color: var(--text-color);
+  color: var(--component-bg);
+  transform: scale(1.1) ;
+}
+
 ::-webkit-scrollbar {
   width: 15px;
   height: 10px;
