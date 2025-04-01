@@ -27,14 +27,14 @@ export class NandGate extends LogicGate {
     
     ctx.beginPath();
 
-    ctx.arc(x + width + 10, y + height / 2, 3, 0, Math.PI * 2);
+    ctx.arc(x + width -1 , y + height / 2, 3, 0, Math.PI * 2);
 
     
     ctx.moveTo(x, y);
     
-    ctx.lineTo(x + width * 0.6, y);
+    ctx.lineTo(x + width * 0.4, y);
     
-    ctx.arc(x + width * 0.6, y + height / 2, height / 2, -Math.PI / 2, Math.PI / 2);
+    ctx.arc(x + width * 0.4, y + height / 2, height / 2, -Math.PI / 2, Math.PI / 2);
     
     ctx.lineTo(x, y + height);
     

@@ -28,14 +28,14 @@ export class XnorGate extends LogicGate {
     
     ctx.beginPath();
 
-    ctx.arc(x + width - 2, y + height / 2, 3, 0, Math.PI * 2);
+    ctx.arc(x + width, y + height / 2, 3, 0, Math.PI * 2);
 
     
     ctx.moveTo(x, y + height);
-    ctx.quadraticCurveTo(x + width * 0.4, y + height, x + width * 0.8, y + height * 0.6);
+    ctx.quadraticCurveTo(x + width * 0.4, y + height, x + width * 0.85, y + height * 0.6);
 
     
-    ctx.quadraticCurveTo(x + width, y + height / 2, x + width * 0.8, y + height * 0.4);
+    ctx.quadraticCurveTo(x + width, y + height / 2, x + width * 0.85, y + height * 0.4);
 
     
     ctx.quadraticCurveTo(x + width * 0.4, y, x, y);

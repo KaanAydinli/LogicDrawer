@@ -31,10 +31,10 @@ export class AndGate extends LogicGate {
   
     ctx.moveTo(x, y);
     
-    ctx.lineTo(x + width * 0.6, y);
+    ctx.lineTo(x + width * 0.4, y);
 
     ctx.arc(
-      x + width * 0.6,
+      x + width * 0.5,
       y + height / 2,
       height / 2,
       -Math.PI / 2,

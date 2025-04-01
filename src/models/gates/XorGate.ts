@@ -32,13 +32,13 @@ export class XorGate extends LogicGate {
     ctx.moveTo(x, y + height);
     ctx.quadraticCurveTo(
       x + width * 0.4, y + height,
-      x + width * 0.8, y + height * 0.6
+      x + width * 0.9, y + height * 0.6
     );
 
     
     ctx.quadraticCurveTo(
       x + width, y + height / 2,
-      x + width * 0.8, y + height * 0.4
+      x + width * 0.9, y + height * 0.4
     );
 
     

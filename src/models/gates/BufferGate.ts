@@ -26,9 +26,9 @@ export class BufferGate extends LogicGate {
 
     
     ctx.beginPath();
-    ctx.moveTo(x, y); 
-    ctx.lineTo(x, y + height); 
-    ctx.lineTo(x + width - 10, y + height / 2); 
+    ctx.moveTo(x + 5, y); 
+    ctx.lineTo(x + 5, y + height); 
+    ctx.lineTo(x + width, y + height / 2); 
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
