@@ -102,6 +102,16 @@ body {
   border-bottom: 1px solid var(--border-color);
   cursor: default;
 }
+.file{
+  color: var(--text-color);
+  font-family: "Pixelify Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 900;
+  font-size: larger;
+  font-style: normal;
+  border-bottom: 1px solid var(--border-color);
+  cursor: default;
+}
 
 .main-container {
   display: flex;
@@ -144,6 +154,7 @@ body {
   font-size: larger;
   font-style: normal;
   transition: 0.5s;
+  cursor: pointer;
 
   border-radius: 10px;
 }
@@ -246,8 +257,8 @@ body {
   text-align: center;
   height: 8%;
   background-color: var(--bg-color);
-  border: #0b0b0b 3px solid;
-  box-shadow: inset 0 0 5px rgb(0, 0, 0);
+  border: #0b0b0b 2px solid;
+  box-shadow: inset 0 0 3px rgb(0, 0, 0);
 }
 .component-label {
   font-family: "Pixelify Sans", sans-serif;
@@ -275,7 +286,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 40%;
+  width: 50%;
 }
 .storage {
   color: var(--text-color);
@@ -292,26 +303,6 @@ body {
   transform: scale(1.1) translateY(-2px);
 }
 
-.load {
-  color: var(--text-color);
-  border: none;
-  
-  
-  border-radius: 4px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border-color);
-
-  font-family: "Pixelify Sans", sans-serif;
-  font-optical-sizing: auto;
-  font-size: larger;
-  font-weight: 900;
-  font-style: normal;
-  transition: 0.3s;
-}
-.load:hover {
-  
-  transform: scale(1.1) translateY(-2px);
-}
 
 .ai-chat-container {
   position: fixed;
@@ -509,6 +500,10 @@ body {
   position: relative;
   display: inline-block;
 }
+.fileContainer{
+  position: relative;
+  display: inline-block;
+}
 
 .Theme {
   cursor: pointer;
@@ -518,9 +513,9 @@ body {
   display: none;
   position: absolute;
   top: 100%;
-  right: -20%;
+  right: -50%;
   background-color: var(--secondary-bg);
-  min-width: 140px;
+  min-width: 150px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   z-index: 1000;
@@ -529,6 +524,23 @@ body {
 }
 
 .theme-dropdown.show {
+  display: block;
+  animation: fadeIn 0.5s ease-in-out;
+}
+.file-dropdown{
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: -100%;
+  background-color: var(--secondary-bg);
+  min-width: 100px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  z-index: 1000;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+.file-dropdown.show {
   display: block;
   animation: fadeIn 0.5s ease-in-out;
 }
@@ -549,11 +561,27 @@ body {
   cursor: pointer;
   transition: background-color 0.2s;
   color: var(--text-color);
-  font-size: 14px;
+  font-family: "Pixelify Sans", sans-serif;
+  font-size: 18px;
+  transition: 0.5s;
+}
+
+.fileOption{
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-family: "Pixelify Sans", sans-serif;
+  color: var(--text-color);
+  font-size: 18px;
   transition: 0.5s;
 }
 
 .theme-option:hover {
+  background-color: var(--text-color);
+  color: var(--component-bg);
+  transform: scale(1.15);
+}
+.fileOption:hover{
   background-color: var(--text-color);
   color: var(--component-bg);
   transform: scale(1.15);

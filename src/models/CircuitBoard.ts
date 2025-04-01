@@ -135,6 +135,300 @@ export class CircuitBoard {
     this.components.push(component);
     this.draw();
   }
+  // CircuitBoard sınıfına eklenecek method:
+  // CircuitBoard sınıfına eklenecek method:
+  public extractVerilog(): string {
+    // Boş devre kontrolü
+    if (this.components.length === 0) {
+      return "// Boş devre";
+    }
+
+    // Kategorilere göre bileşenleri ayır
+    const inputs: Component[] = [];
+    const outputs: Component[] = [];
+    const gates: Component[] = [];
+    const wires: Map<string, string> = new Map(); // Port ID'den sinyal adına eşleştirme
+    const wireConnections: Map<string, string[]> = new Map(); // Sinyal adından bağlantılara
+    let internalWireCount = 0;
+
+    // Direct connections from gate outputs to circuit outputs
+    const directOutputConnections: Map<string, string> = new Map(); // Gate output port ID -> Circuit output name
+
+    // Bileşenleri kategorize et
+    for (const comp of this.components) {
+      if (
+        comp.type === "toggle" ||
+        comp.type === "button" ||
+        comp.type === "constant0" ||
+        comp.type === "constant1" ||
+        comp.type === "clock"
+      ) {
+        inputs.push(comp);
+
+        // Her input'un çıkışını isimlendir
+        if (comp.outputs.length > 0) {
+          const wireName = this.getWireNameForComponent(comp);
+          wires.set(comp.outputs[0].id, wireName);
+        }
+      } else if (comp.type === "light-bulb" || comp.type === "hex") {
+        outputs.push(comp);
+      } else if (comp.type !== "text" && comp.type !== "state") {
+        gates.push(comp);
+      }
+    }
+
+    // First, analyze which gate outputs connect directly to circuit outputs
+    for (const wire of this.wires) {
+      if (!wire.from || !wire.to) continue;
+
+      // If this wire connects a gate output to a circuit output
+      if (
+        (wire.to.component.type === "light-bulb" || wire.to.component.type === "hex") &&
+        wire.from.component.type !== "toggle" &&
+        wire.from.component.type !== "button" &&
+        wire.from.component.type !== "constant0" &&
+        wire.from.component.type !== "constant1" &&
+        wire.from.component.type !== "clock"
+      ) {
+        // Map the gate output port to the circuit output name
+        directOutputConnections.set(wire.from.id, this.getWireNameForComponent(wire.to.component));
+      }
+    }
+
+    // Now analyze all other connections
+    for (const wire of this.wires) {
+      if (!wire.from || !wire.to) continue;
+
+      // Kaynak sinyal adını al veya oluştur
+      let sourceWireName = wires.get(wire.from.id);
+
+      if (!sourceWireName) {
+        // Check if this source directly drives a circuit output
+        if (directOutputConnections.has(wire.from.id)) {
+          sourceWireName = directOutputConnections.get(wire.from.id)!;
+        } else if (
+          wire.from.component.type === "toggle" ||
+          wire.from.component.type === "button" ||
+          wire.from.component.type === "clock"
+        ) {
+          sourceWireName = this.getWireNameForComponent(wire.from.component);
+        } else {
+          sourceWireName = `w${internalWireCount++}`;
+        }
+
+        wires.set(wire.from.id, sourceWireName);
+      }
+
+      // Hedef portu işaretle
+      if (wire.to.component.type === "light-bulb" || wire.to.component.type === "hex") {
+        const outputName = this.getWireNameForComponent(wire.to.component);
+        wires.set(wire.to.id, outputName);
+
+        // Çıkışa giden bağlantıyı kaydet
+        if (!wireConnections.has(outputName)) {
+          wireConnections.set(outputName, [sourceWireName]);
+        } else {
+          wireConnections.get(outputName)!.push(sourceWireName);
+        }
+      } else {
+        // Mantık kapısı girişlerine bağlantıları kaydet
+        if (!wireConnections.has(wire.to.id)) {
+          wireConnections.set(wire.to.id, [sourceWireName]);
+        } else {
+          wireConnections.get(wire.to.id)!.push(sourceWireName);
+        }
+      }
+    }
+
+    // Çıktıları derlemeye başla
+    let moduleCode = "";
+
+    // Modül adını oluştur
+    const moduleName = `circuit_${new Date().getTime().toString(36)}`;
+
+    // Giriş çıkış portlarını derle
+    const portNames: string[] = [];
+
+    // Giriş portları
+    for (const input of inputs) {
+      const portName = this.getWireNameForComponent(input);
+      // Skip constants as they're not actual ports
+      if (portName !== "1'b0" && portName !== "1'b1") {
+        portNames.push(portName);
+      }
+    }
+
+    // Çıkış portları
+    for (const output of outputs) {
+      const portName = this.getWireNameForComponent(output);
+      portNames.push(portName);
+    }
+
+    // Modül tanımını yaz
+    moduleCode += `module ${moduleName}(\n  ${portNames.join(", ")}\n);\n\n`;
+
+    // Giriş portlarını tanımla
+    if (inputs.length > 0) {
+      moduleCode += "// Input ports\n";
+      for (const input of inputs) {
+        const portName = this.getWireNameForComponent(input);
+        // Skip constants
+        if (portName !== "1'b0" && portName !== "1'b1") {
+          moduleCode += `input ${portName};\n`;
+        }
+      }
+      moduleCode += "\n";
+    }
+
+    // Çıkış portlarını tanımla
+    if (outputs.length > 0) {
+      moduleCode += "// Output ports\n";
+      for (const output of outputs) {
+        moduleCode += `output ${this.getWireNameForComponent(output)};\n`;
+      }
+      moduleCode += "\n";
+    }
+
+    // İç tel tanımları
+    if (internalWireCount > 0) {
+      moduleCode += "// Internal wires\n";
+      for (let i = 0; i < internalWireCount; i++) {
+        moduleCode += `wire w${i};\n`;
+      }
+      moduleCode += "\n";
+    }
+
+    // Mantık kapısı tanımları
+    if (gates.length > 0) {
+      moduleCode += "// Gate instantiations\n";
+      let instanceCount: Map<string, number> = new Map();
+
+      for (const gate of gates) {
+        let gateType = this.mapGateTypeToVerilog(gate.type);
+
+        // Gate instance adını oluştur
+        let instanceNum = instanceCount.get(gateType) || 0;
+        instanceCount.set(gateType, instanceNum + 1);
+        let instanceName = `${gateType}${instanceNum}`;
+
+        // Gate çıkış sinyalini belirle - check if it directly connects to a circuit output
+        let outputSignal = "";
+
+        if (gate.outputs.length > 0) {
+          const outputPortId = gate.outputs[0].id;
+
+          // Check if this output directly drives a circuit output
+          if (directOutputConnections.has(outputPortId)) {
+            outputSignal = directOutputConnections.get(outputPortId)!;
+          }
+          // Otherwise use an internal wire name
+          else {
+            outputSignal = wires.get(outputPortId) || `w${internalWireCount++}`;
+            if (!wires.has(outputPortId)) {
+              wires.set(outputPortId, outputSignal);
+            }
+          }
+        }
+
+        // Gate girişlerini derle
+        const inputs: string[] = [];
+        for (const input of gate.inputs) {
+          // Bu girişe bağlı telin adını bul
+          const connections = wireConnections.get(input.id);
+          if (connections && connections.length > 0) {
+            inputs.push(connections[0]); // İlk bağlantıyı kullan
+          } else {
+            // Bağlantı yoksa, sabit 0 kullan
+            inputs.push("1'b0");
+          }
+        }
+
+        // Gate kodunu yaz
+        moduleCode += this.generateGateInstance(gateType, instanceName, outputSignal, inputs);
+      }
+    }
+
+    // Modül tanımını kapat
+    moduleCode += "\nendmodule\n";
+
+    return moduleCode;
+  }
+  private generateGateInstance(
+    gateType: string,
+    instanceName: string,
+    output: string,
+    inputs: string[],
+  ): string {
+    if (gateType === "mux") {
+      // Mux için özel format (select girişini son parametre olarak ekle)
+      const dataInputs = inputs.slice(0, inputs.length - 1);
+      const select = inputs[inputs.length - 1];
+      return `${gateType} ${instanceName}(${output}, ${dataInputs.join(", ")}, ${select});\n`;
+    } else if (gateType === "dff") {
+      // D Flip-flop için özel format (clk ve reset girişleri)
+      const d = inputs[0] || "1'b0";
+      const clk = inputs[1] || "1'b0";
+      return `${gateType} ${instanceName}(${output}, ${d}, ${clk});\n`;
+    } else {
+      // Normal gate formatı
+      return `${gateType} ${instanceName}(${output}, ${inputs.join(", ")});\n`;
+    }
+  }
+
+  private mapGateTypeToVerilog(componentType: string): string {
+    switch (componentType) {
+      case "and":
+        return "and";
+      case "or":
+        return "or";
+      case "not":
+        return "not";
+      case "nand":
+        return "nand";
+      case "nor":
+        return "nor";
+      case "xor":
+        return "xor";
+      case "xnor":
+        return "xnor";
+      case "buffer":
+        return "buf";
+      case "mux2":
+        return "mux";
+      case "mux4":
+        return "mux4";
+      case "decoder":
+        return "decoder";
+      case "dflipflop":
+        return "dff";
+      case "dlatch":
+        return "latch";
+      default:
+        return "unknown";
+    }
+  }
+
+  private getWireNameForComponent(component: Component): string {
+    // Bileşen türüne göre anlamlı isim oluştur
+    switch (component.type) {
+      case "toggle":
+        return `i_sw${component.id.slice(-2)}`;
+      case "button":
+        return `i_btn${component.id.slice(-2)}`;
+      case "constant0":
+        return "1'b0";
+      case "constant1":
+        return "1'b1";
+      case "clock":
+        return `i_clk${component.id.slice(-2)}`;
+      case "light-bulb":
+        return `o_led${component.id.slice(-2)}`;
+      case "hex":
+        return `o_hex${component.id.slice(-2)}`;
+      default:
+        return `sig_${component.id.slice(-4)}`;
+    }
+  }
 
   simulate(): void {
     this.components.forEach((component) => {
@@ -395,7 +689,6 @@ export class CircuitBoard {
       }
     });
 
-    
     this.components.forEach((component) => {
       component.draw(this.minimapCtx);
     });
@@ -1164,11 +1457,27 @@ export class CircuitBoard {
 
     URL.revokeObjectURL(url);
   }
+  public saveVerilogToFile(verilogCode: string, filename: string = "circuit.v"): void {
+    // Create a blob with the Verilog code
+    const blob = new Blob([verilogCode], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+  
+    // Create a temporary link element to trigger the download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  
+    // Clean up the blob URL
+    URL.revokeObjectURL(url);
+  }
 
   public loadFromFile(file: File): Promise<boolean> {
     return new Promise((resolve) => {
       if (!file.name.endsWith(".json")) {
-        alert("Geçersiz dosya uzantısı. Lütfen .logic uzantılı bir dosya seçin.");
+        alert("Geçersiz dosya uzantısı. Lütfen .json uzantılı bir dosya seçin.");
         resolve(false);
         return;
       }

@@ -28,10 +28,25 @@
           <input type="text" class = "docName" placeholder="Untitled" ></input>
           <div class = "rightContainer">
             <div class = "storage" >Circuits</div>
+
+            <div class="fileContainer">
+              <div  class = "file">File</div>
+              <div class="file-dropdown">
+                <div class = "fileOption" data = "new">New</div>
+                
+                <div class = "fileOption" >
+                  <label  for="loadFile" class="load">Load
+                    <input type="file" id="loadFile" accept=".json" style="display: none;">
+                  </label>
+                </div>
+
+                <div class = "fileOption" data = "save">Save</div>
+                <div class = "fileOption" data = "saveas">Save as</div>
+              </div>
+              
+            </div>
             
-            <label for="loadFile" class="load">Load
-              <input type="file" id="loadFile" accept=".json" style="display: none;">
-            </label>
+
 
             <div class = "aiLogo" >
               <!-- <svg width = 40 height = 40 xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >

@@ -180,16 +180,13 @@ function initApp() {
 
   window.addEventListener("resize", handleResize);
 
-  
   sidebarClose.addEventListener("click", () => {
     if (sidebar.classList.contains("close")) {
-      
       sidebar.classList.remove("close");
       sidebar.classList.add("open");
       sidebarClose.classList.remove("open");
       sidebarClose.classList.add("close");
     } else {
-      
       sidebar.classList.remove("open");
       sidebar.classList.add("close");
       sidebarClose.classList.remove("close");
@@ -200,7 +197,9 @@ function initApp() {
   });
 
   handleResize();
+  setFile();
 }
+
 function syncCanvasWithAnimation() {
   const sidebarStyles = window.getComputedStyle(sidebar);
   const isTransitioning =
@@ -219,9 +218,7 @@ function handleResize() {
 }
 
 function extractVerilogFromPrompt(prompt: string): string | null {
-
   const moduleRegex = /\b(module\s+[\w\s\(\),;]*[\s\S]*?endmodule)\b/gi;
-
 
   const matches = prompt.match(moduleRegex);
 
@@ -779,6 +776,72 @@ function setupSettings() {
     circuitBoard.grid = showGridToggle.checked;
     circuitBoard.draw();
   });
+}
+function setFile() {
+  const fileButton = document.querySelector(".file") as HTMLElement;
+  const fileDropdown = document.querySelector(".file-dropdown") as HTMLElement;
+  const fileOptions = document.querySelectorAll(".fileOption") as NodeListOf<HTMLElement>;
+ 
+
+  if (!fileButton || !fileDropdown) {
+    console.warn("File elements not found in HTML");
+    return;
+  }
+  fileButton.addEventListener("click", function (e) {
+    e.stopPropagation();
+    fileDropdown.classList.toggle("show");
+  });
+  document.addEventListener("click", function () {
+    fileDropdown.classList.remove("show");
+  });
+  fileButton.addEventListener("mouseenter", (event: MouseEvent) => {
+    fileDropdown.classList.toggle("show");
+  }
+  );
+  fileDropdown.addEventListener("mouseleave", (event: MouseEvent) => {
+    fileDropdown.classList.remove("show");
+  }
+  );
+  fileDropdown.addEventListener("click", function (e) {
+    e.stopPropagation();
+  }
+  );
+
+  fileOptions.forEach((option) => {
+    option.addEventListener("click", function () {
+      const selectedFile = this.getAttribute("data");
+      if (!selectedFile) return;
+
+      fileOptions.forEach((opt) => opt.classList.remove("active"));
+
+      this.classList.add("active");
+
+      if (selectedFile === "load") {
+        fileInput?.click();
+      } else if (selectedFile === "save") {
+        var text = inputText.value;
+        if (text === "") {
+          text = "circuit";
+        }
+       
+        circuitBoard.saveToFile(text+ ".json");
+      }
+      else if(selectedFile === "saveas"){
+         const veri = circuitBoard.extractVerilog();
+         var text = inputText.value;
+         if(text === ""){
+          text = "circuit";
+         }
+         circuitBoard.saveVerilogToFile(veri, text + ".v");
+      }
+      else if (selectedFile === "new") {
+
+        circuitBoard.clearCircuit();
+      }
+      fileDropdown.classList.remove("show");
+    });
+  }
+  );
 }
 function setTheme() {
   const themeButton = document.querySelector(".Theme") as HTMLElement;
