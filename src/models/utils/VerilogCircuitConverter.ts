@@ -431,60 +431,29 @@ export class VerilogCircuitConverter {
     }
     
 
-    const outputXPos = xBase + (maxLayer + 1) * xLayerSpacing + 50; 
-    
+    const outputXPos = xBase + (maxLayer + 1) * xLayerSpacing + 50;
+  
+  // Group outputs but preserve their original order
+ 
+  
+  // Position outputs respecting their declaration order
+  yPos = yBase + 100; // Start at a reasonable Y position
+  const yOutputSpacing = yComponentSpacing * 0.75; 
+  
+  // Process each output group while maintaining original order within groups
 
-    const outputGroups = this.groupRelatedSignals(module.outputs);
     
-
-    const outputPositions: {output: VerilogPort, y: number}[] = [];
-    
-    yPos = yBase;
-    outputGroups.forEach(group => {
-      group.forEach((output, index) => {
-       
-        let outputYPos = yPos + index * yComponentSpacing;
-        
-        
-        const sourceGate = module.gates.find(g => g.output === output.name);
-        if (sourceGate) {
-          const sourcePos = this.componentPositions.get(sourceGate.output);
-          if (sourcePos) {
-            outputYPos = sourcePos.y;
-          }
-        }
-        
-        outputPositions.push({output, y: outputYPos});
-      });
-
-      const lastPos = group.map(out => 
-        outputPositions.find(p => p.output.name === out.name)?.y || 0
-      );
-      if (lastPos.length > 0) {
-        yPos = Math.max(...lastPos) + yComponentSpacing;
-      } else {
-        yPos += group.length * yComponentSpacing + 20;
-      }
-    });
-   
-    outputPositions.sort((a, b) => a.y - b.y);
-    for (let i = 1; i < outputPositions.length; i++) {
-      const minSpacing = 100; 
-      const prev = outputPositions[i-1];
-      const current = outputPositions[i];
-      
-      if (current.y - prev.y < minSpacing) {
-        current.y = prev.y + minSpacing;
-      }
-    }
-    
-
-    outputPositions.forEach(({output, y}) => {
+    // Add spacing between groups
+    module.outputs.forEach((output, index) => {
       this.componentPositions.set(output.name, {
         x: outputXPos,
-        y: y
+        y: yPos + index * yOutputSpacing
       });
     });
+  
+
+  
+
   }
   
   private groupRelatedSignals(signals: VerilogPort[]): VerilogPort[][] {
@@ -526,85 +495,85 @@ export class VerilogCircuitConverter {
     return Object.values(groups);
   }
   
-  private groupGatesByBitPosition(module: VerilogModule): { [key: number]: VerilogGate[] } {
-    const result: { [key: number]: VerilogGate[] } = {};
+  // private groupGatesByBitPosition(module: VerilogModule): { [key: number]: VerilogGate[] } {
+  //   const result: { [key: number]: VerilogGate[] } = {};
    
-    module.gates.forEach(gate => {
+  //   module.gates.forEach(gate => {
 
-      const bitIndices = gate.inputs
-        .map(input => {
-          const match = input.match(/(\d+)$/);
-          return match ? parseInt(match[1]) : -1;
-        })
-        .filter(idx => idx >= 0);
+  //     const bitIndices = gate.inputs
+  //       .map(input => {
+  //         const match = input.match(/(\d+)$/);
+  //         return match ? parseInt(match[1]) : -1;
+  //       })
+  //       .filter(idx => idx >= 0);
       
-      // If we found bit indices, use the first one
-      if (bitIndices.length > 0) {
-        const bitIndex = bitIndices[0];
-        if (!result[bitIndex]) result[bitIndex] = [];
-        result[bitIndex].push(gate);
-      } else {
-        // If we can't determine bit index from inputs, try from output
-        const outputMatch = gate.output.match(/(\d+)$/);
-        if (outputMatch) {
-          const bitIndex = parseInt(outputMatch[1]);
-          if (!result[bitIndex]) result[bitIndex] = [];
-          result[bitIndex].push(gate);
-        } else {
-          // Can't determine bit position, put in group -1
-          if (!result[-1]) result[-1] = [];
-          result[-1].push(gate);
-        }
-      }
-    });
+  //     // If we found bit indices, use the first one
+  //     if (bitIndices.length > 0) {
+  //       const bitIndex = bitIndices[0];
+  //       if (!result[bitIndex]) result[bitIndex] = [];
+  //       result[bitIndex].push(gate);
+  //     } else {
+  //       // If we can't determine bit index from inputs, try from output
+  //       const outputMatch = gate.output.match(/(\d+)$/);
+  //       if (outputMatch) {
+  //         const bitIndex = parseInt(outputMatch[1]);
+  //         if (!result[bitIndex]) result[bitIndex] = [];
+  //         result[bitIndex].push(gate);
+  //       } else {
+  //         // Can't determine bit position, put in group -1
+  //         if (!result[-1]) result[-1] = [];
+  //         result[-1].push(gate);
+  //       }
+  //     }
+  //   });
     
-    return result;
-  }
+  //   return result;
+  // }
   
-  private layerGatesWithinBitSlice(gates: VerilogGate[]): Map<string, number> {
-    const layers = new Map<string, number>();
-    const dependencies = new Map<string, string[]>();
+  // private layerGatesWithinBitSlice(gates: VerilogGate[]): Map<string, number> {
+  //   const layers = new Map<string, number>();
+  //   const dependencies = new Map<string, string[]>();
     
-    // Build dependency graph
-    gates.forEach(gate => {
-      dependencies.set(gate.output, [...gate.inputs]);
-    });
+  //   // Build dependency graph
+  //   gates.forEach(gate => {
+  //     dependencies.set(gate.output, [...gate.inputs]);
+  //   });
     
-    // Assign layers through topological sort
-    let changed = true;
-    let iteration = 0;
+  //   // Assign layers through topological sort
+  //   let changed = true;
+  //   let iteration = 0;
     
-    while (changed && iteration < 10) {
-      changed = false;
-      iteration++;
+  //   while (changed && iteration < 10) {
+  //     changed = false;
+  //     iteration++;
       
-      for (const gate of gates) {
-        // Find inputs that are outputs of other gates in this slice
-        const sliceInputs = gate.inputs.filter(input => 
-          gates.some(g => g.output === input)
-        );
+  //     for (const gate of gates) {
+  //       // Find inputs that are outputs of other gates in this slice
+  //       const sliceInputs = gate.inputs.filter(input => 
+  //         gates.some(g => g.output === input)
+  //       );
         
-        // Calculate max layer of dependencies
-        const inputLayers = sliceInputs
-          .map(input => layers.get(input) || 0)
-          .filter(layer => layer !== undefined);
+  //       // Calculate max layer of dependencies
+  //       const inputLayers = sliceInputs
+  //         .map(input => layers.get(input) || 0)
+  //         .filter(layer => layer !== undefined);
         
-        // If this gate depends on other gates in the slice, its layer is max + 1
-        let gateLayer = 0;
-        if (inputLayers.length > 0) {
-          gateLayer = Math.max(...inputLayers) + 1;
-        }
+  //       // If this gate depends on other gates in the slice, its layer is max + 1
+  //       let gateLayer = 0;
+  //       if (inputLayers.length > 0) {
+  //         gateLayer = Math.max(...inputLayers) + 1;
+  //       }
         
-        // Update layer if needed
-        if (!layers.has(gate.output) || layers.get(gate.output)! < gateLayer) {
-          layers.set(gate.output, gateLayer);
-          changed = true;
-        }
-      }
-    }
+  //       // Update layer if needed
+  //       if (!layers.has(gate.output) || layers.get(gate.output)! < gateLayer) {
+  //         layers.set(gate.output, gateLayer);
+  //         changed = true;
+  //       }
+  //     }
+  //   }
     
-    return layers;
-  }
+  //   return layers;
+  // }
   
   private buildCircuit(module: VerilogModule): boolean {
     try {
@@ -820,6 +789,17 @@ export class VerilogCircuitConverter {
     } else {
       // Output might be directly connected to an input
       sourcePort = this.outputPorts[outputName];
+      
+      // NEW: If still no source found, check all gates and see if any output with this name
+      if (!sourcePort) {
+        for (const [name, port] of Object.entries(this.outputPorts)) {
+          const gate = this.parser.getModule()?.gates.find(g => g.output === name);
+          if (gate?.output === outputName) {
+            sourcePort = port;
+            break;
+          }
+        }
+      }
     }
     
     if (sourcePort) {
@@ -828,24 +808,57 @@ export class VerilogCircuitConverter {
       this.circuitBoard.addWire(wire);
     } else {
       console.error(`Source port for output ${outputName} not found`);
+      
+      // NEW: Try to create a debug connection to help identify the issue
+      console.warn(`Attempting to find any available source for ${outputName}`);
+      const fallbackSource = Object.values(this.outputPorts)[0];
+      if (fallbackSource) {
+        console.warn(`Created fallback connection for ${outputName}`);
+        const debugWire = new Wire(fallbackSource);
+        debugWire.connect(bulb.inputs[0]);
+        this.circuitBoard.addWire(debugWire);
+      }
     }
   }
-  
   // Helper to find the gate that produces a given output
   private findSourceForOutput(outputName: string): VerilogGate | undefined {
+    const module = this.parser.getModule();
+    if (!module) return undefined;
+    
     // First check if any gate directly outputs this signal
-    const directGate = this.parser.getModule()?.gates.find(g => g.output === outputName);
+    const directGate = module.gates.find(g => g.output === outputName);
     if (directGate) return directGate;
+    
+    // NEW: Check if this output is directly connected to a wire
+    // This is often the case in decoders where the module output is directly in the gate output
+    for (const gate of module.gates) {
+      if (gate.output === outputName) {
+        return gate;
+      }
+    }
     
     // Check for bit selections
     const bitSelectionMatch = outputName.match(/^(\w+)\[(\d+)\]$/);
     if (bitSelectionMatch) {
       const [, baseName, bitIndex] = bitSelectionMatch;
       // Try to find a gate that outputs to this specific bit
-      return this.parser.getModule()?.gates.find(g => 
+      return module.gates.find(g => 
         g.output === `${baseName}[${bitIndex}]` || 
         g.output === `${baseName}_${bitIndex}`
       );
+    }
+    
+    // NEW: Special case for decoder outputs like "d0", "d1", etc.
+    if (/^d\d+$/.test(outputName)) {
+      // Find any gate that directly outputs to this signal
+      const gates = module.gates.filter(g => {
+        // Find the AND gates that directly connect to decoder outputs
+        return g.type === 'and' && g.output === outputName;
+      });
+      
+      if (gates.length > 0) {
+        return gates[0]; // Use the first found gate
+      }
     }
     
     return undefined;

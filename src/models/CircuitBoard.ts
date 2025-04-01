@@ -412,19 +412,19 @@ export class CircuitBoard {
     // Bileşen türüne göre anlamlı isim oluştur
     switch (component.type) {
       case "toggle":
-        return `i_sw${component.id.slice(-2)}`;
+        return `i_sw_${component.id.slice(-2)}`;
       case "button":
-        return `i_btn${component.id.slice(-2)}`;
+        return `i_btn_${component.id.slice(-2)}`;
       case "constant0":
         return "1'b0";
       case "constant1":
         return "1'b1";
       case "clock":
-        return `i_clk${component.id.slice(-2)}`;
+        return `i_clk_${component.id.slice(-2)}`;
       case "light-bulb":
-        return `o_led${component.id.slice(-2)}`;
+        return `o_led_${component.id.slice(-2)}`;
       case "hex":
-        return `o_hex${component.id.slice(-2)}`;
+        return `o_hex_${component.id.slice(-2)}`;
       default:
         return `sig_${component.id.slice(-4)}`;
     }
