@@ -99,50 +99,64 @@ export class Text extends Component {
    * Display a textarea for editing the text
    */
   private showEditor(canvas: HTMLCanvasElement): void {
-  
-  this.editor = document.createElement('textarea');
-  this.editor.value = this.text;
-  const scale = canvas.getContext('2d')?.getTransform().a || 1;
+    // Mevcut canvas transformasyonlarını al
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const transform = ctx.getTransform();
+    const scale = transform.a;  // Zoom level
+    const offsetX = transform.e;  // Pan X
+    const offsetY = transform.f;  // Pan Y
+    
+    // Canvas'ın viewport içindeki konumunu al
+    const canvasRect = canvas.getBoundingClientRect();
+    
+    // Text pozisyonunu viewport koordinatlarına dönüştür
+    const viewportX = canvasRect.left + (this.position.x * scale + offsetX);
+    const viewportY = canvasRect.top + (this.position.y * scale + offsetY);
+    
+    // Editor oluştur
+    this.editor = document.createElement('textarea');
+    this.editor.value = this.text;
+    
+    // Editörü tam olarak metin üzerine konumlandır
+    this.editor.style.position = 'fixed'; // absolute yerine fixed kullan
+    this.editor.style.left = `${viewportX}px`;
+    this.editor.style.top = `${viewportY - (this.size.height * scale / 2)}px`;
+    
+    // Boyutları canvas zoom'una göre ayarla
+    this.editor.style.width = `${(this.size.width + 20) * scale}px`;
+    this.editor.style.height = `${(this.size.height + 10) * scale}px`;
+    this.editor.style.fontSize = `${this.fontSize * scale}px`;
+    
+    // Stil ayarları
+    this.editor.style.border = '1px solid #0099ff';
+    this.editor.style.outline = 'none';
+    this.editor.style.color = '#e0e0e0';
+    this.editor.style.resize = 'none';
+    this.editor.style.overflow = 'hidden';
+    this.editor.style.padding = '2px';
+    this.editor.style.margin = '0';
+    this.editor.style.zIndex = '1000';
+    this.editor.style.background = '#333';
+    this.editor.style.fontFamily = this.fontFamily;
+    this.editor.style.textAlign = 'left'; // Text içeriğini sola hizala
+    this.editor.style.transform = 'translateX(-50%)'; // Yatay olarak ortalamak için
+    
+    // DOM'a ekle
+    document.body.appendChild(this.editor);
+    
+    // Seç ve odaklan
+    this.editor.select();
+    this.editor.focus();
+    
+    // Düzenleme moduna geç
+    this.isEditing = true;
+    
+    // Editör kapatma olayı
+    this.editor.addEventListener('blur', () => this.completeEditing());
 
-  this.editor.style.position = 'absolute';
-  this.editor.style.left = `${this.position.x  / scale}px`;
-  this.editor.style.top = `${(this.position.y - this.size.height / 2) / scale}px`;
-  this.editor.style.width = `${(this.size.width + 20) * scale  }px`;
-  this.editor.style.height = `${(this.size.height + 10) * scale}px`;
-  this.editor.style.fontSize = `${12 * scale}px`;
-  this.editor.style.border = '1px solid #0099ff';
-  this.editor.style.outline = 'none';
-  this.editor.style.color = '#e0e0e0';
-  this.editor.style.resize = 'none';
-  this.editor.style.overflow = 'hidden';
-  this.editor.style.padding = '2px';
-  this.editor.style.margin = '0';
-  this.editor.style.zIndex = '1000';
-  this.editor.style.background = '#333'; 
-  
-  
-  const canvasRect = canvas.getBoundingClientRect();
-  const canvasOffsetX = canvasRect.left;
-  const canvasOffsetY = canvasRect.top;
-  
-  
-  this.editor.style.left = `${canvasOffsetX + this.position.x}px`;
-  this.editor.style.top = `${canvasOffsetY + this.position.y - this.size.height / 2}px`;
-  
-  
-  document.body.appendChild(this.editor);
-  
-  
-  this.editor.select();
-  this.editor.focus();
-  
-
-  this.isEditing = true;
-  
- 
-  this.editor.addEventListener('blur', () => this.completeEditing());
-  
-}
+  }
 
   private completeEditing(): void {
     if (this.isEditing && this.editor) {
@@ -162,9 +176,11 @@ export class Text extends Component {
    * Override containsPoint to use text bounds
    */
   containsPoint(point: Point): boolean {
+    const halfWidth = this.size.width / 2;
+    
     return (
-      point.x >= this.position.x &&
-      point.x <= this.position.x + this.size.width &&
+      point.x >= this.position.x - halfWidth &&
+      point.x <= this.position.x + halfWidth &&
       point.y >= this.position.y - this.size.height / 2 &&
       point.y <= this.position.y + this.size.height / 2
     );
