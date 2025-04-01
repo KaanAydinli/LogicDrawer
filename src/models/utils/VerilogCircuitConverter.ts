@@ -21,6 +21,7 @@ export class VerilogCircuitConverter {
   private componentPositions: Map<string, Point> = new Map();
   private components: { [name: string]: Component } = {};
   private outputPorts: { [name: string]: any } = {};
+  
 
   constructor(circuitBoard: CircuitBoard) {
     this.parser = new VerilogParser();
@@ -37,7 +38,14 @@ export class VerilogCircuitConverter {
       this.outputPorts = {};
       this.componentPositions.clear();
 
+      if ( this.hasCombinationalLoop(module)) {
+        console.warn("Sequential logic or combinational loop detected. Circuit will not be drawn.");
+        return false;
+      }
+      
+
       const { signalLayers, signalDependencies } = this.analyzeCircuitStructure(module);
+
 
       this.organizeAndPositionComponents(module, signalLayers, signalDependencies);
 
@@ -51,6 +59,32 @@ export class VerilogCircuitConverter {
       console.error("Error importing Verilog code:", error);
       return false;
     }
+  }
+  private hasCombinationalLoop(module: VerilogModule): boolean {
+    const dependencies = new Map<string, string[]>();
+    module.gates.forEach((gate) => {
+      dependencies.set(gate.output, [...gate.inputs]);
+    });
+
+    const visited = new Set<string>();
+    const stack = new Set<string>();
+
+    const dfs = (signal: string): boolean => {
+      if (stack.has(signal)) return true;
+      if (visited.has(signal)) return false;
+
+      visited.add(signal);
+      stack.add(signal);
+
+      for (const nextSignal of dependencies.get(signal) || []) {
+        if (dfs(nextSignal)) return true;
+      }
+
+      stack.delete(signal);
+      return false;
+    };
+
+    return Array.from(dependencies.keys()).some(dfs);
   }
 
   private analyzeCircuitStructure(module: VerilogModule): {
@@ -245,7 +279,6 @@ export class VerilogCircuitConverter {
 
     return Object.values(groups);
   }
-
   private buildCircuit(module: VerilogModule): boolean {
     try {
       module.inputs.forEach((input) => {

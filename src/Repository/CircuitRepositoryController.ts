@@ -1150,7 +1150,7 @@ export class CircuitRepositoryController {
         title,
         description,
         authorId: this.currentUserId,
-        authorName: "Current User", 
+        authorName: "Anonymous", 
         tags,
         verilogCode,
         thumbnailUrl: undefined, 
