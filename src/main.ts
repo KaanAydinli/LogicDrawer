@@ -32,6 +32,26 @@ import { LocalStorageCircuitRepository } from "./Repository/LocalStorageCircuitR
 import { LogicGate } from "./models/LogicGate";
 import { State } from "./models/other/State";
 
+
+
+class Queue{
+  
+  private items: string[] = [];
+
+  enqueue(item: string) {
+    this.items.push(item);
+  }
+
+  dequeue(): string | undefined {
+    return this.items.shift();
+  }
+
+  isEmpty(): boolean {
+    return this.items.length === 0;
+  }
+}
+const queue = new Queue();
+
 // const repositoryService = new MockCircuitRepositoryService();
 const repositoryService = new LocalStorageCircuitRepository();
 var converter;
@@ -49,30 +69,7 @@ let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
-const verilogCode = `
 
-testingasd
-module full_subtractor(input a, b, bin, output diff, bout); 
-wire xor_ab; 
-wire not_a; 
-wire and_nota_b; 
-wire xnor_ab; 
-wire and_xnor_bin;
-
-xor x1(xor_ab, a, b); 
-xor x2(diff, xor_ab, bin);
-
-not n1(not_a, a); 
-and a1(and_nota_b, not_a, b);
-
-xnor xn1(xnor_ab, a, b); 
-and a2(and_xnor_bin, xnor_ab, bin);
-
-or o1(bout, and_nota_b, and_xnor_bin); 
-endmodule
-
-asadasd
-`;
 
 const promptAI = `Your name is Logai. You are an AI assistant specialized in digital logic circuits.
 
@@ -457,6 +454,7 @@ function setUpAI() {
   });
 
   async function callMistralAPI(userMessage: string): Promise<string> {
+    console.log(queue);
     try {
       const apiKeyMinstral = import.meta.env.VITE_MISTRAL_API_KEY;
 
@@ -485,7 +483,7 @@ function setUpAI() {
           messages: [
             {
               role: "system",
-              content: promptAI,
+              content: promptAI + "Your converseation history: " + JSON.stringify(queue),
             },
 
             { role: "user", content: userMessage },
@@ -598,6 +596,9 @@ function setUpAI() {
   });
 
   function addUserMessage(text: string) {
+    queue.enqueue(text);
+    
+    circuitBoard.saveToLocalStorage();
     const messageDiv = document.createElement("div");
     messageDiv.className = "user-message";
     messageDiv.innerHTML = `
@@ -637,6 +638,8 @@ function setUpAI() {
         console.error("Verilog import failed!");
       }
     }
+    queue.enqueue(aiText);
+    saveToLocalStorage();
 
     messageDiv.className = "ai-message";
     messageDiv.innerHTML = `
@@ -993,5 +996,14 @@ inputText.addEventListener("keydown", (event) => {
     circuitBoard.saveToFile(filePath + ".json");
   }
 });
+function saveToLocalStorage(key: string = "history"): void {
+  try {
+    const queueString = JSON.stringify(queue);
+    localStorage.setItem(key,queueString );
+    console.log("Devre local storage'a kaydedildi");
+  } catch (error) {
+    console.error("Local storage'a kaydetme hatası:", error);
+  }
+}
 
 window.addEventListener("DOMContentLoaded", initApp);
