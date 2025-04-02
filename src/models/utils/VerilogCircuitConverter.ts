@@ -130,35 +130,38 @@ export class VerilogCircuitConverter {
 
    
     if (hasCombinationalLoop) {
+      // Feedback döngülerini temizle ve yeniden oluştur
+      feedbackEdges.length = 0;
       
-      cycleNodes.forEach((node) => {
+      // Tüm kapıları tarayarak çapraz bağlantıları tespit et
+      for (let i = 0; i < module.gates.length; i++) {
+        const gate1 = module.gates[i];
         
-        const deps = dependencies.get(node) || [];
-        deps.forEach((dep) => {
+        for (let j = i + 1; j < module.gates.length; j++) {
+          const gate2 = module.gates[j];
           
-          if (cycleNodes.has(dep)) {
+          // İki kapı birbirlerine bağlı mı kontrol et
+          const gate1UsesGate2Output = gate1.inputs.includes(gate2.output);
+          const gate2UsesGate1Output = gate2.inputs.includes(gate1.output);
+          
+          if (gate1UsesGate2Output && gate2UsesGate1Output) {
+            console.log(`Çapraz bağlantılı kapılar bulundu: ${gate1.output} <-> ${gate2.output}`);
             
-            const reverseDeps = reverseDependencies.get(node) || [];
-            if (reverseDeps.includes(dep)) {
-              
-              const feedbackExists = feedbackEdges.some(
-                (edge) =>
-                  (edge.source === node && edge.target === dep) ||
-                  (edge.source === dep && edge.target === node),
-              );
-
-              if (!feedbackExists) {
-                console.log(`Çapraz bağlantı tespit edildi: ${node} <-> ${dep}`);
-                feedbackEdges.push({ source: node, target: dep });
-                
-                feedbackEdges.push({ source: dep, target: node });
-              }
-            }
+            // Her iki yönde de bağlantı ekle
+            feedbackEdges.push({
+              source: gate1.output,
+              target: gate2.output
+            });
+            
+            feedbackEdges.push({
+              source: gate2.output,
+              target: gate1.output
+            });
           }
-        });
-      });
-
-      console.log(`${feedbackEdges.length} geri besleme bağlantısı tespit edildi`);
+        }
+      }
+      
+      console.log(`SR latch veya benzer yapılar için ${feedbackEdges.length} geri besleme bağlantısı tespit edildi`);
     }
 
     return { hasCombinationalLoop, feedbackEdges };
@@ -554,133 +557,89 @@ export class VerilogCircuitConverter {
     }
   }
 
-  private connectFeedbackWires(): void {
-    console.log("Connecting feedback wires:", this.feedbackWires);
-
-    const module = this.parser.getModule();
-    if (!module) return;
-
-
-    const signalSourceMap = new Map<string, VerilogGate>(); 
-    const signalTargetMap = new Map<string, { gate: VerilogGate; inputIndex: number }[]>(); 
-
-   
-    module.gates.forEach((gate) => {
-     
-      signalSourceMap.set(gate.output, gate);
-
-    
-      gate.inputs.forEach((input, inputIndex) => {
-        if (!signalTargetMap.has(input)) {
-          signalTargetMap.set(input, []);
-        }
-        signalTargetMap.get(input)!.push({ gate, inputIndex });
-      });
-    });
-
+ // connectFeedbackWires fonksiyonunu tamamen değiştirin
+private connectFeedbackWires(): void {
+  console.log("Connecting feedback wires:", this.feedbackWires);
   
-    for (const { source, target } of this.feedbackWires) {
- 
-      const sourcePort = this.outputPorts[source];
-      if (!sourcePort) {
-        console.error(`Source port for ${source} not found`);
-        continue;
-      }
-
-      const targetUsers = signalTargetMap.get(target) || [];
-      if (targetUsers.length === 0) {
-        console.error(`No gate found that uses ${target} as input`);
-        continue;
-      }
-
-
-      for (const { gate: targetGate, inputIndex } of targetUsers) {
-        const targetComponent = this.components[targetGate.output];
-        if (!targetComponent) {
-          console.error(`Target component for ${targetGate.output} not found`);
+  // 1. Önce tüm geri besleme çiftlerini belirle
+  const feedbackPairs = new Map<string, string[]>();
+  
+  for (const { source, target } of this.feedbackWires) {
+    if (!feedbackPairs.has(source)) {
+      feedbackPairs.set(source, []);
+    }
+    feedbackPairs.get(source)!.push(target);
+  }
+  
+  // 2. Her bir kaynak için, hedefi içeren kapının inputlarının doğru indexini bul
+  const module = this.parser.getModule();
+  if (!module) return;
+  
+  for (const [source, targets] of feedbackPairs.entries()) {
+    // Kaynak portu bul
+    const sourcePort = this.outputPorts[source];
+    if (!sourcePort) {
+      console.error(`Source port for ${source} not found`);
+      continue;
+    }
+    
+    // Her bir hedef için bağlantı kur
+    for (const target of targets) {
+      // Hedef sinyali kullanan tüm kapıları bul
+      const targetGates = module.gates.filter(gate => 
+        gate.inputs.includes(target) && 
+        // Kendi kendine bağlantı olmasın
+        gate.output !== source
+      );
+      
+      for (const gate of targetGates) {
+        // Kapının hedef sinyali hangi girişinde kullandığını bul
+        const inputIndex = gate.inputs.indexOf(target);
+        if (inputIndex === -1) continue;
+        
+        // Hedef bileşeni ve giriş portunu bul
+        const targetComponent = this.components[gate.output];
+        if (!targetComponent || inputIndex >= targetComponent.inputs.length) {
+          console.error(`Target component for ${gate.output} not found or input index invalid`);
           continue;
         }
-
-        const alreadyConnected = targetComponent.inputs[inputIndex].isConnected;
-        if (alreadyConnected) {
-          console.log(`Input ${inputIndex} of ${targetGate.output} is already connected, skipping`);
+        
+        // Giriş zaten bağlı mı kontrol et
+        if (targetComponent.inputs[inputIndex].isConnected) {
+          console.log(`Input ${inputIndex} of ${gate.output} is already connected, skipping`);
           continue;
         }
-
-
-        console.log(
-          `Connecting feedback: ${source} -> input ${inputIndex} of ${targetGate.output} (${target})`,
-        );
+        
+        // Bağlantıyı kur
+        console.log(`Connecting cross-feedback: ${source} -> input ${inputIndex} of ${gate.output} (${target})`);
+        const wire = new Wire(sourcePort);
+        wire.connect(targetComponent.inputs[inputIndex]);
+        this.circuitBoard.addWire(wire);
+      }
+      
+      // SR latch için özel durum - gate.output === target olan durumlar
+      const targetSourceGates = module.gates.filter(gate => gate.output === target);
+      
+      for (const gate of targetSourceGates) {
+        // Bu kapı, kaynak sinyali giriş olarak kullanıyor mu?
+        const inputIndex = gate.inputs.indexOf(source);
+        if (inputIndex === -1) continue;
+        
+        const targetComponent = this.components[gate.output];
+        if (!targetComponent || inputIndex >= targetComponent.inputs.length) continue;
+        
+        // Giriş zaten bağlı mı kontrol et
+        if (targetComponent.inputs[inputIndex].isConnected) continue;
+        
+        // Bağlantıyı kur
+        console.log(`Connecting SR latch feedback: ${source} -> input ${inputIndex} of ${target}`);
         const wire = new Wire(sourcePort);
         wire.connect(targetComponent.inputs[inputIndex]);
         this.circuitBoard.addWire(wire);
       }
     }
-
-
-    module.gates.forEach((gate1) => {
-
-
-      module.gates.forEach((gate2) => {
-
-
-
-        const gate1OutputUsedByGate2 = gate2.inputs.includes(gate1.output);
-        const gate2OutputUsedByGate1 = gate1.inputs.includes(gate2.output);
-
-        if (gate1OutputUsedByGate2 && gate2OutputUsedByGate1) {
-          console.log(
-            `Detected cross-coupled ${gate1.type} gates: ${gate1.output} <-> ${gate2.output}`,
-          );
-
-          const connection1Exists = this.feedbackWires.some(
-            (fw) => fw.source === gate1.output && fw.target === gate2.output,
-          );
-
-          const connection2Exists = this.feedbackWires.some(
-            (fw) => fw.source === gate2.output && fw.target === gate1.output,
-          );
-
-          if (!connection1Exists || !connection2Exists) {
- 
-            const comp1 = this.components[gate1.output];
-            const comp2 = this.components[gate2.output];
-            const port1 = this.outputPorts[gate1.output];
-            const port2 = this.outputPorts[gate2.output];
-
-            if (!comp1 || !comp2 || !port1 || !port2) {
-              console.error("Missing components or ports for cross-coupled gates");
-              return;
-            }
-
-
-            const inputIdx1 = gate1.inputs.indexOf(gate2.output);
-            const inputIdx2 = gate2.inputs.indexOf(gate1.output);
-
-
-            if (inputIdx1 >= 0 && !connection2Exists && !comp1.inputs[inputIdx1].isConnected) {
-              console.log(
-                `Adding missing cross-connection: ${gate2.output} -> input ${inputIdx1} of ${gate1.output}`,
-              );
-              const wire1 = new Wire(port2);
-              wire1.connect(comp1.inputs[inputIdx1]);
-              this.circuitBoard.addWire(wire1);
-            }
-
-
-            if (inputIdx2 >= 0 && !connection1Exists && !comp2.inputs[inputIdx2].isConnected) {
-              console.log(
-                `Adding missing cross-connection: ${gate1.output} -> input ${inputIdx2} of ${gate2.output}`,
-              );
-              const wire2 = new Wire(port1);
-              wire2.connect(comp2.inputs[inputIdx2]);
-              this.circuitBoard.addWire(wire2);
-            }
-          }
-        }
-      });
-    });
   }
+}
 
   private connectOutput(outputName: string, bulb: Component): void {
     const sourceGate = this.findSourceForOutput(outputName);
