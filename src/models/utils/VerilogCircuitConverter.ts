@@ -14,7 +14,8 @@ import { Mux2 } from "../gates/Mux2";
 import { Mux4 } from "../gates/Mux4";
 import { Wire } from "../Wire";
 import { Text } from "../components/Text";
-import { DFlipFlop } from "../Sequential/DFlipFlop"; // Assuming you have this component
+import { BufferGate } from "../gates/BufferGate";
+import { Clock } from "../components/Clock";
 
 export class VerilogCircuitConverter {
   private parser: VerilogParser;
@@ -41,7 +42,6 @@ export class VerilogCircuitConverter {
       this.componentPositions.clear();
       this.feedbackWires = [];
 
-      // Detect if the circuit has feedback loops
       const { hasCombinationalLoop, feedbackEdges } = this.detectFeedbackLoops(module);
       this.isSequential = hasCombinationalLoop;
 
@@ -52,9 +52,6 @@ export class VerilogCircuitConverter {
 
       const { signalLayers, signalDependencies } = this.analyzeCircuitStructure(module);
 
-      // Check if this is a recognized sequential circuit
-
-      // Otherwise organize and draw normally, handling feedback wires specially
       this.organizeAndPositionComponents(module, signalLayers, signalDependencies);
       this.buildCircuit(module);
 
@@ -72,21 +69,37 @@ export class VerilogCircuitConverter {
     feedbackEdges: { source: string; target: string }[];
   } {
     const dependencies = new Map<string, string[]>();
+    const reverseDependencies = new Map<string, string[]>();
+
     module.gates.forEach((gate) => {
       dependencies.set(gate.output, [...gate.inputs]);
+
+
+      gate.inputs.forEach((input) => {
+        if (!reverseDependencies.has(input)) {
+          reverseDependencies.set(input, []);
+        }
+        reverseDependencies.get(input)!.push(gate.output);
+      });
     });
 
     const visited = new Set<string>();
     const recursionStack = new Set<string>();
+    const cycleNodes = new Set<string>();
     const feedbackEdges: { source: string; target: string }[] = [];
+
 
     const dfs = (signal: string, path: string[] = []): boolean => {
       if (recursionStack.has(signal)) {
-        // Found a cycle, record the feedback edge
+
         const cycleStartIndex = path.indexOf(signal);
         if (cycleStartIndex !== -1) {
           const cycle = [...path.slice(cycleStartIndex), signal];
-          // Record the last edge in the cycle as feedback
+
+ 
+          cycle.forEach((node) => cycleNodes.add(node));
+
+         
           feedbackEdges.push({
             source: cycle[cycle.length - 2],
             target: cycle[cycle.length - 1],
@@ -105,7 +118,6 @@ export class VerilogCircuitConverter {
       for (const nextSignal of dependencies.get(signal) || []) {
         if (dfs(nextSignal, [...path])) {
           hasCycle = true;
-          // Continue to find all cycles
         }
       }
 
@@ -113,11 +125,44 @@ export class VerilogCircuitConverter {
       return hasCycle;
     };
 
+
     const hasCombinationalLoop = Array.from(dependencies.keys()).some((signal) => dfs(signal));
+
+   
+    if (hasCombinationalLoop) {
+      
+      cycleNodes.forEach((node) => {
+        
+        const deps = dependencies.get(node) || [];
+        deps.forEach((dep) => {
+          
+          if (cycleNodes.has(dep)) {
+            
+            const reverseDeps = reverseDependencies.get(node) || [];
+            if (reverseDeps.includes(dep)) {
+              
+              const feedbackExists = feedbackEdges.some(
+                (edge) =>
+                  (edge.source === node && edge.target === dep) ||
+                  (edge.source === dep && edge.target === node),
+              );
+
+              if (!feedbackExists) {
+                console.log(`Çapraz bağlantı tespit edildi: ${node} <-> ${dep}`);
+                feedbackEdges.push({ source: node, target: dep });
+                
+                feedbackEdges.push({ source: dep, target: node });
+              }
+            }
+          }
+        });
+      });
+
+      console.log(`${feedbackEdges.length} geri besleme bağlantısı tespit edildi`);
+    }
 
     return { hasCombinationalLoop, feedbackEdges };
   }
-
   private analyzeCircuitStructure(module: VerilogModule): {
     signalLayers: Map<string, number>;
     signalDependencies: Map<string, string[]>;
@@ -130,11 +175,9 @@ export class VerilogCircuitConverter {
       signalDependencies.set(input.name, []);
     });
 
-    // For handling sequential circuits, we need to break the cycle
     const processedFeedbackWires = new Set<string>();
 
     module.gates.forEach((gate) => {
-      // Filter out feedback inputs to break cycles for layer calculation
       const nonFeedbackInputs = gate.inputs.filter((input) => {
         const isPartOfFeedback = this.feedbackWires.some(
           (fw) => fw.source === gate.output && fw.target === input,
@@ -151,7 +194,7 @@ export class VerilogCircuitConverter {
     });
 
     let changed = true;
-    const MAX_ITERATIONS = 100; // Safety to prevent infinite loops
+    const MAX_ITERATIONS = 100;
     let iterations = 0;
 
     while (changed && iterations < MAX_ITERATIONS) {
@@ -159,7 +202,6 @@ export class VerilogCircuitConverter {
       iterations++;
 
       for (const gate of module.gates) {
-        // Filter out feedback inputs when calculating layers
         const normalInputs = gate.inputs.filter((input) => {
           return !this.feedbackWires.some((fw) => fw.source === gate.output && fw.target === input);
         });
@@ -179,12 +221,10 @@ export class VerilogCircuitConverter {
       }
     }
 
-    // Force unassigned layers due to cycles
     for (const gate of module.gates) {
       if (!signalLayers.has(gate.output)) {
         console.warn(`Forcing layer assignment for ${gate.output} due to feedback loop`);
 
-        // Assign a reasonable layer based on the gate's inputs
         const inputLayers = gate.inputs
           .map((input) => signalLayers.get(input) || 0)
           .filter((layer) => layer !== undefined);
@@ -213,7 +253,6 @@ export class VerilogCircuitConverter {
     let yPos = yBase;
     const usedPositions = new Set<number>();
 
-    // Position input groups
     inputGroups.forEach((group) => {
       const isControlGroup = group.some(
         (input) =>
@@ -257,7 +296,6 @@ export class VerilogCircuitConverter {
       }
     });
 
-    // Group gates by layer
     const gatesByLayer = new Map<number, VerilogGate[]>();
 
     module.gates.forEach((gate) => {
@@ -268,7 +306,6 @@ export class VerilogCircuitConverter {
       gatesByLayer.get(layer)!.push(gate);
     });
 
-    // Position gates by layer
     for (let layer = 1; layer <= maxLayer; layer++) {
       const gates = gatesByLayer.get(layer) || [];
       const xPos = xBase + layer * xLayerSpacing;
@@ -302,10 +339,8 @@ export class VerilogCircuitConverter {
         });
       });
     }
-    let effectiveMaxLayer = Math.min(maxLayer, 4); // Prevent excessive spacing with deep feedback loops
+    let effectiveMaxLayer = Math.min(maxLayer, 4);
     const outputXPos = xBase + (effectiveMaxLayer + 1) * xLayerSpacing + 50;
-
-    // Position outputs
 
     yPos = yBase + 100;
     const yOutputSpacing = yComponentSpacing * 0.75;
@@ -358,14 +393,24 @@ export class VerilogCircuitConverter {
 
   private buildCircuit(module: VerilogModule): boolean {
     try {
-      // Add inputs
       module.inputs.forEach((input) => {
         const position = this.componentPositions.get(input.name) || { x: 100, y: 100 };
 
-        const toggle = new ToggleSwitch(position);
-        this.components[input.name] = toggle;
-        this.outputPorts[input.name] = toggle.outputs[0];
-        this.circuitBoard.addComponent(toggle);
+        if (input.name === "clk") {
+          const clock = new Clock(position, this.circuitBoard);
+          this.components[input.name] = clock;
+          this.outputPorts[input.name] = clock.outputs[0];
+          this.circuitBoard.addComponent(clock);
+
+        }
+        else{
+
+          const toggle = new ToggleSwitch(position);
+          this.components[input.name] = toggle;
+          this.outputPorts[input.name] = toggle.outputs[0];
+          this.circuitBoard.addComponent(toggle);
+        }
+
 
         const labelPosition = {
           x: position.x - 80,
@@ -376,14 +421,12 @@ export class VerilogCircuitConverter {
         this.circuitBoard.addComponent(label);
       });
 
-      // Sort gates to ensure dependencies are resolved properly
       const sortedGates = [...module.gates].sort((a, b) => {
         const layerA = this.getGateLayer(a.output);
         const layerB = this.getGateLayer(b.output);
         return layerA - layerB;
       });
 
-      // Add gates
       for (const gate of sortedGates) {
         const position = this.componentPositions.get(gate.output) || { x: 200, y: 200 };
         let component: Component | null = null;
@@ -410,6 +453,10 @@ export class VerilogCircuitConverter {
           case "xnor":
             component = new XnorGate(position);
             break;
+          case "buffer":
+            component = new BufferGate(position);
+            break;
+            
           case "mux2":
             component = new Mux2(position);
             break;
@@ -425,12 +472,10 @@ export class VerilogCircuitConverter {
           this.outputPorts[gate.output] = component.outputs[0];
           this.circuitBoard.addComponent(component);
 
-          // Connect regular (non-feedback) inputs
           this.connectGateInputs(gate, component);
         }
       }
 
-      // Add outputs
       module.outputs.forEach((output) => {
         const position = this.componentPositions.get(output.name) || { x: 500, y: 200 };
 
@@ -454,7 +499,6 @@ export class VerilogCircuitConverter {
         this.connectOutput(output.name, bulb);
       });
 
-      // Finally, connect feedback wires (for sequential logic)
       this.connectFeedbackWires();
 
       return true;
@@ -465,7 +509,6 @@ export class VerilogCircuitConverter {
   }
 
   private getGateLayer(output: string): number {
-    // Helper to get the layer of a gate from its output
     const layer = Array.from(this.componentPositions.entries()).find(
       ([name]) => name === output,
     )?.[1]?.x;
@@ -483,7 +526,6 @@ export class VerilogCircuitConverter {
 
       const inputName = gate.inputs[j];
 
-      // Skip feedback wires - they'll be connected later
       if (this.feedbackWires.some((fw) => fw.source === gate.output && fw.target === inputName)) {
         console.log(`Skipping feedback wire from ${gate.output} to ${inputName}`);
         continue;
@@ -513,49 +555,131 @@ export class VerilogCircuitConverter {
   }
 
   private connectFeedbackWires(): void {
-    // Connect any feedback wires identified during circuit analysis
-    for (const feedbackWire of this.feedbackWires) {
-      const sourceComponent = this.components[feedbackWire.source];
-      const targetComponent = this.components[feedbackWire.target];
+    console.log("Connecting feedback wires:", this.feedbackWires);
 
-      if (!sourceComponent || !this.outputPorts[feedbackWire.source]) {
-        console.error(
-          `Source component or port for feedback wire ${feedbackWire.source} not found`,
+    const module = this.parser.getModule();
+    if (!module) return;
+
+
+    const signalSourceMap = new Map<string, VerilogGate>(); 
+    const signalTargetMap = new Map<string, { gate: VerilogGate; inputIndex: number }[]>(); 
+
+   
+    module.gates.forEach((gate) => {
+     
+      signalSourceMap.set(gate.output, gate);
+
+    
+      gate.inputs.forEach((input, inputIndex) => {
+        if (!signalTargetMap.has(input)) {
+          signalTargetMap.set(input, []);
+        }
+        signalTargetMap.get(input)!.push({ gate, inputIndex });
+      });
+    });
+
+  
+    for (const { source, target } of this.feedbackWires) {
+ 
+      const sourcePort = this.outputPorts[source];
+      if (!sourcePort) {
+        console.error(`Source port for ${source} not found`);
+        continue;
+      }
+
+      const targetUsers = signalTargetMap.get(target) || [];
+      if (targetUsers.length === 0) {
+        console.error(`No gate found that uses ${target} as input`);
+        continue;
+      }
+
+
+      for (const { gate: targetGate, inputIndex } of targetUsers) {
+        const targetComponent = this.components[targetGate.output];
+        if (!targetComponent) {
+          console.error(`Target component for ${targetGate.output} not found`);
+          continue;
+        }
+
+        const alreadyConnected = targetComponent.inputs[inputIndex].isConnected;
+        if (alreadyConnected) {
+          console.log(`Input ${inputIndex} of ${targetGate.output} is already connected, skipping`);
+          continue;
+        }
+
+
+        console.log(
+          `Connecting feedback: ${source} -> input ${inputIndex} of ${targetGate.output} (${target})`,
         );
-        continue;
+        const wire = new Wire(sourcePort);
+        wire.connect(targetComponent.inputs[inputIndex]);
+        this.circuitBoard.addWire(wire);
       }
-
-      // Find which gate uses this target as input
-      const targetGate = this.parser
-        .getModule()
-        ?.gates.find((g) => g.inputs.includes(feedbackWire.target));
-
-      if (!targetGate || !this.components[targetGate.output]) {
-        console.error(`Target gate for feedback input ${feedbackWire.target} not found`);
-        continue;
-      }
-
-      const targetGateComponent = this.components[targetGate.output];
-
-      // Find the input index
-      const inputIndex = targetGate.inputs.indexOf(feedbackWire.target);
-      if (inputIndex === -1 || inputIndex >= targetGateComponent.inputs.length) {
-        console.error(`Invalid input index for feedback wire: ${inputIndex}`);
-        continue;
-      }
-
-      const sourcePort = this.outputPorts[feedbackWire.source];
-      const targetPort = targetGateComponent.inputs[inputIndex];
-
-      console.log(
-        `Connecting feedback wire from ${feedbackWire.source} to ${targetGate.output} input ${inputIndex}`,
-      );
-
-      const wire = new Wire(sourcePort);
-      wire.connect(targetPort);
-
-      this.circuitBoard.addWire(wire);
     }
+
+
+    module.gates.forEach((gate1) => {
+
+
+      module.gates.forEach((gate2) => {
+
+
+
+        const gate1OutputUsedByGate2 = gate2.inputs.includes(gate1.output);
+        const gate2OutputUsedByGate1 = gate1.inputs.includes(gate2.output);
+
+        if (gate1OutputUsedByGate2 && gate2OutputUsedByGate1) {
+          console.log(
+            `Detected cross-coupled ${gate1.type} gates: ${gate1.output} <-> ${gate2.output}`,
+          );
+
+          const connection1Exists = this.feedbackWires.some(
+            (fw) => fw.source === gate1.output && fw.target === gate2.output,
+          );
+
+          const connection2Exists = this.feedbackWires.some(
+            (fw) => fw.source === gate2.output && fw.target === gate1.output,
+          );
+
+          if (!connection1Exists || !connection2Exists) {
+ 
+            const comp1 = this.components[gate1.output];
+            const comp2 = this.components[gate2.output];
+            const port1 = this.outputPorts[gate1.output];
+            const port2 = this.outputPorts[gate2.output];
+
+            if (!comp1 || !comp2 || !port1 || !port2) {
+              console.error("Missing components or ports for cross-coupled gates");
+              return;
+            }
+
+
+            const inputIdx1 = gate1.inputs.indexOf(gate2.output);
+            const inputIdx2 = gate2.inputs.indexOf(gate1.output);
+
+
+            if (inputIdx1 >= 0 && !connection2Exists && !comp1.inputs[inputIdx1].isConnected) {
+              console.log(
+                `Adding missing cross-connection: ${gate2.output} -> input ${inputIdx1} of ${gate1.output}`,
+              );
+              const wire1 = new Wire(port2);
+              wire1.connect(comp1.inputs[inputIdx1]);
+              this.circuitBoard.addWire(wire1);
+            }
+
+
+            if (inputIdx2 >= 0 && !connection1Exists && !comp2.inputs[inputIdx2].isConnected) {
+              console.log(
+                `Adding missing cross-connection: ${gate1.output} -> input ${inputIdx2} of ${gate2.output}`,
+              );
+              const wire2 = new Wire(port1);
+              wire2.connect(comp2.inputs[inputIdx2]);
+              this.circuitBoard.addWire(wire2);
+            }
+          }
+        }
+      });
+    });
   }
 
   private connectOutput(outputName: string, bulb: Component): void {

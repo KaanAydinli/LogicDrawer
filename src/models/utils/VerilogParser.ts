@@ -201,7 +201,7 @@ export class VerilogParser {
 
   private extractGates(body: string): VerilogGate[] {
     
-    const gateRegex = /\b(xor|and|or|nand|nor|xnor|not|mux2|mux4)\s+(\w+)\s*\(\s*([\w\s,\[\]]+)\s*\)\s*;?/gi;
+    const gateRegex = /\b(xor|and|or|nand|buffer|nor|xnor|not|mux2|mux4)\s+(\w+)\s*\(\s*([\w\s,\[\]]+)\s*\)\s*;?/gi;
     const gates: VerilogGate[] = [];
     let match;
     
