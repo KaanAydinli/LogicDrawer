@@ -25,6 +25,8 @@ import { LogicGate } from "./LogicGate";
 import { State } from "./other/State";
 import { HalfAdder } from "./gates/HalfAdder";
 import { FullAdder } from "./gates/FullAdder";
+import { HalfSubtractor } from "./gates/HalfSubtractor";
+import { FullSubtractor } from "./gates/FullSubtractor";
 
 export class CircuitBoard {
   components: Component[];
@@ -1269,6 +1271,10 @@ export class CircuitBoard {
         return new HalfAdder(position);
       case "fulladder":
         return new FullAdder(position);
+      case "halfsubtractor":
+        return new HalfSubtractor(position);
+      case "fullsubtractor":
+        return new FullSubtractor(position);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;

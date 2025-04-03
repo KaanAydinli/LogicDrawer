@@ -30,8 +30,6 @@ body {
   overflow: hidden;
 }
 
-
-
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -80,7 +78,7 @@ body {
 .docName::placeholder {
   color: var(--text-color);
 }
-.screenshot{
+.screenshot {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -88,8 +86,7 @@ body {
   padding-top: 2px;
   border-radius: 5px;
 }
-.screenshot:hover{
-
+.screenshot:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 .Theme {
@@ -102,7 +99,7 @@ body {
   border-bottom: 1px solid var(--border-color);
   cursor: default;
 }
-.file{
+.file {
   color: var(--text-color);
   font-family: "Pixelify Sans", sans-serif;
   font-optical-sizing: auto;
@@ -126,26 +123,22 @@ body {
   overflow-y: auto;
 }
 
-.sidebar.close{
+.sidebar.close {
   width: 0;
   overflow: hidden;
   transition: width 0.5s ease-in-out;
 }
-.sidebar.open{
+.sidebar.open {
   width: 250px;
   overflow-y: auto;
   transition: width 0.5s ease-in-out;
 }
 .sidebar-header {
-  
-
   display: flex;
   align-items: center;
   font-size: 30px;
-  
 }
-.sidebar-header div{
-  
+.sidebar-header div {
   background-color: var(--bg-color);
   color: var(--text-color);
   font-family: "Pixelify Sans", sans-serif;
@@ -158,26 +151,26 @@ body {
 
   border-radius: 10px;
 }
-.closeSide.open{
+.closeSide.open {
   transform: rotate(180deg);
 }
-.closeSide.close{
+.closeSide.close {
   transform: rotate(0deg);
 }
-.side{
+.side {
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
 }
-.sidebar-header div.open:hover{
+.sidebar-header div.open:hover {
   background-color: var(--text-color);
   color: var(--component-bg);
   transform: scale(1.1) rotate(180deg);
 }
-.sidebar-header div.close:hover{
+.sidebar-header div.close:hover {
   background-color: var(--text-color);
   color: var(--component-bg);
-  transform: scale(1.1) ;
+  transform: scale(1.1);
 }
 
 ::-webkit-scrollbar {
@@ -302,7 +295,6 @@ body {
 .storage:hover {
   transform: scale(1.1) translateY(-2px);
 }
-
 
 .ai-chat-container {
   position: fixed;
@@ -453,7 +445,6 @@ body {
   transition: 0.3s;
 }
 .aiLogo:hover {
-  
   transform: scale(1.1) translateY(-2px);
 }
 
@@ -500,7 +491,7 @@ body {
   position: relative;
   display: inline-block;
 }
-.fileContainer{
+.fileContainer {
   position: relative;
   display: inline-block;
 }
@@ -527,7 +518,7 @@ body {
   display: block;
   animation: fadeIn 0.5s ease-in-out;
 }
-.file-dropdown{
+.file-dropdown {
   display: none;
   position: absolute;
   top: 100%;
@@ -566,7 +557,7 @@ body {
   transition: 0.5s;
 }
 
-.fileOption{
+.fileOption {
   padding: 10px 15px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -581,14 +572,13 @@ body {
   color: var(--component-bg);
   transform: scale(1.15);
 }
-.fileOption:hover{
+.fileOption:hover {
   background-color: var(--text-color);
   color: var(--component-bg);
   transform: scale(1.15);
 }
 
 .theme-option.active {
-  
   font-weight: bold;
   text-decoration: underline;
   font-size: 16px;
@@ -627,7 +617,6 @@ body {
 }
 
 .settings-panel {
-  
   position: fixed;
   top: 50%;
   left: 50%;
@@ -650,11 +639,9 @@ body {
 @keyframes fadeIn {
   from {
     opacity: 0;
-    
   }
   to {
     opacity: 1;
-   ;
   }
 }
 
@@ -696,7 +683,6 @@ body {
 
 .settings-section {
   margin-bottom: 25px;
-  
 }
 
 .settings-section h4 {
@@ -713,7 +699,6 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  
 }
 
 .setting-item label {
@@ -742,7 +727,7 @@ body {
   bottom: 0;
   background-color: #333;
   border-radius: 20px;
-  transition: .4s;
+  transition: 0.4s;
 }
 
 .toggle-slider:before {
@@ -754,18 +739,15 @@ body {
   bottom: 2px;
   background-color: var(--mint);
   border-radius: 50%;
-  transition: .4s;
+  transition: 0.4s;
 }
 
 input:checked + .toggle-slider {
   background-color: #275b38;
-  
 }
-
 
 input:checked + .toggle-slider:before {
   transform: translateX(20px);
-  
 }
 
 select {
@@ -784,8 +766,6 @@ select {
   align-items: center;
   margin-bottom: 10px;
   font-size: 14px;
-  
-  
 }
 
 .shortcut-key {
@@ -822,7 +802,6 @@ select {
 .toggle-slider {
   cursor: pointer;
 }
-
 
 .toggle-switch input {
   opacity: 0;

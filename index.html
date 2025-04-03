@@ -218,31 +218,12 @@
             </div>
           </div>
         </div>
+
+
         <div class="component-group">
-          <div class="component-group-title">Sequential</div>
+          <div class="component-group-title">Combinational Circuits</div>
           <div class="component-list">
 
-
-            <div class="component" data-type="dlatch">
-              <div class="component-icon dlatch">
-
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="1" /><line x1="1" y1="8" x2="6" y2="8" /><text x="1" y="6" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">D</text><line x1="1" y1="16" x2="6" y2="16" /><path d="M3 15 L4 16 L3 17" fill="none" /><line x1="18" y1="8" x2="23" y2="8" /><text x="20" y="6" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">Q</text><line x1="18" y1="16" x2="23" y2="16" /><text x="20" y="14.5" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">Q̄</text></svg>
-              </div>
-              <div class="component-label">D-Latch</div>
-            </div>
-            <div class="component" data-type="dflipflop">
-              <div class="component-icon dflipflop">
-
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="1" /><line x1="1" y1="8" x2="6" y2="8" /><text x="1" y="6" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">D</text><line x1="1" y1="16" x2="6" y2="16" /><path d="M3 15 L4 16 L3 17" fill="none" /><line x1="18" y1="8" x2="23" y2="8" /><text x="20" y="6" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">Q</text><line x1="18" y1="16" x2="23" y2="16" /><text x="20" y="14.5" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">Q̄</text><line x1="6" y1="12" x2="18" y2="12" stroke-width="1" stroke-dasharray="1,1" /></svg>
-              </div>
-              <div class="component-label">D Flip-Flop</div>
-            </div>
-
-          </div>
-        </div>
-        <div class="component-group">
-          <div class="component-group-title">Other</div>
-          <div class="component-list">
             <div class="component" data-type="mux2">
               <div class="component-icon mux2">
 
@@ -259,13 +240,7 @@
               <div class="component-label">4:1 MUX</div>
             </div>
 
-            <div class="component" data-type="decoder">
-              <div class="component-icon decoder">
 
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2L4 6v12l12 4z"/><line x1="0" y1="8" x2="4" y2="8"/><line x1="0" y1="16" x2="4" y2="16"/><line x1="16" y1="6" x2="20" y2="6"/><line x1="16" y1="10" x2="20" y2="10"/><line x1="16" y1="14" x2="20" y2="14"/><line x1="16" y1="18" x2="20" y2="18"/></svg>
-              </div>
-              <div class="component-label">Decoder</div>
-            </div>
 
             <div class="component" data-type="halfadder">
               <div class="component-icon halfadder">
@@ -317,6 +292,99 @@
               </div>
               <div class="component-label">Full Adder</div>
             </div>
+
+            <div class="component" data-type="halfsubtractor">
+              <div class="component-icon halfsubtractor">
+
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              
+                  <path d="M4 4L18 2v20L4 20z"/>
+                  
+                  <line x1="0" y1="8" x2="4" y2="8"/>
+                  <line x1="0" y1="16" x2="4" y2="16"/>
+                  
+
+                  <line x1="18" y1="8" x2="24" y2="8"/>
+                  <line x1="18" y1="16" x2="24" y2="16"/>
+  
+                  <text x="0" y="6" font-size="4" fill="currentColor" stroke="none">A</text>
+                  <text x="0" y="14" font-size="4" fill="currentColor" stroke="none">B</text>
+                  <text x="21" y="6" font-size="4" fill="currentColor" stroke="none">D</text>
+                  <text x="21" y="14" font-size="4" fill="currentColor" stroke="none">Bo</text>
+    
+                </svg>
+              </div>
+              <div class="component-label">Half Subtractor</div>
+            </div>
+
+            <div class="component" data-type="fullsubtractor">
+              <div class="component-icon fullsubtractor">
+
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              
+                  <path d="M7 2L18 2v20L7 22z"/>
+                  
+
+                  <line x1="3" y1="6" x2="6" y2="6"/>
+                  <line x1="3" y1="12" x2="6" y2="12"/>
+                  <line x1="3" y1="18" x2="6" y2="18"/>
+                  
+                  <line x1="18" y1="8" x2="24" y2="8"/>
+                  <line x1="18" y1="16" x2="24" y2="16"/>
+
+                  <text x="0" y="5" font-size="4" fill="currentColor" stroke="none">A</text>
+                  <text x="0" y="11" font-size="4" fill="currentColor" stroke="none">B</text>
+                  <text x="0" y="17" font-size="4" fill="currentColor" stroke="none">Bi</text>
+                  <text x="21" y="5" font-size="4" fill="currentColor" stroke="none">Di</text>
+                  <text x="21" y="14" font-size="4" fill="currentColor" stroke="none">Bo</text>
+                  
+
+                </svg>               
+              </div>
+              <div class="component-label">Full Subtractor</div>
+            </div>
+
+
+
+
+            <div class="component" data-type="decoder">
+              <div class="component-icon decoder">
+
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 2L4 6v12l12 4z"/><line x1="0" y1="8" x2="4" y2="8"/><line x1="0" y1="16" x2="4" y2="16"/><line x1="16" y1="6" x2="20" y2="6"/><line x1="16" y1="10" x2="20" y2="10"/><line x1="16" y1="14" x2="20" y2="14"/><line x1="16" y1="18" x2="20" y2="18"/></svg>
+              </div>
+              <div class="component-label">Decoder</div>
+            </div>
+           
+
+          </div>
+        </div>
+
+        <div class="component-group">
+          <div class="component-group-title">Sequential</div>
+          <div class="component-list">
+
+
+            <div class="component" data-type="dlatch">
+              <div class="component-icon dlatch">
+
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="1" /><line x1="1" y1="8" x2="6" y2="8" /><text x="1" y="6" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">D</text><line x1="1" y1="16" x2="6" y2="16" /><path d="M3 15 L4 16 L3 17" fill="none" /><line x1="18" y1="8" x2="23" y2="8" /><text x="20" y="6" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">Q</text><line x1="18" y1="16" x2="23" y2="16" /><text x="20" y="14.5" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">Q̄</text></svg>
+              </div>
+              <div class="component-label">D-Latch</div>
+            </div>
+            <div class="component" data-type="dflipflop">
+              <div class="component-icon dflipflop">
+
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="1" /><line x1="1" y1="8" x2="6" y2="8" /><text x="1" y="6" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">D</text><line x1="1" y1="16" x2="6" y2="16" /><path d="M3 15 L4 16 L3 17" fill="none" /><line x1="18" y1="8" x2="23" y2="8" /><text x="20" y="6" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">Q</text><line x1="18" y1="16" x2="23" y2="16" /><text x="20" y="14.5" font-size="4" fill="currentColor" stroke="none" stroke-width="0.5">Q̄</text><line x1="6" y1="12" x2="18" y2="12" stroke-width="1" stroke-dasharray="1,1" /></svg>
+              </div>
+              <div class="component-label">D Flip-Flop</div>
+            </div>
+
+          </div>
+        </div>
+        <div class="component-group">
+          <div class="component-group-title">Other</div>
+          <div class="component-list">
+           
 
             <div class="component" data-type="text">
               <div class="component-icon text">

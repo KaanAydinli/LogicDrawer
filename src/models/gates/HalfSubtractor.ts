@@ -1,17 +1,16 @@
 import { Point } from '../Component';
 import { LogicGate } from '../LogicGate';
 
-export class HalfAdder extends LogicGate {
+export class HalfSubtractor extends LogicGate {
   constructor(position: Point) {
-    super('halfadder', position,2,2);
+    super('halfsubtractor', position,2,2);
 
   }
 
   evaluate(): void {
     
     this.outputs[0].value = (this.inputs[0].value && !this.inputs[1].value) || (!this.inputs[0].value && this.inputs[1].value);
-    this.outputs[1].value = this.inputs[0].value && this.inputs[1].value;
-   
+    this.outputs[1].value = !this.inputs[0].value && this.inputs[1].value;
   }
 
   
@@ -42,9 +41,8 @@ export class HalfAdder extends LogicGate {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText("Half", x + width / 2, y + height / 2);
-    ctx.fillText("Adder", x + width / 2, y + height * 2 / 3);
+    ctx.fillText("Subtractor", x + width / 2, y + height * 2 / 3);
 
-    
   }
 
 

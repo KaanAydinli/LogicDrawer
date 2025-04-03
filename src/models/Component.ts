@@ -5,7 +5,7 @@ export interface Point {
 
 export interface Port {
   id: string;
-  type: 'input' | 'output';
+  type: "input" | "output";
   position: Point;
   value: boolean;
   isConnected: boolean;
@@ -26,7 +26,7 @@ export abstract class Component {
     this.id = Math.random().toString(36).substring(2, 15);
     this.type = type;
     this.position = position;
-   
+
     this.inputs = [];
     this.outputs = [];
     this.selected = false;
@@ -41,13 +41,12 @@ export abstract class Component {
 
     this.position = position;
 
-    
-    this.inputs.forEach(port => {
+    this.inputs.forEach((port) => {
       port.position.x += dx;
       port.position.y += dy;
     });
 
-    this.outputs.forEach(port => {
+    this.outputs.forEach((port) => {
       port.position.x += dx;
       port.position.y += dy;
     });
@@ -62,46 +61,40 @@ export abstract class Component {
     );
   }
 
-resetInputs(): void {
-  if (this.inputs && this.inputs.length > 0) {
-    this.inputs.forEach(port => {
-
-      if (!port.isConnected) {
-        port.value = false; 
-      }
-    });
+  resetInputs(): void {
+    if (this.inputs && this.inputs.length > 0) {
+      this.inputs.forEach((port) => {
+        if (!port.isConnected) {
+          port.value = false;
+        }
+      });
+    }
   }
-}
 
-onClick(point: Point): void {
+  onClick(point: Point): void {
+    console.log(`${this.type} component clicked at`, point);
 
-  console.log(`${this.type} component clicked at`, point);
-  
- 
-  if (this.type === 'toggle' && typeof (this as any).toggle === 'function') {
-    (this as any).toggle();
+    if (this.type === "toggle" && typeof (this as any).toggle === "function") {
+      (this as any).toggle();
+    }
   }
-}
   getPortAtPosition(point: Point): Port | null {
-   
     const allPorts = [...this.inputs, ...this.outputs];
-    
+
     for (const port of allPorts) {
-      
       const dx = point.x - port.position.x;
       const dy = point.y - port.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      
 
       if (distance <= 10) {
         console.log("Found port at position:", port);
         return port;
       }
     }
-    
+
     return null;
   }
-  
+
   getState(): any {
     return {
       id: this.id,
@@ -109,22 +102,21 @@ onClick(point: Point): void {
       position: { ...this.position },
       size: { ...this.size },
       selected: this.selected,
-      
-      inputs: this.inputs.map(port => ({
+
+      inputs: this.inputs.map((port) => ({
         id: port.id,
         value: port.value,
         isConnected: port.isConnected,
-        position: { ...port.position }
+        position: { ...port.position },
       })),
-      outputs: this.outputs.map(port => ({
+      outputs: this.outputs.map((port) => ({
         id: port.id,
         value: port.value,
         isConnected: port.isConnected,
-        position: { ...port.position }
-      }))
+        position: { ...port.position },
+      })),
     };
   }
-
 
   setState(state: any): void {
     this.id = state.id;
@@ -132,7 +124,6 @@ onClick(point: Point): void {
     this.size = state.size;
     this.selected = state.selected;
 
-    
     if (state.inputs && this.inputs.length === state.inputs.length) {
       for (let i = 0; i < this.inputs.length; i++) {
         this.inputs[i].id = state.inputs[i].id;
@@ -155,8 +146,8 @@ onClick(point: Point): void {
     return {
       x: this.position.x,
       y: this.position.y,
-      width: this.size.width, 
-      height: this.size.height, 
+      width: this.size.width,
+      height: this.size.height,
     };
   }
 }

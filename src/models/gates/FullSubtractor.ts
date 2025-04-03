@@ -1,19 +1,20 @@
 import { Point } from '../Component';
 import { LogicGate } from '../LogicGate';
 
-export class HalfAdder extends LogicGate {
+export class FullSubtractor extends LogicGate {
   constructor(position: Point) {
-    super('halfadder', position,2,2);
+    super('fullsubtractor', position,3,2);
 
   }
 
   evaluate(): void {
-    
-    this.outputs[0].value = (this.inputs[0].value && !this.inputs[1].value) || (!this.inputs[0].value && this.inputs[1].value);
-    this.outputs[1].value = this.inputs[0].value && this.inputs[1].value;
-   
-  }
 
+    this.outputs[0].value = this.xor(this.xor(this.inputs[0].value, this.inputs[1].value), this.inputs[2].value);
+    this.outputs[1].value = (!this.inputs[0].value && this.inputs[1].value) || (this.inputs[2].value && !(this.xor(this.inputs[0].value, this.inputs[1].value)));
+  }
+  xor(a: any, b: any) {
+    return !!a !== !!b;
+  }
   
   drawGate(ctx: CanvasRenderingContext2D): void {
     
@@ -41,10 +42,9 @@ export class HalfAdder extends LogicGate {
     ctx.font = '12px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText("Half", x + width / 2, y + height / 2);
-    ctx.fillText("Adder", x + width / 2, y + height * 2 / 3);
+    ctx.fillText("Full", x + width / 2, y + height / 2);
+    ctx.fillText("Subtractor", x + width / 2, y + height * 2 / 3);
 
-    
   }
 
 

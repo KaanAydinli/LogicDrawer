@@ -31,6 +31,8 @@ import { LogicGate } from "./models/LogicGate";
 import { State } from "./models/other/State";
 import { HalfAdder } from "./models/gates/HalfAdder";
 import { FullAdder } from "./models/gates/FullAdder";
+import { HalfSubtractor } from "./models/gates/HalfSubtractor";
+import { FullSubtractor } from "./models/gates/FullSubtractor";
 
 class Queue {
   private items: string[] = [];
@@ -339,6 +341,12 @@ function addComponentByType(type: string, position: Point) {
       break;
     case "fulladder":
       component = new FullAdder(position);
+      break;
+    case "halfsubtractor":
+      component = new HalfSubtractor(position);
+      break;
+    case "fullsubtractor":
+      component = new FullSubtractor(position);
       break;
     default:
       return;
