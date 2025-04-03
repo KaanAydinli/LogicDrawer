@@ -33,6 +33,7 @@ import { HalfAdder } from "./models/gates/HalfAdder";
 import { FullAdder } from "./models/gates/FullAdder";
 import { HalfSubtractor } from "./models/gates/HalfSubtractor";
 import { FullSubtractor } from "./models/gates/FullSubtractor";
+import { Led } from "./models/components/Led";
 
 class Queue {
   private items: string[] = [];
@@ -347,6 +348,9 @@ function addComponentByType(type: string, position: Point) {
       break;
     case "fullsubtractor":
       component = new FullSubtractor(position);
+      break;
+    case "led":
+      component = new Led(position);
       break;
     default:
       return;
@@ -665,7 +669,7 @@ function createExampleCircuit() {
   wire2.connect(andGate.inputs[1]);
   circuitBoard.addWire(wire2);
 
-  const lightBulb = new LightBulb({ x: 700, y: 250 });
+  const lightBulb = new Led({ x: 700, y: 250 });
 
   const wire3 = new Wire(andGate.outputs[0]);
   wire3.connect(lightBulb.inputs[0]);

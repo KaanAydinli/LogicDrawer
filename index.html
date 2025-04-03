@@ -142,6 +142,7 @@
         <div class="component-group">
           <div class="component-group-title">Output Controls</div>
           <div class="component-list">
+
             <div class="component" data-type="light-bulb">
               <div class="component-icon light-bulb">
 
@@ -155,6 +156,30 @@
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><text x="7" y="17" font-family="Pixelify Sans" font-size="16" fill="currentColor" stroke="none" stroke-width="0.5">A</text></svg>
               </div>
               <div class="component-label">Hexadecimal Digit</div>
+            </div>
+
+            <div class="component" data-type="led">
+              <div class="component-icon led">
+
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <!-- Daha ince LED üst kısım (rounded rectangle) -->
+                  <path d="M9 4 Q9 2 9 2 L15 2 Q15 2 15 4 L15 12 Q15 14 15 14 L9 14 Q9 14 9 12 Z" />
+                  
+                  <!-- LED gövde/taban -->
+                  <path d="M8 14 L8 16 L16 16 L16 14" />
+                  
+                  <!-- Üç pin/bacak -->
+                  <line x1="9" y1="16" x2="9" y2="22" />
+                  <line x1="12" y1="16" x2="12" y2="22" />
+                  <line x1="15" y1="16" x2="15" y2="22" />
+                  
+                  <!-- Pin etiketleri (RGB) -->
+                  <text x="8" y="20" font-size="3" fill="currentColor" stroke="none">R</text>
+                  <text x="11" y="20" font-size="3" fill="currentColor" stroke="none">G</text>
+                  <text x="14" y="20" font-size="3" fill="currentColor" stroke="none">B</text>
+                </svg>
+              </div>
+              <div class="component-label">LED</div>
             </div>
           </div>
         </div>

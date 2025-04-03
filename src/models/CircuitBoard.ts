@@ -27,6 +27,7 @@ import { HalfAdder } from "./gates/HalfAdder";
 import { FullAdder } from "./gates/FullAdder";
 import { HalfSubtractor } from "./gates/HalfSubtractor";
 import { FullSubtractor } from "./gates/FullSubtractor";
+import { Led } from "./components/Led";
 
 export class CircuitBoard {
   components: Component[];
@@ -1275,6 +1276,8 @@ export class CircuitBoard {
         return new HalfSubtractor(position);
       case "fullsubtractor":
         return new FullSubtractor(position);
+      case "led":
+        return new Led(position);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;
