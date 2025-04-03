@@ -77,22 +77,28 @@ When writing Verilog code, follow these rules:
 - DO NOT use Markdown code blocks, backticks, or language identifiers
 - Present code as plain text without any formatting decorations
 - Use explicit gate instantiations with instance names
-- NEVER USE COMMENTS 
+- NEVER USE COMMENTS
+
+***SUPER CRITICAL WIRE RULES - NEVER SKIP THIS***:
+1. BEFORE WRITING ANY CODE, list all your planned wires in a planning step
+2. ALWAYS declare EVERY intermediate signal as a wire before using it - NO EXCEPTIONS
+3. After writing code, VERIFY that EVERY wire used has been declared
+4. If you're connecting multiple gates, you MUST use intermediate wires
+5. DOUBLE-CHECK: scan your entire code for any signals that are not inputs, outputs, or declared wires
 
 CRITICAL RULES:
 1. NEVER use output ports as inputs to other gates. Always use intermediate wires.
-2. ALWAYS declare EVERY intermediate signal as a wire before using it.
-3. EVERY signal in your design must be either an input, output, or wire.
-4. Each wire or input can have ONLY ONE driver. NEVER connect multiple gate outputs to the same destination.
-5. Each gate can have AT MOST 2 INPUTS and 1 output. NEVER create gates with more than 2 inputs.
-6. NEVER use operators like =, &, |, ^, ~ for assignments. Use explicit gate instantiations instead.
-7. NEVER use the same wire as both input and output of the same gate - this creates an invalid feedback loop.
-8. Use the input and output keywords ONLY ONCE each in your module declaration - group all inputs together and all outputs together.
+2. EVERY signal in your design must be either an input, output, or wire.
+3. Each wire or input can have ONLY ONE driver. NEVER connect multiple gate outputs to the same destination.
+4. Each gate can have AT MOST 2 INPUTS and 1 output. NEVER create gates with more than 2 inputs.
+5. NEVER use operators like =, &, |, ^, ~ for assignments. Use explicit gate instantiations instead.
+6. NEVER use the same wire as both input and output of the same gate - this creates an invalid feedback loop.
+7. Use the input and output keywords ONLY ONCE each in your module declaration - group all inputs together and all outputs together.
 
 Use these formats for Verilog elements:
 - For module declarations: module name(input a, b, c, output sum, cout, z);
 - For wire declarations: wire w1, w2, w3;
-- For gates (MUST have exactly 1-2 inputs): 
+- For gates (MUST have exactly 1-2 inputs):
   and a1(out, in1, in2);
   or o1(result, in1, in2);
   xor x1(sum, a, b);
@@ -101,17 +107,17 @@ Use these formats for Verilog elements:
   nor nr1(out, in1, in2);
   xnor xn1(out, in1, in2);
 
-INCORRECT (separate input declarations):
-module bad_example(input a, input b, input c, output z);
-  wire w1;
-  and a1(z, a, b);
+INCORRECT - MISSING WIRE DECLARATION (MAJOR ERROR!):
+module incorrect_example(input a, b, c, output z);
+  and a1(temp, a, b);  // ERROR! temp is not declared as a wire
+  and a2(z, temp, c);
 endmodule
 
-CORRECT (grouped input declarations):
-module good_example(input a, b, c, output z);
-  wire w1;
-  and a1(w1, a, b);
-  and a2(z, w1, c);
+CORRECT - ALL WIRES PROPERLY DECLARED:
+module correct_example(input a, b, c, output z);
+  wire temp;  // Properly declared before use
+  and a1(temp, a, b);
+  and a2(z, temp, c);
 endmodule
 
 INCORRECT (more than 2 inputs):
@@ -129,8 +135,28 @@ module good_example(input a, b, c, d, output z);
   or o3(z, or1_out, or2_out); // Final OR combining results
 endmodule
 
+REMINDER:
+- **NEVER USE** a wire without declaring it.
+- **CHECK** that every intermediate signal is explicitly declared as a wire before using it.
+- **VERIFY** that no undeclared wires exist in the generated code.
+- If a wire is missing, **STOP** and correct it before continuing.
+First, list all required wires explicitly before generating the module.  
+Then, ensure that every wire is declared before being used in the circuit.  
+If any wire is missing, STOP and fix it before continuing.  
+Before outputting the final Verilog code, perform a self-check:
+- Have all intermediate wires been declared before use?
+- Are all outputs properly driven by a single source?
+- If a mistake is found, correct it before returning the final answer.
+- Always use unique wire names (w1, w2, w3, ...) to prevent conflicts.  
+- If a wire name is reused, STOP and generate a new unique name instead.  
+
+VERIFICATION STEP REQUIRED:
+- After writing your code, create a list of all signals used in your gates
+- Check each signal against declared inputs, outputs, and wires
+- If any signal is not declared, go back and add it to wire declarations
+
 Always name gates with a prefix indicating the gate type (a for AND, o for OR, x for XOR, etc.) followed by a number.
-Always declare ALL intermediate signals before using them.
+NEVER proceed to writing gate logic until ALL intermediate signals are declared first.
 Always end your module with endmodule`;
 
 const storage = document.querySelector(".storage") as HTMLElement;

@@ -62,9 +62,9 @@ export class VerilogParser {
           ...wires.map(p => p.name)
         ];
         
-        
-        this.validateWireConnections(gates, allSignalNames);
-        this.validateGateConnections(gates, allSignalNames);
+        //Removing these as we now does not need wire declarations in the body
+        // this.validateWireConnections(gates, allSignalNames);
+        // this.validateGateConnections(gates, allSignalNames);
   
         this.currentModule = {
           name: moduleName,
@@ -103,7 +103,7 @@ export class VerilogParser {
     }
   }
   
-  // Validate that all gate connections reference valid signals
+
   private validateGateConnections(gates: VerilogGate[], allSignals: string[]): void {
     for (const gate of gates) {
       // Check output connection
@@ -120,14 +120,14 @@ export class VerilogParser {
     }
   }
 
-  // Rest of your existing code remains the same
+
   getModule(): VerilogModule | null {
     return this.currentModule;
   }
 
 
   private extractPortsAndWires(portList: string, body: string) {
-    // Find input and output declarations in the module header and body
+    
     const inputRegex = /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+?)(?=\s*;|\s+(?:output|inout|wire|reg|endmodule)\b|$)/g;
     const outputRegex = /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+)?/g;
     const wireRegex = /wire\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s,]+)?/g;
@@ -137,7 +137,7 @@ export class VerilogParser {
     const inputs = this.collectPortsWithBitWidths(portList, inputRegex);
     const outputs = this.collectPortsWithBitWidths(portList, outputRegex);
 
-    // Also check body for separate declarations
+   
     const bodyInputs = this.collectPortsWithBitWidths(body, inputRegex);
     const bodyOutputs = this.collectPortsWithBitWidths(body, outputRegex);
 
