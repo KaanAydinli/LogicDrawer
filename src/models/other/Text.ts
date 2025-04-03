@@ -140,20 +140,19 @@ export class Text extends Component {
     this.editor.style.zIndex = '1000';
     this.editor.style.background = '#333';
     this.editor.style.fontFamily = this.fontFamily;
-    this.editor.style.textAlign = 'left'; // Text içeriğini sola hizala
-    this.editor.style.transform = 'translateX(-50%)'; // Yatay olarak ortalamak için
+    this.editor.style.textAlign = 'left'; 
+    this.editor.style.transform = 'translateX(-50%)'; 
     
-    // DOM'a ekle
+
     document.body.appendChild(this.editor);
     
-    // Seç ve odaklan
     this.editor.select();
     this.editor.focus();
     
-    // Düzenleme moduna geç
+
     this.isEditing = true;
     
-    // Editör kapatma olayı
+
     this.editor.addEventListener('blur', () => this.completeEditing());
 
   }

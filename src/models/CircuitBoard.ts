@@ -20,9 +20,11 @@ import { DFlipFlop } from "./Sequential/DFlipFlop";
 import { Decoder } from "./gates/Decoder";
 import { BufferGate } from "./gates/BufferGate";
 import { HexDigit } from "./components/HexDigit";
-import { Text } from "./components/Text";
+import { Text } from "./other/Text";
 import { LogicGate } from "./LogicGate";
 import { State } from "./other/State";
+import { HalfAdder } from "./gates/HalfAdder";
+import { FullAdder } from "./gates/FullAdder";
 
 export class CircuitBoard {
   components: Component[];
@@ -1263,6 +1265,10 @@ export class CircuitBoard {
         return new Text(position);
       case "state":
         return new State(position);
+      case "halfadder":
+        return new HalfAdder(position);
+      case "fulladder":
+        return new FullAdder(position);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;
@@ -1461,7 +1467,7 @@ export class CircuitBoard {
     // Create a blob with the Verilog code
     const blob = new Blob([verilogCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-  
+
     // Create a temporary link element to trigger the download
     const a = document.createElement("a");
     a.href = url;
@@ -1469,7 +1475,7 @@ export class CircuitBoard {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-  
+
     // Clean up the blob URL
     URL.revokeObjectURL(url);
   }

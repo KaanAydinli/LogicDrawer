@@ -15,9 +15,7 @@ import { Button } from "./models/components/Button";
 import { VerilogCircuitConverter } from "./models/utils/VerilogCircuitConverter";
 import { Constant1 } from "./models/components/Constant1";
 import { Constant0 } from "./models/components/Constant0";
-
 import { CircuitRepositoryController } from "./Repository/CircuitRepositoryController";
-import { MockCircuitRepositoryService } from "./Repository/MockCircuitRepositoryService";
 import { Wire } from "./models/Wire";
 import { Clock } from "./models/components/Clock";
 import { DLatch } from "./models/Sequential/DLatch";
@@ -27,15 +25,14 @@ import { ImageUploader } from "./ai/ImageUploader";
 import { Decoder } from "./models/gates/Decoder";
 import { BufferGate } from "./models/gates/BufferGate";
 import { HexDigit } from "./models/components/HexDigit";
-import { Text } from "./models/components/Text";
+import { Text } from "./models/other/Text";
 import { LocalStorageCircuitRepository } from "./Repository/LocalStorageCircuitRepository";
 import { LogicGate } from "./models/LogicGate";
 import { State } from "./models/other/State";
+import { HalfAdder } from "./models/gates/HalfAdder";
+import { FullAdder } from "./models/gates/FullAdder";
 
-
-
-class Queue{
-  
+class Queue {
   private items: string[] = [];
 
   enqueue(item: string) {
@@ -69,31 +66,19 @@ let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
-
-
 const promptAI = `Your name is Logai. You are an AI assistant specialized in digital logic circuits.
 
-When writing Verilog code, follow these rules:
-- DO NOT use Markdown code blocks, backticks, or language identifiers
-- Present code as plain text without any formatting decorations
+When writing Verilog code:
+- Provide ONLY the Verilog code without any explanations or comments
+- NO markdown formatting, NO backticks
 - Use explicit gate instantiations with instance names
-- NEVER USE COMMENTS
 
-***SUPER CRITICAL WIRE RULES - NEVER SKIP THIS***:
-1. BEFORE WRITING ANY CODE, list all your planned wires in a planning step
-2. ALWAYS declare EVERY intermediate signal as a wire before using it - NO EXCEPTIONS
-3. After writing code, VERIFY that EVERY wire used has been declared
-4. If you're connecting multiple gates, you MUST use intermediate wires
-5. DOUBLE-CHECK: scan your entire code for any signals that are not inputs, outputs, or declared wires
-
-CRITICAL RULES:
-1. NEVER use output ports as inputs to other gates. Always use intermediate wires.
-2. EVERY signal in your design must be either an input, output, or wire.
-3. Each wire or input can have ONLY ONE driver. NEVER connect multiple gate outputs to the same destination.
-4. Each gate can have AT MOST 2 INPUTS and 1 output. NEVER create gates with more than 2 inputs.
-5. NEVER use operators like =, &, |, ^, ~ for assignments. Use explicit gate instantiations instead.
-6. NEVER use the same wire as both input and output of the same gate - this creates an invalid feedback loop.
-7. Use the input and output keywords ONLY ONCE each in your module declaration - group all inputs together and all outputs together.
+***CRITICAL CIRCUIT DESIGN RULES***:
+1. NEVER connect multiple gate outputs to the same destination
+2. NEVER use the same wire name twice - each wire must have a UNIQUE name
+3. Each gate can have AT MOST 2 INPUTS and 1 output
+4. NEVER use operators like =, &, |, ^, ~ for assignments. Use explicit gate instantiations only.
+5. NEVER use the same wire as both input and output of the same gate
 
 Use these formats for Verilog elements:
 - For module declarations: module name(input a, b, c, output sum, cout, z);
@@ -102,62 +87,16 @@ Use these formats for Verilog elements:
   and a1(out, in1, in2);
   or o1(result, in1, in2);
   xor x1(sum, a, b);
-  not n1(out_inv, in);  // NOT gates have 1 input
+  not n1(out_inv, in);
   nand nd1(out, in1, in2);
   nor nr1(out, in1, in2);
   xnor xn1(out, in1, in2);
 
-INCORRECT - MISSING WIRE DECLARATION (MAJOR ERROR!):
-module incorrect_example(input a, b, c, output z);
-  and a1(temp, a, b);  // ERROR! temp is not declared as a wire
-  and a2(z, temp, c);
-endmodule
-
-CORRECT - ALL WIRES PROPERLY DECLARED:
-module correct_example(input a, b, c, output z);
-  wire temp;  // Properly declared before use
-  and a1(temp, a, b);
-  and a2(z, temp, c);
-endmodule
-
-INCORRECT (more than 2 inputs):
-module bad_example(input a, b, c, d, output z);
-  wire w1;
-  or o1(w1, a, b, c, d);  // ERROR: More than 2 inputs
-endmodule
-
-CORRECT (using multiple 2-input gates):
-module good_example(input a, b, c, d, output z);
-  wire or1_out, or2_out;
-  
-  or o1(or1_out, a, b);     // First 2-input OR gate
-  or o2(or2_out, c, d);     // Second 2-input OR gate
-  or o3(z, or1_out, or2_out); // Final OR combining results
-endmodule
-
-REMINDER:
-- **NEVER USE** a wire without declaring it.
-- **CHECK** that every intermediate signal is explicitly declared as a wire before using it.
-- **VERIFY** that no undeclared wires exist in the generated code.
-- If a wire is missing, **STOP** and correct it before continuing.
-First, list all required wires explicitly before generating the module.  
-Then, ensure that every wire is declared before being used in the circuit.  
-If any wire is missing, STOP and fix it before continuing.  
-Before outputting the final Verilog code, perform a self-check:
-- Have all intermediate wires been declared before use?
-- Are all outputs properly driven by a single source?
-- If a mistake is found, correct it before returning the final answer.
-- Always use unique wire names (w1, w2, w3, ...) to prevent conflicts.  
-- If a wire name is reused, STOP and generate a new unique name instead.  
-
-VERIFICATION STEP REQUIRED:
-- After writing your code, create a list of all signals used in your gates
-- Check each signal against declared inputs, outputs, and wires
-- If any signal is not declared, go back and add it to wire declarations
-
 Always name gates with a prefix indicating the gate type (a for AND, o for OR, x for XOR, etc.) followed by a number.
-NEVER proceed to writing gate logic until ALL intermediate signals are declared first.
-Always end your module with endmodule`;
+- Always end you code with endmodule and start your code with module
+- Check your code before sending it to me make sure it works
+
+Always use UNIQUE wire names - NEVER reuse a wire name.`;
 
 const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
@@ -395,6 +334,12 @@ function addComponentByType(type: string, position: Point) {
     case "state":
       component = new State(position);
       break;
+    case "halfadder":
+      component = new HalfAdder(position);
+      break;
+    case "fulladder":
+      component = new FullAdder(position);
+      break;
     default:
       return;
   }
@@ -623,7 +568,7 @@ function setUpAI() {
 
   function addUserMessage(text: string) {
     queue.enqueue(text);
-    
+
     circuitBoard.saveToLocalStorage();
     const messageDiv = document.createElement("div");
     messageDiv.className = "user-message";
@@ -810,7 +755,6 @@ function setFile() {
   const fileButton = document.querySelector(".file") as HTMLElement;
   const fileDropdown = document.querySelector(".file-dropdown") as HTMLElement;
   const fileOptions = document.querySelectorAll(".fileOption") as NodeListOf<HTMLElement>;
- 
 
   if (!fileButton || !fileDropdown) {
     console.warn("File elements not found in HTML");
@@ -825,16 +769,13 @@ function setFile() {
   });
   fileButton.addEventListener("mouseenter", (event: MouseEvent) => {
     fileDropdown.classList.toggle("show");
-  }
-  );
+  });
   fileDropdown.addEventListener("mouseleave", (event: MouseEvent) => {
     fileDropdown.classList.remove("show");
-  }
-  );
+  });
   fileDropdown.addEventListener("click", function (e) {
     e.stopPropagation();
-  }
-  );
+  });
 
   fileOptions.forEach((option) => {
     option.addEventListener("click", function () {
@@ -852,25 +793,21 @@ function setFile() {
         if (text === "") {
           text = "circuit";
         }
-       
-        circuitBoard.saveToFile(text+ ".json");
-      }
-      else if(selectedFile === "saveas"){
-         const veri = circuitBoard.extractVerilog();
-         var text = inputText.value;
-         if(text === ""){
-          text = "circuit";
-         }
-         circuitBoard.saveVerilogToFile(veri, text + ".v");
-      }
-      else if (selectedFile === "new") {
 
+        circuitBoard.saveToFile(text + ".json");
+      } else if (selectedFile === "saveas") {
+        const veri = circuitBoard.extractVerilog();
+        var text = inputText.value;
+        if (text === "") {
+          text = "circuit";
+        }
+        circuitBoard.saveVerilogToFile(veri, text + ".v");
+      } else if (selectedFile === "new") {
         circuitBoard.clearCircuit();
       }
       fileDropdown.classList.remove("show");
     });
-  }
-  );
+  });
 }
 function setTheme() {
   const themeButton = document.querySelector(".Theme") as HTMLElement;
@@ -1025,7 +962,7 @@ inputText.addEventListener("keydown", (event) => {
 function saveToLocalStorage(key: string = "history"): void {
   try {
     const queueString = JSON.stringify(queue);
-    localStorage.setItem(key,queueString );
+    localStorage.setItem(key, queueString);
     console.log("Devre local storage'a kaydedildi");
   } catch (error) {
     console.error("Local storage'a kaydetme hatası:", error);

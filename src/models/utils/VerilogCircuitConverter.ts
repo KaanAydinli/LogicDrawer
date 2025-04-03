@@ -13,7 +13,7 @@ import { XnorGate } from "../gates/XnorGate";
 import { Mux2 } from "../gates/Mux2";
 import { Mux4 } from "../gates/Mux4";
 import { Wire } from "../Wire";
-import { Text } from "../components/Text";
+import { Text } from "../other/Text";
 import { BufferGate } from "../gates/BufferGate";
 import { Clock } from "../components/Clock";
 
