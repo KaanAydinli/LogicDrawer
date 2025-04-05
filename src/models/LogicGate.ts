@@ -293,6 +293,16 @@ export abstract class LogicGate extends Component {
     
     this.updatePortPositions();
   }
+  decreaseInputCount(): void {
+
+    if(this.inputs.length <= 2) return;
+    const portPosition = this.getInputPortPosition(this.inputs.length, this.inputs.length - 1);
+    
+    this.inputs.pop();
+    
+    
+    this.updatePortPositions();
+  }
   
   
   override getBoundingBox(): { x: number; y: number; width: number; height: number } {

@@ -481,6 +481,19 @@ function setupKeyboardShortcuts() {
         }
       }
     }
+    if (event.key === "-") {
+      if (circuitBoard.selectedComponent) {
+        const component = circuitBoard.selectedComponent;
+        if (
+          component instanceof LogicGate &&
+          component.type !== "buffer" &&
+          component.type !== "not"
+        ) {
+          component.decreaseInputCount();
+          circuitBoard.draw();
+        }
+      }
+    }
   });
 }
 
