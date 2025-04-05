@@ -249,23 +249,99 @@ function initCircuitBoard() {
 
 function setupComponentAddListeners() {
   const components = document.querySelectorAll(".component");
-
+  let draggingType: string | null = null;
+  let shadowElement: HTMLElement | null = null;
+  
   components.forEach((component) => {
-    component.addEventListener("click", (event) => {
+    component.addEventListener("mousedown", (event) => {
       event.preventDefault();
+      
       const type = component.getAttribute("data-type");
-
-      const canvasRect = canvas.getBoundingClientRect();
-
-      const viewportCenterX = (canvasRect.width / 2 - circuitBoard.offsetX) / circuitBoard.scale;
-      const viewportCenterY = (canvasRect.height / 2 - circuitBoard.offsetY) / circuitBoard.scale;
-
-      addComponentByType(type as string, {
-        x: viewportCenterX,
-        y: viewportCenterY,
-      });
+      if (!type) return;
+      
+      draggingType = type;
+      
+      // Create shadow element
+      shadowElement = document.createElement("div");
+      shadowElement.className = "component-shadow";
+      
+      // Copy the SVG from the component to the shadow
+      const componentIcon = component.querySelector(".component-icon");
+      if (componentIcon) {
+        shadowElement.innerHTML = componentIcon.innerHTML;
+      }
+      
+      // Apply styles to the shadow element
+      shadowElement.style.position = "fixed";
+      shadowElement.style.zIndex = "1000";
+      shadowElement.style.opacity = "0.7";
+      shadowElement.style.pointerEvents = "none";
+      shadowElement.style.width = "40px";
+      shadowElement.style.height = "40px";
+      shadowElement.style.transform = "translate(-75%, -75%) scale(1.5)";
+    
+      // Position shadow element at cursor
+      shadowElement.style.left = `${(event as MouseEvent).clientX}px`;
+      shadowElement.style.top = `${(event as MouseEvent).clientY}px`;
+      
+      document.body.appendChild(shadowElement);
+      
+      // Add event listeners for drag movement and release
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
     });
   });
+  
+  function onMouseMove(event: MouseEvent) {
+    if (shadowElement) {
+      shadowElement.style.left = `${event.clientX}px`;
+      shadowElement.style.top = `${event.clientY}px`;
+    }
+  }
+  
+  function onMouseUp(event: MouseEvent) {
+    if (!draggingType || !shadowElement) {
+      cleanup();
+      return;
+    }
+    
+    // Check if mouse is over the canvas
+    const canvasRect = canvas.getBoundingClientRect();
+    if (
+      event.clientX >= canvasRect.left &&
+      event.clientX <= canvasRect.right &&
+      event.clientY >= canvasRect.top &&
+      event.clientY <= canvasRect.bottom
+    ) {
+      // Convert window coordinates to canvas coordinates
+      const canvasX = (event.clientX - canvasRect.left);
+      const canvasY = (event.clientY - canvasRect.top);
+      
+      // Convert canvas coordinates to world coordinates
+      const worldX = (canvasX - circuitBoard.offsetX) / circuitBoard.scale;
+      const worldY = (canvasY - circuitBoard.offsetY) / circuitBoard.scale;
+      
+      // Add the component at the release position
+      addComponentByType(draggingType, {
+        x: worldX,
+        y: worldY,
+      });
+    }
+    
+    cleanup();
+  }
+  
+  function cleanup() {
+    // Remove shadow element and listeners
+    if (shadowElement && shadowElement.parentNode) {
+      shadowElement.parentNode.removeChild(shadowElement);
+    }
+    shadowElement = null;
+    draggingType = null;
+    
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup", onMouseUp);
+  }
 }
 function addComponentByType(type: string, position: Point) {
   let component;
@@ -368,6 +444,7 @@ function setupKeyboardShortcuts() {
     if (event.key === "Backspace") {
       circuitBoard.deleteSelected();
     }
+
 
     // if (event.key === "g" || event.key === "G") {
     //   circuitBoard.toggleGrid();

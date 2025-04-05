@@ -1,3 +1,5 @@
+
+
 export interface Point {
   x: number;
   y: number;
@@ -96,49 +98,86 @@ export abstract class Component {
   }
 
   getState(): any {
-    return {
+    const state = {
       id: this.id,
       type: this.type,
-      position: { ...this.position },
-      size: { ...this.size },
+      position: { x: this.position.x, y: this.position.y },
+      size: { width: this.size.width, height: this.size.height },
       selected: this.selected,
-
-      inputs: this.inputs.map((port) => ({
+      
+      // Deep copy ports to avoid reference issues
+      inputs: this.inputs.map(port => ({
         id: port.id,
         value: port.value,
         isConnected: port.isConnected,
-        position: { ...port.position },
+        position: { x: port.position.x, y: port.position.y }
       })),
-      outputs: this.outputs.map((port) => ({
+      
+      outputs: this.outputs.map(port => ({
         id: port.id,
         value: port.value,
         isConnected: port.isConnected,
-        position: { ...port.position },
-      })),
+        position: { x: port.position.x, y: port.position.y }
+      }))
     };
-  }
-
-  setState(state: any): void {
-    this.id = state.id;
-    this.position = state.position;
-    this.size = state.size;
-    this.selected = state.selected;
-
-    if (state.inputs && this.inputs.length === state.inputs.length) {
-      for (let i = 0; i < this.inputs.length; i++) {
-        this.inputs[i].id = state.inputs[i].id;
-        this.inputs[i].value = state.inputs[i].value;
-        this.inputs[i].isConnected = state.inputs[i].isConnected;
-        this.inputs[i].position = state.inputs[i].position;
-      }
+    
+    if(this.type == "toggle"){
+      (state as any).on = (this as any).on; // Assuming your toggle switch has an 'on' property
     }
 
-    if (state.outputs && this.outputs.length === state.outputs.length) {
-      for (let i = 0; i < this.outputs.length; i++) {
-        this.outputs[i].id = state.outputs[i].id;
-        this.outputs[i].value = state.outputs[i].value;
-        this.outputs[i].isConnected = state.outputs[i].isConnected;
-        this.outputs[i].position = state.outputs[i].position;
+    
+    return state;
+  }
+  
+  setState(state: any): void {
+    if (!state) return;
+    
+    // Safely set properties with fallbacks
+    this.id = state.id || this.id;
+    
+    if (state.position) {
+      this.position = {
+        x: state.position.x ?? this.position.x,
+        y: state.position.y ?? this.position.y
+      };
+    }
+    
+    if (state.size) {
+      this.size = {
+        width: state.size.width ?? this.size.width,
+        height: state.size.height ?? this.size.height
+      };
+    }
+    
+    this.selected = state.selected ?? this.selected;
+    
+    // Handle component-specific properties
+    if(this.type == "toggle"){
+      (state as any).on = (this as any).on; // Assuming your toggle switch has an 'on' property
+    }
+    
+    // Do not attempt to restore ports directly
+    // They are already created by the component constructor
+    // Just update their values if needed
+    if (state.inputs && Array.isArray(state.inputs)) {
+      const minLength = Math.min(this.inputs.length, state.inputs.length);
+      
+      for (let i = 0; i < minLength; i++) {
+        if (!this.inputs[i] || !state.inputs[i]) continue;
+        
+        this.inputs[i].value = state.inputs[i].value ?? false;
+        this.inputs[i].id = state.inputs[i].id || this.inputs[i].id;
+      }
+    }
+    
+    if (state.outputs && Array.isArray(state.outputs)) {
+      const minLength = Math.min(this.outputs.length, state.outputs.length);
+      
+      for (let i = 0; i < minLength; i++) {
+        if (!this.outputs[i] || !state.outputs[i]) continue;
+        
+        this.outputs[i].value = state.outputs[i].value ?? false;
+        this.outputs[i].id = state.outputs[i].id || this.outputs[i].id;
       }
     }
   }

@@ -1,11 +1,11 @@
 import { Component, Point } from '../Component';
 
 export class ToggleSwitch extends Component {
-  state: boolean;
+  on: boolean;
 
   constructor(position: Point) {
     super('toggle', position);
-    this.state = false;
+    this.on = false;
 
     
     this.outputs.push({
@@ -15,20 +15,33 @@ export class ToggleSwitch extends Component {
         x: this.position.x + this.size.width + 10,
         y: this.position.y + this.size.height / 2
       },
-      value: this.state,
+      value: this.on,
       isConnected: false,
       component: this
     });
   }
+  // Add these methods to your ToggleSwitch class
+
+protected getComponentSpecificState(): any {
+  return {
+    on: this.on // Assuming your toggle switch has an 'on' property
+  };
+}
+
+protected setComponentSpecificState(state: any): void {
+  if (state.on !== undefined) {
+    this.on = state.on;
+  }
+}
 
   evaluate(): void {
     
-    this.outputs[0].value = this.state;
+    this.outputs[0].value = this.on;
   }
 
   
   toggle(): void {
-    this.state = !this.state;
+    this.on = !this.on;
     this.evaluate();
   }
 
@@ -64,10 +77,10 @@ export class ToggleSwitch extends Component {
 
     
     const knobSize = switchHeight - 6;
-    const knobX = switchX + 3 + (this.state ? switchWidth - knobSize - 6 : 0);
+    const knobX = switchX + 3 + (this.on ? switchWidth - knobSize - 6 : 0);
     const knobY = switchY + 3;
 
-    ctx.fillStyle = this.state ? '#0B6E4F' : '#666666';
+    ctx.fillStyle = this.on ? '#0B6E4F' : '#666666';
     ctx.beginPath();
     ctx.roundRect(knobX, knobY, knobSize, knobSize, knobSize / 2);
     ctx.fill();

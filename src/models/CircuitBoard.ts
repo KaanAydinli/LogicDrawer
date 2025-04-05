@@ -29,6 +29,7 @@ import { HalfSubtractor } from "./gates/HalfSubtractor";
 import { FullSubtractor } from "./gates/FullSubtractor";
 import { Led } from "./components/Led";
 
+
 export class CircuitBoard {
   components: Component[];
   wires: Wire[];
@@ -1232,16 +1233,12 @@ export class CircuitBoard {
         return new LightBulb(position);
       case "xor":
         return new XorGate(position);
-
       case "nor":
         return new NorGate(position);
-
       case "xnor":
         return new XnorGate(position);
-
       case "nand":
         return new NandGate(position);
-
       case "mux2":
         return new Mux2(position);
       case "mux4":
@@ -1288,7 +1285,7 @@ export class CircuitBoard {
     this.draw();
   }
 
-  private getMousePosition(event: MouseEvent): Point {
+  public getMousePosition(event: MouseEvent): Point {
     const rect = this.canvas.getBoundingClientRect();
 
     const x = (event.clientX - rect.left - this.offsetX) / this.scale;
