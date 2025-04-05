@@ -199,9 +199,9 @@ function setupZoomControls() {
     event.preventDefault();
 
     if (event.deltaY < 0) {
-      circuitBoard.zoomIn();
+      circuitBoard.zoomIn(event.clientX, event.clientY);
     } else {
-      circuitBoard.zoomOut();
+      circuitBoard.zoomOut(event.clientX, event.clientY);
     }
   });
 
@@ -278,7 +278,7 @@ function setupComponentAddListeners() {
       shadowElement.style.pointerEvents = "none";
       shadowElement.style.width = "40px";
       shadowElement.style.height = "40px";
-      shadowElement.style.transform = "translate(-75%, -75%) scale(1.5)";
+      shadowElement.style.transform = "translate(-100%, -100%) ";
     
       // Position shadow element at cursor
       shadowElement.style.left = `${(event as MouseEvent).clientX}px`;
@@ -823,6 +823,7 @@ function setupSettings() {
     circuitBoard.minimap.style.backgroundColor = selectedColor;
     circuitBoard.draw();
     localStorage.setItem("canvasBackgroundColor", selectedColor);
+    document.documentElement.style.setProperty("--canvas-bg", selectedColor);
   });
   const savedColor = localStorage.getItem("canvasBackgroundColor");
   if (savedColor) {

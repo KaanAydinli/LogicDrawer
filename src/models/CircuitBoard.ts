@@ -468,17 +468,48 @@ export class CircuitBoard {
     this.draw();
   }
 
-  public zoomIn() {
-    this.scale *= 1.1;
-    this.scale = Math.min(this.scale, 5);
-    this.draw();
-  }
+// Replace your existing zoom methods with these:
+public zoomIn(clientX?: number, clientY?: number): void {
+  const oldScale = this.scale;
+  this.scale *= 1.1;
+  this.scale = Math.min(this.scale, 5);
+  
+  this.adjustZoomOffset(clientX, clientY, oldScale);
+}
 
-  public zoomOut() {
-    this.scale /= 1.1;
-    this.scale = Math.max(this.scale, 0.1);
+public zoomOut(clientX?: number, clientY?: number): void {
+  const oldScale = this.scale;
+  this.scale /= 1.1;
+  this.scale = Math.max(this.scale, 0.1);
+  
+  this.adjustZoomOffset(clientX, clientY, oldScale);
+}
+
+// Add this new helper method
+private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number): void {
+  if (clientX === undefined || clientY === undefined || oldScale === undefined) {
+    // If no mouse position provided, just redraw with the new scale
     this.draw();
+    return;
   }
+  
+  // Get canvas rectangle
+  const rect = this.canvas.getBoundingClientRect();
+  
+  // Convert mouse position to canvas coordinates
+  const canvasX = clientX - rect.left;
+  const canvasY = clientY - rect.top;
+  
+  // Calculate the world point under the mouse before scaling
+  const worldX = (canvasX - this.offsetX) / oldScale;
+  const worldY = (canvasY - this.offsetY) / oldScale;
+  
+  // Adjust offsets to keep the world point under the mouse after scaling
+  this.offsetX = canvasX - worldX * this.scale;
+  this.offsetY = canvasY - worldY * this.scale;
+  
+  this.draw();
+}
 
   public resetZoom() {
     this.scale = 1;

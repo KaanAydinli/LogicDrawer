@@ -232,6 +232,12 @@ body {
   color: var(--bg-color);
   transform: scale(1.05);
 }
+.component-shadow {
+  cursor: grabbing;
+  color: var(--text-color);
+  border-radius: 8px;
+  padding: 8px;
+}
 
 .component-icon {
   width: 60px;
