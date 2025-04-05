@@ -1,18 +1,22 @@
 import { Point, Port } from './Component';
 
 export class Wire {
-  from: Port;
+  from: Port | null;
   to: Port | null;
   tempEndPoint: Point | null;
   selected: boolean;
-
   controlPoints: Point[];
-
   selectedPointIndex: number | null;
 
-  constructor(fromPort: Port) {
-    this.from = fromPort;
-    this.to = null;
+  constructor(fromPort: Port, which: boolean) {
+    if(which){
+      this.from = fromPort;
+      this.to = null;
+    }
+    else{
+      this.to = fromPort;
+      this.from = null;
+    }
     this.tempEndPoint = null;
     this.selected = false;
     this.controlPoints = []; 
@@ -20,26 +24,46 @@ export class Wire {
   }
 
   connect(toPort: Port): boolean {
-   
-    if (this.from.component === toPort.component) {
+    if (this.from && this.from.component === toPort.component) {
       console.log("Cannot connect to the same component");
       return false;
     }
 
-    if (toPort.type !== 'input') {
-      console.log("Can only connect to input ports");
-      return false;
-    }
+    const isOutputToInput = this.from && this.from.type === 'output' && toPort.type === 'input';
+    const isInputToOutput = this.from && this.from.type === 'input' && toPort.type === 'output';
 
-    if (this.from.type === 'output' && toPort.type === 'input') {
+    if (isOutputToInput) {
       this.to = toPort;
       toPort.isConnected = true;
       this.tempEndPoint = null;
       
-
       this.autoRoute();
       
+      
+      if(this.from && this.to)
+        this.from.value = this.to.value;
+      
+      
       console.log("Connected from output to input");
+      return true;
+    }
+    if (isInputToOutput) {
+      
+      const temp = this.from;
+      this.from = toPort;
+      this.to = temp;
+      
+      toPort.isConnected = true;
+      this.tempEndPoint = null;
+      
+      this.autoRoute();
+      
+      
+      if (this.to) {
+        this.to.value = this.from.value;
+      }
+      
+      console.log("Connected from output to input (after swap)");
       return true;
     }
 
@@ -52,7 +76,7 @@ export class Wire {
     this.controlPoints = [];
     
     if (!this.to) return;
-    
+    if (!this.from) return;
     const start = this.from.position;
     const end = this.to.position;
     
@@ -72,9 +96,15 @@ export class Wire {
   }
 
   disconnect(): void {
+    
     if (this.to) {
       this.to.isConnected = false;
       this.to = null;
+    }
+    
+    if (this.from) {
+      this.from.isConnected = false;
+      this.from = null;
     }
     
     this.controlPoints = [];
@@ -86,6 +116,7 @@ export class Wire {
 
   draw(ctx: CanvasRenderingContext2D): void {
    
+    if (!this.from) return;
     const startX = this.from.position.x;
     const startY = this.from.position.y;
     
@@ -297,7 +328,7 @@ export class Wire {
   getAllPoints(): Point[] {
     const result: Point[] = [];
     
-   
+    if(!this.from) return result;
     result.push(this.from.position);
     
   

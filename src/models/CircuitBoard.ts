@@ -996,18 +996,18 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       if (port) {
         console.log("Port clicked:", port);
 
-        if (port.type === "output") {
+        
           if (this.currentWire) {
             this.currentWire = null;
           }
 
-          this.currentWire = new Wire(port);
+          this.currentWire = new Wire(port,true);
           port.isConnected = true;
           this.currentWire.updateTempEndPoint(mousePos);
-          console.log("Started wire from output port:", port);
+          
           this.draw();
           return;
-        }
+        
       }
       if (component.containsPoint(mousePos)) {
         const isPartOfSelection = this.selectedComponents.includes(component);
@@ -1068,7 +1068,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       return;
     }
 
-    const wire = new Wire(fromPort);
+    const wire = new Wire(fromPort,true);
     wire.connect(toPort);
 
     fromPort.isConnected = true;
@@ -1188,19 +1188,29 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       for (const component of this.components) {
         const port = component.getPortAtPosition(mousePos);
 
-        if (port && port.type === "input") {
-          console.log("Found input port for connection:", port);
+        if (port) {
+          console.log("Found port for connection:", port);
 
-          if (this.currentWire.from.component === port.component) {
+       
+          if (this.currentWire.from?.component === port.component) {
             console.log("Cannot connect to the same component");
             this.currentWire = null;
             this.draw();
             return;
           }
 
-          if (port.isConnected) {
-            console.log("Port already connected, removing old connection");
-            this.disconnectInputPort(port);
+          if (port.isConnected && port.type === 'input') {
+            console.log("Cannot connect to an already connected input port");
+            this.currentWire = null;
+            this.draw();
+            return;
+          }
+     
+          if (port.isConnected && port.type === 'output') {
+            this.currentWire = null;
+            this.draw();
+            return;
+            
           }
 
           const success = this.currentWire.connect(port);
@@ -1223,6 +1233,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       this.currentWire = null;
       this.draw();
     }
+    
     for (const component of this.components) {
       if (component.type === "button") {
         if (component.containsPoint(mousePos)) {
@@ -1235,21 +1246,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     }
   }
 
-  private disconnectInputPort(port: Port): void {
-    console.log("Disconnecting port:", port);
-
-    const connectedWires = this.wires.filter((wire) => wire.to === port);
-
-    connectedWires.forEach((wire) => {
-      wire.disconnect();
-      const index = this.wires.indexOf(wire);
-      if (index !== -1) {
-        this.wires.splice(index, 1);
-      }
-    });
-
-    port.isConnected = false;
-  }
+  
   private createComponentByType(type: string, position: Point): Component | null {
     switch (type) {
       case "and":
@@ -1329,7 +1326,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     for (const component of components) {
       for (const wire of this.wires) {
         if (
-          (wire.from.component === component || (wire.to && wire.to.component === component)) &&
+          (wire.from && wire.from.component === component || (wire.to && wire.to.component === component)) &&
           !updatedWires.includes(wire)
         ) {
           wire.autoRoute();
@@ -1351,7 +1348,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       }
       this.wires = this.wires.filter((wire) => {
         const isConnectedToSelected =
-          wire.from.component === this.selectedComponent ||
+          wire.from?.component === this.selectedComponent ||
           (wire.to && wire.to.component === this.selectedComponent);
 
         if (isConnectedToSelected) {
@@ -1384,7 +1381,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       for (const component of this.selectedComponents) {
         this.wires = this.wires.filter((wire) => {
           const isConnectedToSelected =
-            wire.from.component === component || (wire.to && wire.to.component === component);
+            wire.from?.component === component || (wire.to && wire.to.component === component);
 
           if (isConnectedToSelected) {
             wire.disconnect();
@@ -1427,8 +1424,8 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       wires: this.wires.map((wire) => {
         return {
           id: Math.random().toString(36).substring(2, 15),
-          fromComponentId: wire.from.component.id,
-          fromPortId: wire.from.id,
+          fromComponentId: wire.from?.component.id,
+          fromPortId: wire.from?.id,
           toComponentId: wire.to ? wire.to.component.id : null,
           toPortId: wire.to ? wire.to.id : null,
         };
@@ -1466,7 +1463,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
         const toPort = portMap.get(wireData.toPortId);
 
         if (fromPort && toPort) {
-          const wire = new Wire(fromPort);
+          const wire = new Wire(fromPort,true);
           wire.connect(toPort);
 
           fromPort.isConnected = true;

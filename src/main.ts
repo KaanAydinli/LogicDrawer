@@ -751,17 +751,17 @@ function createExampleCircuit() {
 
   const andGate = new AndGate({ x: 500, y: 250 });
 
-  const wire1 = new Wire(switch1.outputs[0]);
+  const wire1 = new Wire(switch1.outputs[0],true);
   wire1.connect(andGate.inputs[0]);
   circuitBoard.addWire(wire1);
 
-  const wire2 = new Wire(switch2.outputs[0]);
+  const wire2 = new Wire(switch2.outputs[0],true);
   wire2.connect(andGate.inputs[1]);
   circuitBoard.addWire(wire2);
 
   const lightBulb = new Led({ x: 700, y: 250 });
 
-  const wire3 = new Wire(andGate.outputs[0]);
+  const wire3 = new Wire(andGate.outputs[0],true);
   wire3.connect(lightBulb.inputs[0]);
   circuitBoard.addWire(wire3);
 
