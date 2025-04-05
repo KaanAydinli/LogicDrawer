@@ -51,7 +51,7 @@ export class Button extends Component {
     
     
     ctx.beginPath();
-    ctx.roundRect(x, y, width, height, 5);
+    ctx.roundRect(x, y, width, height, 10);
     ctx.fill();
     ctx.stroke();
     
@@ -62,22 +62,16 @@ export class Button extends Component {
     const buttonY = y + (height - buttonHeight) / 2;
     
     
-    ctx.fillStyle = this.state ? '#0B6E4F' : '#666666';
+    ctx.fillStyle = this.state ? '#118b52' : '#666666';
     ctx.beginPath();
     
     const offsetY = this.state ? 2 : 0;
-    ctx.roundRect(buttonX, buttonY + offsetY, buttonWidth, buttonHeight, 5);
+    ctx.roundRect(buttonX, buttonY + offsetY, buttonWidth, buttonHeight, 20);
     ctx.fill();
     ctx.stroke();
     
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('PUSH', x + width / 2, y + height / 2 + offsetY);
-    
-    
+
+      
     const outputPort = this.outputs[0];
     ctx.beginPath();
     ctx.arc(outputPort.position.x, outputPort.position.y, 5, 0, Math.PI * 2);

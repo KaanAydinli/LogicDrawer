@@ -296,11 +296,8 @@ export abstract class LogicGate extends Component {
   decreaseInputCount(): void {
 
     if(this.inputs.length <= 2) return;
-    const portPosition = this.getInputPortPosition(this.inputs.length, this.inputs.length - 1);
-    
     this.inputs.pop();
-    
-    
+
     this.updatePortPositions();
   }
   

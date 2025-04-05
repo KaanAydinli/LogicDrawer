@@ -14,6 +14,7 @@
   --emerald: #50c878;
   --forest: #0b6e4f;
   --dark: #013220;
+  
 }
 
 * {
@@ -26,6 +27,7 @@ body {
   font-family: "Arial", sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
+  
   height: 100vh;
   overflow: hidden;
 }
