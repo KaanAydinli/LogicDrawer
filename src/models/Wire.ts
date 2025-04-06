@@ -17,6 +17,7 @@ export class Wire {
       this.to = fromPort;
       this.from = null;
     }
+    console.log("Wire created from port: ", this.from?.type);
     this.tempEndPoint = null;
     this.selected = false;
     this.controlPoints = []; 
@@ -34,33 +35,36 @@ export class Wire {
 
     if (isOutputToInput) {
       this.to = toPort;
-      toPort.isConnected = true;
+      // Only mark input ports as connected (outputs can have multiple connections)
+      if (toPort.type === 'input') {
+        toPort.isConnected = true;
+      }
       this.tempEndPoint = null;
       
       this.autoRoute();
-      
       
       if(this.from && this.to)
         this.from.value = this.to.value;
       
-      
       console.log("Connected from output to input");
       return true;
     }
+    
     if (isInputToOutput) {
-      
       const temp = this.from;
       this.from = toPort;
       this.to = temp;
       
-      toPort.isConnected = true;
+      // Only mark input ports as connected (outputs can have multiple connections)
+      if (this.to && this.to.type === 'input') {
+        this.to.isConnected = true;
+      }
       this.tempEndPoint = null;
       
       this.autoRoute();
       
-      
       if (this.to) {
-        this.to.value = this.from.value;
+        this.from.value = this.to.value;
       }
       
       console.log("Connected from output to input (after swap)");
@@ -71,6 +75,26 @@ export class Wire {
     return false;
   }
 
+  disconnect(): void {
+
+    console.log("Disconnected wire");
+    // Only mark input ports as not connected
+    if (this.to && this.to.type === 'input') {
+      this.to.isConnected = false;
+      this.to = null;
+    } else if (this.to) {
+      this.to = null;
+    }
+    
+    if (this.from) {
+      // Check if this is the last wire connected to this output
+      // No need to mark outputs as disconnected since they can have multiple connections
+      this.from.isConnected = false;
+      this.from = null;
+    }
+    
+    this.controlPoints = [];
+  }
   public autoRoute(): void {
    
     this.controlPoints = [];
@@ -95,21 +119,7 @@ export class Wire {
     }
   }
 
-  disconnect(): void {
-    
-    if (this.to) {
-      this.to.isConnected = false;
-      this.to = null;
-    }
-    
-    if (this.from) {
-      this.from.isConnected = false;
-      this.from = null;
-    }
-    
-    this.controlPoints = [];
-  }
-
+ 
   updateTempEndPoint(point: Point): void {
     this.tempEndPoint = point;
   }

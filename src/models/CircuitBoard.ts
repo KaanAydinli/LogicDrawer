@@ -1159,9 +1159,9 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
 
   private handleMouseUp(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
-
+    
     console.log("Mouse up at:", mousePos);
-
+    
     if (this.isSelecting && this.selectionRect) {
       this.selectionRect.end = mousePos;
       this.selectComponentsInRect();
@@ -1170,49 +1170,54 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       this.draw();
       return;
     }
+    
     if (this.draggedComponent) {
       this.updateConnectedWires(
         this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent],
       );
     }
-
+    
     if (!this.draggedComponent || !this.currentWire) {
       this.clearSelection();
     }
-
+    
     this.draggedComponent = null;
-
+    
     if (this.currentWire) {
       console.log("Has active wire, checking for port connection");
-
+      
       for (const component of this.components) {
         const port = component.getPortAtPosition(mousePos);
-
+        
         if (port) {
           console.log("Found port for connection:", port);
-
-       
+          
+          // Prevent connecting to the same component
           if (this.currentWire.from?.component === port.component) {
             console.log("Cannot connect to the same component");
             this.currentWire = null;
             this.draw();
             return;
           }
-
-          if (port.isConnected && port.type === 'input') {
+          
+          // Prevent connecting to an already connected input port
+          if (port.type === 'input' && port.isConnected ) {
             console.log("Cannot connect to an already connected input port");
             this.currentWire = null;
             this.draw();
             return;
           }
-     
-          if (port.isConnected && port.type === 'output') {
+          
+          // Prevent connecting input-to-input
+          if (port.type === 'input' && this.currentWire.from && this.currentWire.from.type === 'input') {
+            console.log("Cannot connect input port to another input port");
             this.currentWire = null;
             this.draw();
             return;
-            
           }
 
+
+          
           const success = this.currentWire.connect(port);
           if (success) {
             console.log("Connection successful! Adding wire to list.");
@@ -1228,12 +1233,13 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
           return;
         }
       }
-
+      
       console.log("No port found at mouse up, clearing wire");
       this.currentWire = null;
       this.draw();
     }
     
+    // Rest of the method remains unchanged
     for (const component of this.components) {
       if (component.type === "button") {
         if (component.containsPoint(mousePos)) {
@@ -1368,6 +1374,9 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       if (index !== -1) {
         if (this.selectedWire.to) {
           this.selectedWire.to.isConnected = false;
+        }
+        if (this.selectedWire.from) {
+          this.selectedWire.from.isConnected = false;
         }
 
         this.selectedWire.disconnect();
