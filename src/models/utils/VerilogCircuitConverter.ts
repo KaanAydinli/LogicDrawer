@@ -24,7 +24,7 @@ export class VerilogCircuitConverter {
   private components: { [name: string]: Component } = {};
   private outputPorts: { [name: string]: any } = {};
   private feedbackWires: { source: string; target: string }[] = [];
-  private isSequential: boolean = false;
+
 
   constructor(circuitBoard: CircuitBoard) {
     this.parser = new VerilogParser();
@@ -43,7 +43,7 @@ export class VerilogCircuitConverter {
       this.feedbackWires = [];
 
       const { hasCombinationalLoop, feedbackEdges } = this.detectFeedbackLoops(module);
-      this.isSequential = hasCombinationalLoop;
+      
 
       if (hasCombinationalLoop) {
         console.log("Sequential logic or feedback loops detected. Will handle specially.");
@@ -449,10 +449,9 @@ export class VerilogCircuitConverter {
           case "xnor":
             component = new XnorGate(position);
             break;
-          case "buffer":
+          case "buf":
             component = new BufferGate(position);
             break;
-
           case "mux2":
             component = new Mux2(position);
             break;
@@ -778,6 +777,12 @@ export class VerilogCircuitConverter {
         return gate;
       }
     }
+
+    const bufferGate = module.gates.find(
+      (g) => (g.type.toLowerCase() === "buf" || g.type.toLowerCase() === "buffer") && g.output === outputName
+    );
+    if (bufferGate) return bufferGate;
+    
 
     const bitSelectionMatch = outputName.match(/^(\w+)\[(\d+)\]$/);
     if (bitSelectionMatch) {

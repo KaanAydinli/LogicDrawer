@@ -34,6 +34,7 @@ import { FullAdder } from "./models/gates/FullAdder";
 import { HalfSubtractor } from "./models/gates/HalfSubtractor";
 import { FullSubtractor } from "./models/gates/FullSubtractor";
 import { Led } from "./models/components/Led";
+import { GoogleGenAI } from "@google/genai";
 
 class Queue {
   private items: string[] = [];
@@ -58,8 +59,14 @@ var converter;
 
 const apiKey = import.meta.env.VITE_ROBOFLOW_API_KEY;
 const workflowId = import.meta.env.VITE_ROBOFLOW_WORKFLOW_ID;
+const apiKeyMinstral = import.meta.env.VITE_MISTRAL_API_KEY;
 
 var roboflow;
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
+
+
+
+
 
 var imageUploader: ImageUploader;
 
@@ -71,22 +78,23 @@ const inputText = document.querySelector(".docName") as HTMLInputElement;
 
 const promptAI = `Your name is Logai. You are an AI assistant specialized in digital logic circuits.
 
-When writing Verilog code:
-- Provide ONLY the Verilog code without any explanations or comments
-- NO markdown formatting, NO backticks
-- Use explicit gate instantiations with instance names
+I will provide Verilog code snippets upon request, adhering to the following constraints:
+
+- Verilog code will be provided without explanations or comments.
+- No markdown formatting or backticks will be used.
+- Explicit gate instantiations with instance names will be used.
 
 ***CRITICAL CIRCUIT DESIGN RULES***:
-1. NEVER connect multiple gate outputs to the same destination
-2. NEVER use the same wire name twice - each wire must have a UNIQUE name
-3. Each gate can have AT MOST 2 INPUTS and 1 output
-4. NEVER use operators like =, &, |, ^, ~ for assignments. Use explicit gate instantiations only.
-5. NEVER use the same wire as both input and output of the same gate
+1. Multiple gate outputs will never be connected to the same destination.
+2. Wire names will be unique.
+3. Each gate will have at most 2 inputs and 1 output.
+4. Operators like =, &, |, ^, ~ will not be used for assignments; explicit gate instantiations will be used instead.
+5. Wires will not be used as both input and output of the same gate.
 
-Use these formats for Verilog elements:
-- For module declarations: module name(input a, b, c, output sum, cout, z);
-- For wire declarations: wire w1, w2, w3;
-- For gates (MUST have exactly 1-2 inputs):
+Verilog elements will follow these formats:
+- Module declarations: module name(input a, b, c, output sum, cout, z);
+- Wire declarations: wire w1, w2, w3;
+- Gates (with 1-2 inputs):
   and a1(out, in1, in2);
   or o1(result, in1, in2);
   xor x1(sum, a, b);
@@ -95,11 +103,13 @@ Use these formats for Verilog elements:
   nor nr1(out, in1, in2);
   xnor xn1(out, in1, in2);
 
-Always name gates with a prefix indicating the gate type (a for AND, o for OR, x for XOR, etc.) followed by a number.
-- Always end you code with endmodule and start your code with module
-- Check your code before sending it to me make sure it works
+Gates will be named with a prefix indicating the gate type (a for AND, o for OR, x for XOR, etc.) followed by a number.
+- Code will always start with module and end with endmodule.
+- Code will be checked for correctness before submission.
 
-Always use UNIQUE wire names - NEVER reuse a wire name.`;
+UNIQUE wire names will always be used.`;
+
+
 
 const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
@@ -529,7 +539,7 @@ function setUpAI() {
   async function callMistralAPI(userMessage: string): Promise<string> {
     console.log(queue);
     try {
-      const apiKeyMinstral = import.meta.env.VITE_MISTRAL_API_KEY;
+      
 
       // Loading message
       const loadingMessageDiv = document.createElement("div");
@@ -545,41 +555,54 @@ function setUpAI() {
       messagesContainer.appendChild(loadingMessageDiv);
       scrollToBottom();
 
-      const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKeyMinstral}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "mistral-large-latest",
-          messages: [
-            {
-              role: "system",
-              content: promptAI + "Your converseation history: " + JSON.stringify(queue),
-            },
+      // const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      //   method: "POST",
+      //   headers: {
+      //     Authorization: `Bearer ${apiKeyMinstral}`,
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({
+      //     model: "mistral-large-latest",
+      //     messages: [
+      //       {
+      //         role: "system",
+      //         content: promptAI + "Your converseation history: " + JSON.stringify(queue),
+      //       },
 
-            { role: "user", content: userMessage },
-          ],
-        }),
-      });
-
+      //       { role: "user", content: userMessage },
+      //     ],
+      //   }),
+      // });
       messagesContainer.removeChild(loadingMessageDiv);
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+       
+        contents: "This is the rule you should obey" + promptAI + "This is your chat history so that you can remember" + JSON.stringify(queue) + "This is the last user message which you should reply"+   userMessage,
+      });
+      console.log(response.text);
+      if(response.text){
+        
+        return response.text;
       }
-
-      const chatResponse = await response.json();
-
-      if (chatResponse.choices && chatResponse.choices.length > 0) {
-        const aiResponse = chatResponse.choices[0].message.content;
-        console.log("Chat response:", aiResponse);
-        return aiResponse;
-      } else {
-        console.error("No choices available in chat response.");
+      else 
+      {
         return "Sorry, I couldn't generate a response at the moment. Please try again.";
-      }
+      } 
+
+      // if (!response.ok) {
+      //   throw new Error(`API Error: ${response.status}`);
+      // }
+
+      // const chatResponse = await response.json();
+
+      // if (chatResponse.choices && chatResponse.choices.length > 0) {
+      //   const aiResponse = chatResponse.choices[0].message.content;
+      //   console.log("Chat response:", aiResponse);
+      //   return aiResponse;
+      // } else {
+      //   console.error("No choices available in chat response.");
+      //   return "Sorry, I couldn't generate a response at the moment. Please try again.";
+      // }
     } catch (error) {
       console.error("Error calling Mistral API:", error);
       return "I'm having trouble connecting to my brain right now. Please try again in a moment.";

@@ -128,7 +128,6 @@ export class CircuitBoard {
       }
     }
   }
-
   private setupEvents(): void {
     this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
@@ -141,26 +140,23 @@ export class CircuitBoard {
     this.components.push(component);
     this.draw();
   }
-  // CircuitBoard sınıfına eklenecek method:
-  // CircuitBoard sınıfına eklenecek method:
+
   public extractVerilog(): string {
-    // Boş devre kontrolü
+ 
     if (this.components.length === 0) {
       return "// Boş devre";
     }
 
-    // Kategorilere göre bileşenleri ayır
+
     const inputs: Component[] = [];
     const outputs: Component[] = [];
     const gates: Component[] = [];
-    const wires: Map<string, string> = new Map(); // Port ID'den sinyal adına eşleştirme
-    const wireConnections: Map<string, string[]> = new Map(); // Sinyal adından bağlantılara
+    const wires: Map<string, string> = new Map(); 
+    const wireConnections: Map<string, string[]> = new Map();
     let internalWireCount = 0;
 
-    // Direct connections from gate outputs to circuit outputs
-    const directOutputConnections: Map<string, string> = new Map(); // Gate output port ID -> Circuit output name
+    const directOutputConnections: Map<string, string> = new Map();
 
-    // Bileşenleri kategorize et
     for (const comp of this.components) {
       if (
         comp.type === "toggle" ||
@@ -171,7 +167,6 @@ export class CircuitBoard {
       ) {
         inputs.push(comp);
 
-        // Her input'un çıkışını isimlendir
         if (comp.outputs.length > 0) {
           const wireName = this.getWireNameForComponent(comp);
           wires.set(comp.outputs[0].id, wireName);
@@ -183,11 +178,10 @@ export class CircuitBoard {
       }
     }
 
-    // First, analyze which gate outputs connect directly to circuit outputs
     for (const wire of this.wires) {
       if (!wire.from || !wire.to) continue;
 
-      // If this wire connects a gate output to a circuit output
+   
       if (
         (wire.to.component.type === "light-bulb" || wire.to.component.type === "hex") &&
         wire.from.component.type !== "toggle" &&
@@ -196,20 +190,20 @@ export class CircuitBoard {
         wire.from.component.type !== "constant1" &&
         wire.from.component.type !== "clock"
       ) {
-        // Map the gate output port to the circuit output name
+
         directOutputConnections.set(wire.from.id, this.getWireNameForComponent(wire.to.component));
       }
     }
 
-    // Now analyze all other connections
+
     for (const wire of this.wires) {
       if (!wire.from || !wire.to) continue;
 
-      // Kaynak sinyal adını al veya oluştur
+
       let sourceWireName = wires.get(wire.from.id);
 
       if (!sourceWireName) {
-        // Check if this source directly drives a circuit output
+ 
         if (directOutputConnections.has(wire.from.id)) {
           sourceWireName = directOutputConnections.get(wire.from.id)!;
         } else if (
@@ -225,19 +219,19 @@ export class CircuitBoard {
         wires.set(wire.from.id, sourceWireName);
       }
 
-      // Hedef portu işaretle
+
       if (wire.to.component.type === "light-bulb" || wire.to.component.type === "hex") {
         const outputName = this.getWireNameForComponent(wire.to.component);
         wires.set(wire.to.id, outputName);
 
-        // Çıkışa giden bağlantıyı kaydet
+  
         if (!wireConnections.has(outputName)) {
           wireConnections.set(outputName, [sourceWireName]);
         } else {
           wireConnections.get(outputName)!.push(sourceWireName);
         }
       } else {
-        // Mantık kapısı girişlerine bağlantıları kaydet
+   
         if (!wireConnections.has(wire.to.id)) {
           wireConnections.set(wire.to.id, [sourceWireName]);
         } else {
@@ -246,39 +240,37 @@ export class CircuitBoard {
       }
     }
 
-    // Çıktıları derlemeye başla
     let moduleCode = "";
 
-    // Modül adını oluştur
+    
     const moduleName = `circuit_${new Date().getTime().toString(36)}`;
 
-    // Giriş çıkış portlarını derle
+
     const portNames: string[] = [];
 
-    // Giriş portları
     for (const input of inputs) {
       const portName = this.getWireNameForComponent(input);
-      // Skip constants as they're not actual ports
+    
       if (portName !== "1'b0" && portName !== "1'b1") {
         portNames.push(portName);
       }
     }
 
-    // Çıkış portları
+
     for (const output of outputs) {
       const portName = this.getWireNameForComponent(output);
       portNames.push(portName);
     }
 
-    // Modül tanımını yaz
+
     moduleCode += `module ${moduleName}(\n  ${portNames.join(", ")}\n);\n\n`;
 
-    // Giriş portlarını tanımla
+
     if (inputs.length > 0) {
       moduleCode += "// Input ports\n";
       for (const input of inputs) {
         const portName = this.getWireNameForComponent(input);
-        // Skip constants
+      
         if (portName !== "1'b0" && portName !== "1'b1") {
           moduleCode += `input ${portName};\n`;
         }
@@ -286,7 +278,6 @@ export class CircuitBoard {
       moduleCode += "\n";
     }
 
-    // Çıkış portlarını tanımla
     if (outputs.length > 0) {
       moduleCode += "// Output ports\n";
       for (const output of outputs) {
@@ -295,7 +286,6 @@ export class CircuitBoard {
       moduleCode += "\n";
     }
 
-    // İç tel tanımları
     if (internalWireCount > 0) {
       moduleCode += "// Internal wires\n";
       for (let i = 0; i < internalWireCount; i++) {
@@ -304,7 +294,7 @@ export class CircuitBoard {
       moduleCode += "\n";
     }
 
-    // Mantık kapısı tanımları
+
     if (gates.length > 0) {
       moduleCode += "// Gate instantiations\n";
       let instanceCount: Map<string, number> = new Map();
@@ -312,22 +302,20 @@ export class CircuitBoard {
       for (const gate of gates) {
         let gateType = this.mapGateTypeToVerilog(gate.type);
 
-        // Gate instance adını oluştur
         let instanceNum = instanceCount.get(gateType) || 0;
         instanceCount.set(gateType, instanceNum + 1);
         let instanceName = `${gateType}${instanceNum}`;
 
-        // Gate çıkış sinyalini belirle - check if it directly connects to a circuit output
         let outputSignal = "";
 
         if (gate.outputs.length > 0) {
           const outputPortId = gate.outputs[0].id;
 
-          // Check if this output directly drives a circuit output
+
           if (directOutputConnections.has(outputPortId)) {
             outputSignal = directOutputConnections.get(outputPortId)!;
           }
-          // Otherwise use an internal wire name
+
           else {
             outputSignal = wires.get(outputPortId) || `w${internalWireCount++}`;
             if (!wires.has(outputPortId)) {
@@ -336,25 +324,24 @@ export class CircuitBoard {
           }
         }
 
-        // Gate girişlerini derle
+     
         const inputs: string[] = [];
         for (const input of gate.inputs) {
-          // Bu girişe bağlı telin adını bul
+         
           const connections = wireConnections.get(input.id);
           if (connections && connections.length > 0) {
-            inputs.push(connections[0]); // İlk bağlantıyı kullan
+            inputs.push(connections[0]); 
           } else {
-            // Bağlantı yoksa, sabit 0 kullan
+          
             inputs.push("1'b0");
           }
         }
 
-        // Gate kodunu yaz
         moduleCode += this.generateGateInstance(gateType, instanceName, outputSignal, inputs);
       }
     }
 
-    // Modül tanımını kapat
+   
     moduleCode += "\nendmodule\n";
 
     return moduleCode;
@@ -366,17 +353,17 @@ export class CircuitBoard {
     inputs: string[],
   ): string {
     if (gateType === "mux") {
-      // Mux için özel format (select girişini son parametre olarak ekle)
+     
       const dataInputs = inputs.slice(0, inputs.length - 1);
       const select = inputs[inputs.length - 1];
       return `${gateType} ${instanceName}(${output}, ${dataInputs.join(", ")}, ${select});\n`;
     } else if (gateType === "dff") {
-      // D Flip-flop için özel format (clk ve reset girişleri)
+      
       const d = inputs[0] || "1'b0";
       const clk = inputs[1] || "1'b0";
       return `${gateType} ${instanceName}(${output}, ${d}, ${clk});\n`;
     } else {
-      // Normal gate formatı
+      
       return `${gateType} ${instanceName}(${output}, ${inputs.join(", ")});\n`;
     }
   }
@@ -453,7 +440,7 @@ export class CircuitBoard {
       component.evaluate();
     });
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       this.wires.forEach((wire) => {
         if (wire.to && wire.from) {
           wire.to.value = wire.from.value;
@@ -468,7 +455,6 @@ export class CircuitBoard {
     this.draw();
   }
 
-// Replace your existing zoom methods with these:
 public zoomIn(clientX?: number, clientY?: number): void {
   const oldScale = this.scale;
   this.scale *= 1.1;
@@ -485,26 +471,25 @@ public zoomOut(clientX?: number, clientY?: number): void {
   this.adjustZoomOffset(clientX, clientY, oldScale);
 }
 
-// Add this new helper method
+
 private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number): void {
   if (clientX === undefined || clientY === undefined || oldScale === undefined) {
-    // If no mouse position provided, just redraw with the new scale
+ 
     this.draw();
     return;
   }
   
-  // Get canvas rectangle
   const rect = this.canvas.getBoundingClientRect();
   
-  // Convert mouse position to canvas coordinates
+
   const canvasX = clientX - rect.left;
   const canvasY = clientY - rect.top;
   
-  // Calculate the world point under the mouse before scaling
+ 
   const worldX = (canvasX - this.offsetX) / oldScale;
   const worldY = (canvasY - this.offsetY) / oldScale;
   
-  // Adjust offsets to keep the world point under the mouse after scaling
+  
   this.offsetX = canvasX - worldX * this.scale;
   this.offsetY = canvasY - worldY * this.scale;
   
@@ -530,14 +515,14 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     const y = (clientY - rect.top - this.offsetY) / this.scale;
     return { x, y };
   }
-  // Add these methods to your CircuitBoard class
+
 
   private setupMinimap(): void {
-    // Set up the minimap canvas size
+
     this.minimap.width = this.minimapWidth;
     this.minimap.height = this.minimapHeight;
 
-    // Add event listeners for minimap interaction
+ 
     this.minimap.addEventListener("mousedown", this.handleMinimapClick.bind(this));
     this.minimap.addEventListener("mousemove", this.handleMinimapMove.bind(this));
     this.minimap.addEventListener("mouseup", this.handleMinimapUp.bind(this));
@@ -551,18 +536,13 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     this.handleMinimapMove(event);
   }
   public resizeCanvas(): void {
-    // Update canvas size while preserving content
-    const oldWidth = this.canvas.width;
-    const oldHeight = this.canvas.height;
-
-    // Get new dimensions from the container
+    
     const container = this.canvas.parentElement;
     if (container) {
       this.canvas.width = container.clientWidth;
       this.canvas.height = container.clientHeight;
     }
 
-    // Redraw with scale adjustments if needed
     this.draw();
   }
 
@@ -598,7 +578,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
   }
 
   private centerViewOn(worldX: number, worldY: number): void {
-    // Calculate how to position the view to center on worldX, worldY
+    
     const centerX = this.canvas.width / 2;
     const centerY = this.canvas.height / 2;
 
@@ -608,30 +588,21 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     this.draw();
   }
 
-  private minimapToWorldX(minimapX: number): number {
-    const minimapScale = this.getMinimapScale();
-    return minimapX / minimapScale;
-  }
 
-  private minimapToWorldY(minimapY: number): number {
-    const minimapScale = this.getMinimapScale();
-    return minimapY / minimapScale;
-  }
 
   private getMinimapScale(): number {
     const { bounds, width, height } = this.calculateCircuitBounds();
 
-    // Handle empty circuit case
     if (width === 0 || height === 0) {
       return 1;
     }
 
-    // Calculate scale to fit circuit in minimap
+   
     const scaleX = this.minimap.width / width;
     const scaleY = this.minimap.height / height;
 
-    // Use the smaller scale to ensure the entire circuit fits
-    return Math.min(scaleX, scaleY) * 0.9; // 0.9 for a small margin
+  
+    return Math.min(scaleX, scaleY) * 0.9; 
   }
 
   private calculateCircuitBounds(): {
@@ -639,13 +610,12 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     width: number;
     height: number;
   } {
-    // Find the bounds of the entire circuit
+   
     let left = Infinity;
     let top = Infinity;
     let right = -Infinity;
     let bottom = -Infinity;
 
-    // Check component bounds
     this.components.forEach((component) => {
       const box = component.getBoundingBox();
       left = Math.min(left, box.x);
@@ -654,7 +624,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       bottom = Math.max(bottom, box.y + box.height);
     });
 
-    // Check wire bounds
+  
     this.wires.forEach((wire) => {
       const points = wire.getAllPoints();
       points.forEach((point) => {
@@ -665,7 +635,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       });
     });
 
-    // Handle empty circuit case
+  
     if (left === Infinity) {
       left = 0;
       top = 0;
@@ -686,19 +656,19 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
   private drawMinimap(): void {
     if (!this.minimap || !this.minimapCtx) return;
 
-    // Clear the minimap
+ 
     this.minimapCtx.fillStyle = this.minimap.style.backgroundColor || "#151515";
     this.minimapCtx.fillRect(0, 0, this.minimap.width, this.minimap.height);
 
     const { bounds } = this.calculateCircuitBounds();
     const minimapScale = this.getMinimapScale();
 
-    // Draw a border around minimap
+
     this.minimapCtx.strokeStyle = "#3a3a3a";
     this.minimapCtx.lineWidth = 2;
     this.minimapCtx.strokeRect(0, 0, this.minimap.width, this.minimap.height);
 
-    // Translate minimap to center circuit
+ 
     this.minimapCtx.save();
     this.minimapCtx.translate(
       (this.minimap.width - (bounds.right - bounds.left) * minimapScale) / 2 -
@@ -708,7 +678,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     );
     this.minimapCtx.scale(minimapScale, minimapScale);
 
-    // Draw wires
+
     this.wires.forEach((wire) => {
       this.minimapCtx.strokeStyle = wire.selected ? "#0B6E4F" : "#cdcfd0";
       this.minimapCtx.lineWidth = 1 / minimapScale;
@@ -730,25 +700,24 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       component.draw(this.minimapCtx);
     });
 
-    // Draw current viewport
     this.drawViewport();
 
     this.minimapCtx.restore();
   }
 
   private drawViewport(): void {
-    // Calculate the current viewport in world coordinates
+
     const viewLeft = -this.offsetX / this.scale;
     const viewTop = -this.offsetY / this.scale;
     const viewWidth = this.canvas.width / this.scale;
     const viewHeight = this.canvas.height / this.scale;
 
-    // Draw the viewport rectangle
+
     this.minimapCtx.strokeStyle = "#ff5533";
     this.minimapCtx.lineWidth = 2 / this.getMinimapScale();
     this.minimapCtx.strokeRect(viewLeft, viewTop, viewWidth, viewHeight);
 
-    // Semi-transparent fill
+
     this.minimapCtx.fillStyle = "rgba(255, 255, 255, 0.1)";
     this.minimapCtx.fillRect(viewLeft, viewTop, viewWidth, viewHeight);
   }
@@ -1507,11 +1476,11 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     URL.revokeObjectURL(url);
   }
   public saveVerilogToFile(verilogCode: string, filename: string = "circuit.v"): void {
-    // Create a blob with the Verilog code
+    
     const blob = new Blob([verilogCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
 
-    // Create a temporary link element to trigger the download
+    
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
@@ -1519,7 +1488,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     a.click();
     document.body.removeChild(a);
 
-    // Clean up the blob URL
+   
     URL.revokeObjectURL(url);
   }
 

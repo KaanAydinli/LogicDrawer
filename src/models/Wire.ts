@@ -8,7 +8,7 @@ export class Wire {
   controlPoints: Point[];
   selectedPointIndex: number | null;
 
-  constructor(fromPort: Port, which: boolean) {
+  constructor(fromPort: Port, which: boolean = true) {
     if(which){
       this.from = fromPort;
       this.to = null;
@@ -87,8 +87,7 @@ export class Wire {
     }
     
     if (this.from) {
-      // Check if this is the last wire connected to this output
-      // No need to mark outputs as disconnected since they can have multiple connections
+
       this.from.isConnected = false;
       this.from = null;
     }

@@ -24,7 +24,7 @@
 }
 
 body {
-  font-family: "Arial", sans-serif;
+  font-family: "Pixelify Sans", sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
   
@@ -76,6 +76,7 @@ body {
   border: var(--text-color) 2px solid;
   border-radius: px;
   cursor: text;
+  width: 20%;
 }
 .docName::placeholder {
   color: var(--text-color);
@@ -251,8 +252,8 @@ body {
   margin-bottom: 5px;
 }
 .docNameContainer {
-  padding-left: 1%;
-  padding-right: 1%;
+  padding-left: 2%;
+  padding-right: 2%;
   width: 100%;
   display: flex;
   justify-content: space-between;
@@ -289,9 +290,9 @@ body {
 }
 .rightContainer {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-evenly;
   align-items: center;
-  width: 50%;
+  width: 40%;
 }
 .storage {
   color: var(--text-color);

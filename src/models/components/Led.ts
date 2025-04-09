@@ -43,7 +43,6 @@ export class Led extends Component {
     const width = this.size.width;
     const height = this.size.height;
     
-    
     const isOn = this.inputs[0].value || this.inputs[1].value || this.inputs[2].value;
     
     const bulbRadius = Math.min(width, height) / 2 - 5;
