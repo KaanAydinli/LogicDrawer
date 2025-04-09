@@ -25,7 +25,6 @@ export class VerilogCircuitConverter {
   private outputPorts: { [name: string]: any } = {};
   private feedbackWires: { source: string; target: string }[] = [];
 
-
   constructor(circuitBoard: CircuitBoard) {
     this.parser = new VerilogParser();
     this.circuitBoard = circuitBoard;
@@ -43,7 +42,6 @@ export class VerilogCircuitConverter {
       this.feedbackWires = [];
 
       const { hasCombinationalLoop, feedbackEdges } = this.detectFeedbackLoops(module);
-      
 
       if (hasCombinationalLoop) {
         console.log("Sequential logic or feedback loops detected. Will handle specially.");
@@ -123,24 +121,24 @@ export class VerilogCircuitConverter {
     const hasCombinationalLoop = Array.from(dependencies.keys()).some((signal) => dfs(signal));
 
     if (hasCombinationalLoop) {
-      // Feedback döngülerini temizle ve yeniden oluştur
+      
       feedbackEdges.length = 0;
 
-      // Tüm kapıları tarayarak çapraz bağlantıları tespit et
+      
       for (let i = 0; i < module.gates.length; i++) {
         const gate1 = module.gates[i];
 
         for (let j = i + 1; j < module.gates.length; j++) {
           const gate2 = module.gates[j];
 
-          // İki kapı birbirlerine bağlı mı kontrol et
+          
           const gate1UsesGate2Output = gate1.inputs.includes(gate2.output);
           const gate2UsesGate1Output = gate2.inputs.includes(gate1.output);
 
           if (gate1UsesGate2Output && gate2UsesGate1Output) {
             console.log(`Çapraz bağlantılı kapılar bulundu: ${gate1.output} <-> ${gate2.output}`);
 
-            // Her iki yönde de bağlantı ekle
+            
             feedbackEdges.push({
               source: gate1.output,
               target: gate2.output,
@@ -393,28 +391,32 @@ export class VerilogCircuitConverter {
     try {
       this.detectAndHandleUndeclaredSignals(module);
 
+      this.setupMultiBitSignals(module);
+
       module.inputs.forEach((input) => {
-        const position = this.componentPositions.get(input.name) || { x: 100, y: 100 };
+        if (!input.bitWidth || input.bitWidth === 1) {
+          const position = this.componentPositions.get(input.name) || { x: 100, y: 100 };
 
-        if (input.name === "clk") {
-          const clock = new Clock(position, this.circuitBoard);
-          this.components[input.name] = clock;
-          this.outputPorts[input.name] = clock.outputs[0];
-          this.circuitBoard.addComponent(clock);
-        } else {
-          const toggle = new ToggleSwitch(position);
-          this.components[input.name] = toggle;
-          this.outputPorts[input.name] = toggle.outputs[0];
-          this.circuitBoard.addComponent(toggle);
+          if (input.name === "clk") {
+            const clock = new Clock(position, this.circuitBoard);
+            this.components[input.name] = clock;
+            this.outputPorts[input.name] = clock.outputs[0];
+            this.circuitBoard.addComponent(clock);
+          } else {
+            const toggle = new ToggleSwitch(position);
+            this.components[input.name] = toggle;
+            this.outputPorts[input.name] = toggle.outputs[0];
+            this.circuitBoard.addComponent(toggle);
+          }
+
+          const labelPosition = {
+            x: position.x - 80,
+            y: position.y + 20,
+          };
+
+          const label = new Text(labelPosition, input.name, 20);
+          this.circuitBoard.addComponent(label);
         }
-
-        const labelPosition = {
-          x: position.x - 80,
-          y: position.y + 20,
-        };
-
-        const label = new Text(labelPosition, input.name, 20);
-        this.circuitBoard.addComponent(label);
       });
 
       const sortedGates = [...module.gates].sort((a, b) => {
@@ -472,26 +474,53 @@ export class VerilogCircuitConverter {
       }
 
       module.outputs.forEach((output) => {
-        const position = this.componentPositions.get(output.name) || { x: 500, y: 200 };
+        if (output.bitWidth && output.bitWidth > 1) {
+          
+          const basePosition = this.componentPositions.get(output.name) || { x: 500, y: 200 };
 
-        const bulbPosition = {
-          x: position.x + 200,
-          y: position.y,
-        };
+          
+          for (let i = 0; i < output.bitWidth; i++) {
+            const bitName = `${output.name}[${i}]`;
 
-        const bulb = new LightBulb(bulbPosition);
-        this.components[output.name + "_bulb"] = bulb;
-        this.circuitBoard.addComponent(bulb);
+            
+            const bitPosition = {
+              x: basePosition.x + 200,
+              y: basePosition.y + i * 200, 
+            };
 
-        const labelPosition = {
-          x: position.x + 280,
-          y: position.y + 20,
-        };
+            
+            const bulb = new LightBulb(bitPosition);
+            this.components[bitName + "_bulb"] = bulb;
+            this.circuitBoard.addComponent(bulb);
 
-        const label = new Text(labelPosition, output.name, 20);
-        this.circuitBoard.addComponent(label);
+            
+            const labelPosition = {
+              x: bitPosition.x + 80,
+              y: bitPosition.y + 20,
+            };
+            const label = new Text(labelPosition, bitName, 16);
+            this.circuitBoard.addComponent(label);
 
-        this.connectOutput(output.name, bulb);
+            
+            this.connectOutput(bitName, bulb);
+          }
+        } else {
+          
+          const position = this.componentPositions.get(output.name) || { x: 500, y: 200 };
+          const bulbPosition = { x: position.x + 200, y: position.y };
+          const bulb = new LightBulb(bulbPosition);
+          this.components[output.name + "_bulb"] = bulb;
+          this.circuitBoard.addComponent(bulb);
+
+          const labelPosition = {
+            x: position.x + 280,
+            y: position.y + 20,
+          };
+          const label = new Text(labelPosition, output.name, 20);
+          this.circuitBoard.addComponent(label);
+
+          this.connectOutput(output.name, bulb);
+        }
       });
 
       this.connectFeedbackWires();
@@ -526,15 +555,21 @@ export class VerilogCircuitConverter {
         continue;
       }
 
+      
       let sourcePort = this.outputPorts[inputName];
 
       if (!sourcePort) {
+        
         const bitSelectionMatch = inputName.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
         if (bitSelectionMatch) {
           const [, baseName, msb, lsb] = bitSelectionMatch;
 
-          if (!lsb) {
-            sourcePort = this.outputPorts[`${baseName}[${msb}]`];
+          
+          sourcePort = this.outputPorts[inputName];
+
+          
+          if (!sourcePort && !lsb && parseInt(msb) === 0) {
+            sourcePort = this.outputPorts[baseName];
           }
         }
       }
@@ -546,10 +581,12 @@ export class VerilogCircuitConverter {
       } else {
         const position = this.findUnusedPosition();
         const toggle = new ToggleSwitch(position);
-        this.components[`auto_${inputName}`] = toggle;
+
+        
+        const toggleName = `auto_${inputName}`;
+        this.components[toggleName] = toggle;
         this.outputPorts[inputName] = toggle.outputs[0];
         this.circuitBoard.addComponent(toggle);
-
 
         const wire = new Wire(toggle.outputs[0]);
         wire.connect(component.inputs[j]);
@@ -566,20 +603,123 @@ export class VerilogCircuitConverter {
     }
   }
   private findUnusedPosition(): Point {
-    
     let x = 50;
     let y = 50;
 
-   
     while (this.isPositionUsed(x, y)) {
-      y += 100; 
+      y += 100;
     }
 
     return { x, y };
   }
+  
+  private setupMultiBitSignals(module: VerilogModule): void {
+    
+    const multiBitInputs = module.inputs.filter((input) => input.bitWidth && input.bitWidth > 1);
+    const multiBitWires = module.wires.filter((wire) => wire.bitWidth && wire.bitWidth > 1);
+    const multiBitOutputs = module.outputs.filter(
+      (output) => output.bitWidth && output.bitWidth > 1,
+    );
+
+    
+    const maxBitWidth = Math.max(
+      ...multiBitInputs.map((s) => s.bitWidth || 0),
+      ...multiBitWires.map((s) => s.bitWidth || 0),
+      ...multiBitOutputs.map((s) => s.bitWidth || 0),
+    );
+
+    
+    var horizontalSpacing = 100; 
+
+    
+    var verticalSpacing = 200; 
+
+    
+    var inputBaseX = 50;
+    var inputBaseY = 100;
+
+    
+    multiBitInputs.forEach((input, signalIndex) => {
+      if (!input.bitWidth) return;
+
+      console.log(`Setting up multi-bit input: ${input.name} (${input.bitWidth} bits)`);
+
+      
+      const baseX = inputBaseX + signalIndex * horizontalSpacing;
+      this.componentPositions.set(input.name, { x: baseX, y: inputBaseY });
+
+      
+      for (let i = 0; i < input.bitWidth; i++) {
+        const bitName = `${input.name}[${i}]`;
+        const position = {
+          x: baseX,
+          y: inputBaseY + i * verticalSpacing, 
+        };
+
+        const toggle = new ToggleSwitch(position);
+        this.components[bitName] = toggle;
+        this.outputPorts[bitName] = toggle.outputs[0];
+        this.circuitBoard.addComponent(toggle);
+
+        
+        const labelPosition = {
+          x: position.x - 30,
+          y: position.y + 30,
+        };
+        const label = new Text(labelPosition, bitName, 16);
+        this.circuitBoard.addComponent(label);
+      }
+      inputBaseY += 50;
+    });
+
+    
+    const outputBaseX = 500;
+    const outputBaseY = 100;
+
+    multiBitOutputs.forEach((output, signalIndex) => {
+      if (!output.bitWidth) return;
+
+      console.log(`Setting up multi-bit output: ${output.name} (${output.bitWidth} bits)`);
+
+      
+      const baseX = outputBaseX + signalIndex * horizontalSpacing;
+      const baseY = outputBaseY;
+      this.componentPositions.set(output.name, { x: baseX, y: baseY });
+
+      
+      
+      for (let i = 0; i < output.bitWidth; i++) {
+        const bitName = `${output.name}[${i}]`;
+        
+      }
+    });
+
+    
+    module.wires.forEach((wire) => {
+      if (wire.bitWidth && wire.bitWidth > 1) {
+        console.log(`Registered multi-bit wire: ${wire.name} (${wire.bitWidth} bits)`);
+
+        for (let i = 0; i < wire.bitWidth; i++) {
+          const bitName = `${wire.name}[${i}]`;
+          
+        }
+      }
+    });
+  }
+
+  
+  private findBitPosition(baseName: string, bitIndex: number, totalBits: number): Point {
+    const basePosition = this.componentPositions.get(baseName) || { x: 50, y: 100 };
+
+    
+    
+    return {
+      x: basePosition.x + bitIndex * 120, 
+      y: basePosition.y + 100, 
+    };
+  }
 
   private isPositionUsed(x: number, y: number): boolean {
-    
     for (const position of this.componentPositions.values()) {
       if (Math.abs(position.x - x) < 50 && Math.abs(position.y - y) < 50) {
         return true;
@@ -588,11 +728,9 @@ export class VerilogCircuitConverter {
     return false;
   }
 
-  
   private connectFeedbackWires(): void {
     console.log("Connecting feedback wires:", this.feedbackWires);
 
-    
     const feedbackPairs = new Map<string, string[]>();
 
     for (const { source, target } of this.feedbackWires) {
@@ -602,40 +740,30 @@ export class VerilogCircuitConverter {
       feedbackPairs.get(source)!.push(target);
     }
 
-   
     const module = this.parser.getModule();
     if (!module) return;
 
     for (const [source, targets] of feedbackPairs.entries()) {
-      
       const sourcePort = this.outputPorts[source];
       if (!sourcePort) {
         console.error(`Source port for ${source} not found`);
         continue;
       }
 
-     
       for (const target of targets) {
-     
         const targetGates = module.gates.filter(
-          (gate) =>
-            gate.inputs.includes(target) &&
-          
-            gate.output !== source,
+          (gate) => gate.inputs.includes(target) && gate.output !== source,
         );
 
         for (const gate of targetGates) {
-      
           const inputIndex = gate.inputs.indexOf(target);
           if (inputIndex === -1) continue;
 
-     
           const targetComponent = this.components[gate.output];
           if (!targetComponent || inputIndex >= targetComponent.inputs.length) {
             console.error(`Target component for ${gate.output} not found or input index invalid`);
             continue;
           }
-
 
           if (targetComponent.inputs[inputIndex].isConnected) {
             console.log(`Input ${inputIndex} of ${gate.output} is already connected, skipping`);
@@ -653,16 +781,13 @@ export class VerilogCircuitConverter {
         const targetSourceGates = module.gates.filter((gate) => gate.output === target);
 
         for (const gate of targetSourceGates) {
-
           const inputIndex = gate.inputs.indexOf(source);
           if (inputIndex === -1) continue;
 
           const targetComponent = this.components[gate.output];
           if (!targetComponent || inputIndex >= targetComponent.inputs.length) continue;
 
-
           if (targetComponent.inputs[inputIndex].isConnected) continue;
-
 
           console.log(
             `Connecting SR latch feedback: ${source} -> input ${inputIndex} of ${target}`,
@@ -676,20 +801,31 @@ export class VerilogCircuitConverter {
   }
 
   private connectOutput(outputName: string, bulb: Component): void {
-    const sourceGate = this.findSourceForOutput(outputName);
+    
+    const bitSelectionMatch = outputName.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
+    const actualOutputName = bitSelectionMatch ? outputName : outputName;
+
+    const sourceGate = this.findSourceForOutput(actualOutputName);
     let sourcePort;
 
     if (sourceGate) {
       sourcePort = this.outputPorts[sourceGate.output];
     } else {
-      sourcePort = this.outputPorts[outputName];
+      
+      sourcePort = this.outputPorts[actualOutputName];
 
-      if (!sourcePort) {
-        for (const [name, port] of Object.entries(this.outputPorts)) {
-          const gate = this.parser.getModule()?.gates.find((g) => g.output === name);
-          if (gate?.output === outputName) {
-            sourcePort = port;
-            break;
+      
+      if (!sourcePort && bitSelectionMatch) {
+        const [, baseName, bitIndex] = bitSelectionMatch;
+
+        
+        const module = this.parser.getModule();
+        if (module) {
+          for (const gate of module.gates) {
+            if (gate.output === actualOutputName) {
+              sourcePort = this.outputPorts[gate.output];
+              break;
+            }
           }
         }
       }
@@ -702,66 +838,23 @@ export class VerilogCircuitConverter {
     } else {
       console.error(`Source port for output ${outputName} not found`);
 
+      
       const position = this.findUnusedPosition();
       const toggle = new ToggleSwitch(position);
-      this.components[`auto_${outputName}`] = toggle;
-      this.outputPorts[outputName] = toggle.outputs[0];
+      this.components[`auto_${actualOutputName}`] = toggle;
+      this.outputPorts[actualOutputName] = toggle.outputs[0];
       this.circuitBoard.addComponent(toggle);
 
       const wire = new Wire(toggle.outputs[0]);
       wire.connect(bulb.inputs[0]);
       this.circuitBoard.addWire(wire);
 
-
       const labelPosition = {
         x: position.x - 80,
         y: position.y + 20,
       };
-      const label = new Text(labelPosition, outputName, 20);
+      const label = new Text(labelPosition, actualOutputName, 20);
       this.circuitBoard.addComponent(label);
-    }
-  }
-  private detectAndHandleUndeclaredSignals(module: VerilogModule): void {
-
-    const definedSignals = new Set<string>();
-
-    module.inputs.forEach((input) => definedSignals.add(input.name));
-    module.outputs.forEach((output) => definedSignals.add(output.name));
-    if (module.wires) {
-      module.wires.forEach((wire) => definedSignals.add(wire.name));
-    } else {
-      module.wires = []; 
-    }
-
-    const usedSignals = new Set<string>();
-
-    module.gates.forEach((gate) => {
-
-      usedSignals.add(gate.output);
-
-
-      gate.inputs.forEach((input) => usedSignals.add(input));
-    });
-
-
-    const undeclaredSignals: string[] = [];
-
-    for (const signal of usedSignals) {
-      if (!definedSignals.has(signal)) {
-        undeclaredSignals.push(signal);
-      }
-    }
-
-
-    if (undeclaredSignals.length > 0) {
-      console.warn(
-        `Bildirilmemiş sinyaller bulundu: ${undeclaredSignals.join(", ")}. Bunlar wire olarak ekleniyor.`,
-      );
-
- 
-      undeclaredSignals.forEach((signal) => {
-        module.wires.push({ name: signal });
-      });
     }
   }
 
@@ -779,10 +872,11 @@ export class VerilogCircuitConverter {
     }
 
     const bufferGate = module.gates.find(
-      (g) => (g.type.toLowerCase() === "buf" || g.type.toLowerCase() === "buffer") && g.output === outputName
+      (g) =>
+        (g.type.toLowerCase() === "buf" || g.type.toLowerCase() === "buffer") &&
+        g.output === outputName,
     );
     if (bufferGate) return bufferGate;
-    
 
     const bitSelectionMatch = outputName.match(/^(\w+)\[(\d+)\]$/);
     if (bitSelectionMatch) {
@@ -804,5 +898,101 @@ export class VerilogCircuitConverter {
     }
 
     return undefined;
+  }
+  private getBaseSignalName(signal: string): string {
+    const match = signal.match(/^(\w+)(?:\[.+\])?$/);
+    return match ? match[1] : signal;
+  }
+  private detectAndHandleUndeclaredSignals(module: VerilogModule): void {
+    const definedSignals = new Set<string>();
+    const definedMultiBitSignals = new Map<string, VerilogPort>();
+
+    
+    module.inputs.forEach((input) => {
+      definedSignals.add(input.name);
+      if (input.bitWidth !== undefined && input.bitWidth > 1) {
+        definedMultiBitSignals.set(input.name, input);
+      }
+    });
+
+    module.outputs.forEach((output) => {
+      definedSignals.add(output.name);
+      if (output.bitWidth !== undefined && output.bitWidth > 1) {
+        definedMultiBitSignals.set(output.name, output);
+      }
+    });
+
+    if (!module.wires) {
+      module.wires = [];
+    }
+
+    module.wires.forEach((wire) => {
+      definedSignals.add(wire.name);
+      if (wire.bitWidth !== undefined && wire.bitWidth > 1) {
+        definedMultiBitSignals.set(wire.name, wire);
+      }
+    });
+
+    
+    const usedSignals = new Set<string>();
+    const bitSelections = new Set<string>();
+
+    module.gates.forEach((gate) => {
+      usedSignals.add(gate.output);
+
+      
+      const outputBitMatch = gate.output.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
+      if (outputBitMatch) {
+        const baseName = outputBitMatch[1];
+        bitSelections.add(gate.output);
+        usedSignals.add(baseName); 
+      }
+
+      gate.inputs.forEach((input) => {
+        usedSignals.add(input);
+
+        
+        const inputBitMatch = input.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
+        if (inputBitMatch) {
+          const baseName = inputBitMatch[1];
+          bitSelections.add(input);
+          usedSignals.add(baseName); 
+        }
+      });
+    });
+
+    
+    const undeclaredSignals: string[] = [];
+
+    for (const signal of usedSignals) {
+      
+      if (definedSignals.has(signal)) {
+        continue;
+      }
+
+      
+      const bitMatch = signal.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
+      if (bitMatch) {
+        const baseName = bitMatch[1];
+        
+        if (definedMultiBitSignals.has(baseName)) {
+          continue;
+        }
+      }
+
+      
+      undeclaredSignals.push(signal);
+    }
+
+    
+    if (undeclaredSignals.length > 0) {
+      console.warn(
+        `Undeclared signals found: ${undeclaredSignals.join(", ")}. Adding them as wires.`,
+      );
+
+      undeclaredSignals.forEach((signal) => {
+        module.wires.push({ name: signal });
+      });
+    }
   }
 }

@@ -60,9 +60,9 @@ export class VerilogParser {
           ...wires.map((p) => p.name),
         ];
 
-        //Removing these as we now does not need wire declarations in the body
-        // this.validateWireConnections(gates, allSignalNames);
-        // this.validateGateConnections(gates, allSignalNames);
+        
+        
+        
 
         this.currentModule = {
           name: moduleName,
@@ -106,12 +106,12 @@ export class VerilogParser {
 
   private validateGateConnections(gates: VerilogGate[], allSignals: string[]): void {
     for (const gate of gates) {
-      // Check output connection
+      
       if (!gate.output || !allSignals.includes(gate.output)) {
         throw new Error(`Gate ${gate.name} output '${gate.output}' is not a declared signal`);
       }
 
-      // Check input connections
+      
       for (const input of gate.inputs) {
         if (!input || !allSignals.includes(input)) {
           throw new Error(`Gate ${gate.name} input '${input}' is not a declared signal`);
@@ -126,9 +126,10 @@ export class VerilogParser {
 
   private extractPortsAndWires(portList: string, body: string) {
     const inputRegex =
-      /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+?)(?=\s*;|\s+(?:output|inout|wire|reg|endmodule)\b|$)/g;
-    const outputRegex = /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s]+)?/g;
-    const wireRegex = /wire\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w,\s,]+)?/g;
+      /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|\s+(?:output|inout|wire|reg|endmodule)\b|$)/g;
+    const outputRegex =
+      /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|\s+(?:input|inout|wire|reg|endmodule)\b|$)/g;
+    const wireRegex = /wire\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|$)/g;
 
     const inputs = this.collectPortsWithBitWidths(portList, inputRegex);
     const outputs = this.collectPortsWithBitWidths(portList, outputRegex);
@@ -139,10 +140,8 @@ export class VerilogParser {
     inputs.push(...bodyInputs);
     outputs.push(...bodyOutputs);
 
-    
     const wires = this.collectPortsWithBitWidths(body, wireRegex);
 
-    
     if (inputs.length === 0) {
       throw new Error("No input ports defined in the module");
     }
@@ -153,39 +152,92 @@ export class VerilogParser {
     return { inputs, outputs, wires };
   }
 
-
   private collectPortsWithBitWidths(source: string, regex: RegExp): VerilogPort[] {
-
     const results: VerilogPort[] = [];
     let match;
-
+  
     while ((match = regex.exec(source)) !== null) {
-      const [, fullBitRange, msbStr, lsbStr, identifiers] = match;
-
+      const [, initialBitRange, initialMsbStr, initialLsbStr, identifiers] = match;
+  
       if (!identifiers || identifiers.trim() === "") {
-        continue; 
+        continue;
       }
-
-
-      const msb = msbStr ? parseInt(msbStr, 10) : undefined;
-      const lsb = lsbStr ? parseInt(lsbStr, 10) : undefined;
-
-   
-      const bitWidth = msb !== undefined && lsb !== undefined ? Math.abs(msb - lsb) + 1 : undefined;
-
-     
-      const portNames = identifiers
-        .split(/[,]/)
+  
+      
+      const defaultMsb = initialMsbStr ? parseInt(initialMsbStr, 10) : undefined;
+      const defaultLsb = initialLsbStr ? parseInt(initialLsbStr, 10) : undefined;
+      const defaultBitWidth =
+        defaultMsb !== undefined && defaultLsb !== undefined
+          ? Math.abs(defaultMsb - defaultLsb) + 1
+          : undefined;
+  
+      
+      const parts = identifiers
+        .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
+  
+      
+      
+      let applyDefaultBitWidth = true;
+      
+      for (const part of parts) {
+        
+        const bitRangeMatch = part.match(/^\s*(?:\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+(\w+)$/);
+  
+        if (bitRangeMatch) {
+          
+          const [, msbStr, lsbStr, name] = bitRangeMatch;
+          const msb = parseInt(msbStr, 10);
+          const lsb = parseInt(lsbStr, 10);
+          const bitWidth = Math.abs(msb - lsb) + 1;
+  
+          results.push({
+            name,
+            bitWidth,
+            msb,
+            lsb,
+          });
+        }
+        
+        else if (part.match(/^\s*\w+\s*$/)) {
+          
+          
+          if (parts.indexOf(part) > 0 && !initialBitRange.includes(part)) {
+            
+            results.push({
+              name: part,
+              bitWidth: undefined,
+              msb: undefined,
+              lsb: undefined,
+            });
+          } else {
+            
+            results.push({
+              name: part,
+              bitWidth: defaultBitWidth,
+              msb: defaultMsb,
+              lsb: defaultLsb,
+            });
+          }
+        }
+        
+        else {
+          const individualBitRangeMatch = part.match(/^\s*\[\s*(\d+)\s*:\s*(\d+)\s*\](\w+)$/);
+          if (individualBitRangeMatch) {
+            const [, msbStr, lsbStr, name] = individualBitRangeMatch;
+            const msb = parseInt(msbStr, 10);
+            const lsb = parseInt(lsbStr, 10);
+            const bitWidth = Math.abs(msb - lsb) + 1;
 
-      for (const name of portNames) {
-        results.push({
-          name,
-          bitWidth,
-          msb,
-          lsb,
-        });
+            results.push({
+              name,
+              bitWidth,
+              msb,
+              lsb,
+            });
+          }
+        }
       }
     }
 
@@ -240,17 +292,21 @@ export class VerilogParser {
     const args: string[] = [];
     let currentArg = "";
     let bracketDepth = 0;
+    let inQuotes = false;
 
     for (let i = 0; i < argsString.length; i++) {
       const char = argsString[i];
 
-      if (char === "[") {
+      if (char === '"' && argsString[i - 1] !== "\\") {
+        inQuotes = !inQuotes;
+        currentArg += char;
+      } else if (char === "[") {
         bracketDepth++;
         currentArg += char;
       } else if (char === "]") {
         bracketDepth--;
         currentArg += char;
-      } else if (char === "," && bracketDepth === 0) {
+      } else if (char === "," && bracketDepth === 0 && !inQuotes) {
         args.push(currentArg.trim());
         currentArg = "";
       } else {
