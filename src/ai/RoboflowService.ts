@@ -1,4 +1,4 @@
-// Import the shared interfaces from CircuitRecognizer
+
 import { RoboflowResponse } from './CircuitRecognizer';
 
 export class RoboflowService {
@@ -11,7 +11,7 @@ export class RoboflowService {
   }
 
   async detectComponents(imageBase64: string): Promise<RoboflowResponse> {
-    // Base64 görüntüden veri URL'sini çıkarın
+
     const base64Data = imageBase64.includes(',') 
       ? imageBase64.split(',')[1] 
       : imageBase64;
@@ -36,7 +36,7 @@ export class RoboflowService {
         }
       );
   
-      // Log the raw response status and headers
+ 
       console.log('Response Status:', response.status);
       console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
   
@@ -49,7 +49,7 @@ export class RoboflowService {
       const result = await response.json();
       console.log('Raw API Result:', JSON.stringify(result, null, 2));
       
-      // Return the result directly without modification
+
       return result;
     } catch (error) {
       console.error('Error calling Roboflow Workflow API:', error);

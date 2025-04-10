@@ -35,11 +35,11 @@ import { HalfSubtractor } from "./models/gates/HalfSubtractor";
 import { FullSubtractor } from "./models/gates/FullSubtractor";
 import { Led } from "./models/components/Led";
 import { GoogleGenAI } from "@google/genai";
-import { CircuitService } from './services/CircuitService';
-import { MongoDBCircuitRepository } from './Repository/MongoDBCircuitRepository';
+import { CircuitService } from "./services/CircuitService";
+import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
 
 class Queue {
-  private items: string[] = [];
+  public items: string[] = [];
 
   enqueue(item: string) {
     this.items.push(item);
@@ -51,6 +51,9 @@ class Queue {
 
   isEmpty(): boolean {
     return this.items.length === 0;
+  }
+  get messages(): string[] {
+    return [...this.items];
   }
 }
 const queue = new Queue();
@@ -169,6 +172,38 @@ function initApp() {
 
   handleResize();
   setFile();
+
+  //Open it when needed to test api 
+  // const testApiBtn = document.createElement("button");
+  // testApiBtn.textContent = "Test API Connection";
+  // testApiBtn.className = "primary-button";
+  // testApiBtn.style.position = "fixed";
+  // testApiBtn.style.bottom = "20px";
+  // testApiBtn.style.right = "20px";
+  // testApiBtn.style.zIndex = "1000";
+
+  // testApiBtn.addEventListener("click", async () => {
+  //   try {
+  //     const startTime = Date.now();
+  //     const response = await fetch("http://localhost:3000/api/analyze/roboflow");
+  //     const endTime = Date.now();
+
+  //     if (response.ok) {
+  //       const data = await response.json();
+  //       alert(
+  //         `API Connection Success ✅\nResponse time: ${endTime - startTime}ms\nGoogle API: ${data.env.GOOGLE_API_KEY}\nRoboflow API: ${data.env.ROBOFLOW_API_KEY}`,
+  //       );
+  //     } else {
+  //       alert(
+  //         `API Connection Failed ❌\nStatus: ${response.status}\nError: ${await response.text()}`,
+  //       );
+  //     }
+  //   } catch (error) {
+  //     alert(`API Connection Error ❌\n${error}`);
+  //   }
+  // });
+
+  // document.body.appendChild(testApiBtn);
 }
 
 function syncCanvasWithAnimation() {
@@ -531,82 +566,54 @@ function setUpAI() {
     aiLogo.classList.remove("active");
   });
 
+  // In main.ts, update the callMistralAPI function
   async function callMistralAPI(userMessage: string): Promise<string> {
-    console.log(queue);
     try {
       // Loading message
       const loadingMessageDiv = document.createElement("div");
       loadingMessageDiv.className = "ai-message";
       loadingMessageDiv.innerHTML = `
-        <svg width = 40px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
-              
-            <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+      <svg width = 40px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
             
-          </svg>
-        <div class="message-content">Thinking...</div>
-      `;
+          <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+          
+        </svg>
+      <div class="message-content">Thinking...</div>
+    `;
       messagesContainer.appendChild(loadingMessageDiv);
       scrollToBottom();
 
-      // const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-      //   method: "POST",
-      //   headers: {
-      //     Authorization: `Bearer ${apiKeyMinstral}`,
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify({
-      //     model: "mistral-large-latest",
-      //     messages: [
-      //       {
-      //         role: "system",
-      //         content: promptAI + "Your converseation history: " + JSON.stringify(queue),
-      //       },
+      // Convert queue to a simple array before sending
+      const messages = [];
 
-      //       { role: "user", content: userMessage },
-      //     ],
-      //   }),
-      // });
-      messagesContainer.removeChild(loadingMessageDiv);
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-
-        contents: `
-                <SYSTEM>
-                ${promptAI}
-                </SYSTEM>
-
-                <HISTORY>
-                ${JSON.stringify(queue)}
-                </HISTORY>
-
-                <USER>
-                ${userMessage}
-                </USER>`,
-      });
-      console.log(response.text);
-      if (response.text) {
-        return response.text;
-      } else {
-        return "Sorry, I couldn't generate a response at the moment. Please try again.";
+      // Access the items directly if available
+      if (queue.items && Array.isArray(queue.items)) {
+        messages.push(...queue.items);
       }
 
-      // if (!response.ok) {
-      //   throw new Error(`API Error: ${response.status}`);
-      // }
+      const response = await fetch("http://localhost:3000/api/generate/text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: userMessage,
+          history: queue.messages, // Send the array instead of the Queue object
+          systemPrompt: promptAI,
+        }),
+      });
 
-      // const chatResponse = await response.json();
+      messagesContainer.removeChild(loadingMessageDiv);
 
-      // if (chatResponse.choices && chatResponse.choices.length > 0) {
-      //   const aiResponse = chatResponse.choices[0].message.content;
-      //   console.log("Chat response:", aiResponse);
-      //   return aiResponse;
-      // } else {
-      //   console.error("No choices available in chat response.");
-      //   return "Sorry, I couldn't generate a response at the moment. Please try again.";
-      // }
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.text || "Sorry, I couldn't generate a response at the moment. Please try again.";
     } catch (error) {
-      console.error("Error calling Mistral API:", error);
-      return "I'm having trouble connecting to my brain right now. Please try again in a moment.";
+      console.error("Error calling API:", error);
+      return "I'm having trouble connecting right now. Please try again in a moment.";
     }
   }
 
@@ -813,18 +820,18 @@ async function readJSONFile(file: File) {
     try {
       const jsonContent = event.target?.result as string;
       const circuitData = JSON.parse(jsonContent);
-      
+
       // Add userId to the circuit data
       circuitData.userId = "current-user-id"; // You should replace this with actual user ID from your auth system
-      
-      const response = await fetch('http://localhost:3000/api/circuits', {
-        method: 'POST',
+
+      const response = await fetch("http://localhost:3000/api/circuits", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(circuitData),
       });
-      
+
       if (response.ok) {
         console.log("Circuit saved successfully!");
         alert("Circuit saved successfully!");
@@ -981,8 +988,8 @@ function setFile() {
 async function saveToMongoDB(name: string, circuitData: any) {
   try {
     // Parse the circuit data if it's a string
-    const parsedData = typeof circuitData === 'string' ? JSON.parse(circuitData) : circuitData;
-    
+    const parsedData = typeof circuitData === "string" ? JSON.parse(circuitData) : circuitData;
+
     const data = {
       name: name,
       components: parsedData.components.map((comp: any) => ({
@@ -991,26 +998,26 @@ async function saveToMongoDB(name: string, circuitData: any) {
         position: comp.position,
         inputs: comp.inputs,
         outputs: comp.outputs,
-        state: comp.state
+        state: comp.state,
       })),
       wires: parsedData.wires.map((wire: any) => ({
         id: wire.id,
         start: {
           componentId: wire.fromComponentId,
-          portId: wire.fromPortId
+          portId: wire.fromPortId,
         },
         end: {
           componentId: wire.toComponentId,
-          portId: wire.toPortId
-        }
+          portId: wire.toPortId,
+        },
       })),
-      userId: "current-user-id"
+      userId: "current-user-id",
     };
 
-    const response = await fetch('http://localhost:3000/api/circuits', {
-      method: 'POST',
+    const response = await fetch("http://localhost:3000/api/circuits", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
     });
@@ -1160,19 +1167,23 @@ function saveToLocalStorage(key: string = "history"): void {
 
 async function loadSavedCircuits() {
   try {
-    const response = await fetch('http://localhost:3000/api/circuits');
+    const response = await fetch("http://localhost:3000/api/circuits");
     if (response.ok) {
       const circuits = await response.json();
       // Display circuits in the UI
-      const circuitList = document.getElementById('circuit-list');
+      const circuitList = document.getElementById("circuit-list");
       if (circuitList) {
-        circuitList.innerHTML = circuits.map((circuit: any) => `
+        circuitList.innerHTML = circuits
+          .map(
+            (circuit: any) => `
           <div class="circuit-item">
             <h3>${circuit.name}</h3>
             <button onclick="loadCircuit('${circuit._id}')">Load</button>
             <button onclick="deleteCircuit('${circuit._id}')">Delete</button>
           </div>
-        `).join('');
+        `,
+          )
+          .join("");
       }
     }
   } catch (error) {
@@ -1205,7 +1216,7 @@ async function deleteCircuit(circuitId: string) {
   if (confirm("Are you sure you want to delete this circuit?")) {
     try {
       const response = await fetch(`http://localhost:3000/api/circuits/${circuitId}`, {
-        method: 'DELETE'
+        method: "DELETE",
       });
       if (response.ok) {
         console.log("Circuit deleted successfully!");

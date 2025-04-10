@@ -87,7 +87,6 @@ export class ImageUploader {
       this.handleImageUpload(file);
     });
   }
-
   
   public async handleImageUpload(file: File): Promise<string> {
     try {
