@@ -12,7 +12,7 @@ export class ImageUploader {
   private circuitBoard: CircuitBoard;
   private hasUI: boolean = false;
   
-  // Static instance for global access
+  
   private static instance: ImageUploader;
 
   constructor(
@@ -24,10 +24,10 @@ export class ImageUploader {
     this.circuitBoard = circuitBoard;
     this.circuitRecognizer = new CircuitRecognizer(circuitBoard);
     
-    // Store the instance for global access
+    
     ImageUploader.instance = this;
     
-    // Only create UI if containerId is provided
+    
     if (containerId) {
       this.createUI(containerId);
       this.setupEventListeners();
@@ -35,7 +35,7 @@ export class ImageUploader {
     }
   }
   
-  // Get the global instance
+  
   public static getInstance(): ImageUploader {
     return ImageUploader.instance;
   }
@@ -47,7 +47,7 @@ export class ImageUploader {
       return;
     }
     
-    // Create the upload button and file input
+    
     container.innerHTML = `
       <div class="image-upload-container">
         <div class="upload-area">
@@ -62,7 +62,7 @@ export class ImageUploader {
       </div>
     `;
     
-    // Get references to the created elements
+    
     this.uploadButton = container.querySelector('.upload-btn') as HTMLButtonElement;
     this.fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
     this.previewContainer = container.querySelector('.preview-container') as HTMLDivElement;
@@ -70,15 +70,15 @@ export class ImageUploader {
   }
 
   private setupEventListeners(): void {
-    // Only set up event listeners if UI elements exist
+    
     if (!this.uploadButton || !this.fileInput) return;
     
-    // Open file dialog when button is clicked
+    
     this.uploadButton.addEventListener('click', () => {
       this.fileInput.click();
     });
     
-    // Handle file selection
+    
     this.fileInput.addEventListener('change', (event) => {
       const files = (event.target as HTMLInputElement).files;
       if (!files || files.length === 0) return;
@@ -88,32 +88,32 @@ export class ImageUploader {
     });
   }
 
-  // Make this public so it can be called from outside
+  
   public async handleImageUpload(file: File): Promise<string> {
     try {
-      // Show loading indicator if we have UI
+      
       if (this.hasUI) {
         this.showLoading(true);
       }
       
-      // Read the image file and show preview if we have UI
+      
       const imageUrl = await this.readImageFile(file);
       if (this.hasUI) {
         this.showImagePreview(imageUrl);
       }
       
-      // Convert to base64 for API
+      
       const base64Image = await this.convertToBase64(file);
       
-      // Send to Roboflow for detection
+      
       const apiResponse = await this.roboflowService.detectComponents(base64Image);
       console.log('Full Roboflow Response:', apiResponse);
       
-      // Get image dimensions from the response
+      
       let imageWidth = 0;
       let imageHeight = 0;
       
-      // Extract image dimensions from the nested response - handle the correct format
+      
       if (apiResponse.outputs && apiResponse.outputs[0]) {
         const output = apiResponse.outputs[0];
         
@@ -131,7 +131,7 @@ export class ImageUploader {
         imageHeight = apiResponse.image.height;
       }
       
-      // Process the detection results
+      
       const dimensions = {
         originalWidth: imageWidth,
         originalHeight: imageHeight
@@ -139,7 +139,7 @@ export class ImageUploader {
       
       console.log('Image Dimensions:', dimensions);
       
-      // Process the results to create the circuit
+      
       await this.circuitRecognizer.processDetections(
         apiResponse,
         dimensions

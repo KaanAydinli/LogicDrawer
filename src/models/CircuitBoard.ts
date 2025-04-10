@@ -1222,7 +1222,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
   }
 
   
-  private createComponentByType(type: string, position: Point): Component | null {
+  public createComponentByType(type: string, position: Point): Component | null {
     switch (type) {
       case "and":
         return new AndGate(position);

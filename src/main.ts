@@ -35,6 +35,8 @@ import { HalfSubtractor } from "./models/gates/HalfSubtractor";
 import { FullSubtractor } from "./models/gates/FullSubtractor";
 import { Led } from "./models/components/Led";
 import { GoogleGenAI } from "@google/genai";
+import { CircuitService } from './services/CircuitService';
+import { MongoDBCircuitRepository } from './Repository/MongoDBCircuitRepository';
 
 class Queue {
   private items: string[] = [];
@@ -54,7 +56,7 @@ class Queue {
 const queue = new Queue();
 
 // const repositoryService = new MockCircuitRepositoryService();
-const repositoryService = new LocalStorageCircuitRepository();
+const repositoryService = new MongoDBCircuitRepository();
 var converter;
 
 const apiKey = import.meta.env.VITE_ROBOFLOW_API_KEY;
@@ -63,10 +65,6 @@ const apiKeyMinstral = import.meta.env.VITE_MISTRAL_API_KEY;
 
 var roboflow;
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
-
-
-
-
 
 var imageUploader: ImageUploader;
 
@@ -108,8 +106,6 @@ Gates will be named with a prefix indicating the gate type (a for AND, o for OR,
 - Code will be checked for correctness before submission.
 
 UNIQUE wire names will always be used.`;
-
-
 
 const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
@@ -261,26 +257,26 @@ function setupComponentAddListeners() {
   const components = document.querySelectorAll(".component");
   let draggingType: string | null = null;
   let shadowElement: HTMLElement | null = null;
-  
+
   components.forEach((component) => {
     component.addEventListener("mousedown", (event) => {
       event.preventDefault();
-      
+
       const type = component.getAttribute("data-type");
       if (!type) return;
-      
+
       draggingType = type;
-      
+
       // Create shadow element
       shadowElement = document.createElement("div");
       shadowElement.className = "component-shadow";
-      
+
       // Copy the SVG from the component to the shadow
       const componentIcon = component.querySelector(".component-icon");
       if (componentIcon) {
         shadowElement.innerHTML = componentIcon.innerHTML;
       }
-      
+
       // Apply styles to the shadow element
       shadowElement.style.position = "fixed";
       shadowElement.style.zIndex = "1000";
@@ -289,32 +285,32 @@ function setupComponentAddListeners() {
       shadowElement.style.width = "40px";
       shadowElement.style.height = "40px";
       shadowElement.style.transform = "translate(-100%, -100%) ";
-    
+
       // Position shadow element at cursor
       shadowElement.style.left = `${(event as MouseEvent).clientX}px`;
       shadowElement.style.top = `${(event as MouseEvent).clientY}px`;
-      
+
       document.body.appendChild(shadowElement);
-      
+
       // Add event listeners for drag movement and release
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
     });
   });
-  
+
   function onMouseMove(event: MouseEvent) {
     if (shadowElement) {
       shadowElement.style.left = `${event.clientX}px`;
       shadowElement.style.top = `${event.clientY}px`;
     }
   }
-  
+
   function onMouseUp(event: MouseEvent) {
     if (!draggingType || !shadowElement) {
       cleanup();
       return;
     }
-    
+
     // Check if mouse is over the canvas
     const canvasRect = canvas.getBoundingClientRect();
     if (
@@ -324,23 +320,23 @@ function setupComponentAddListeners() {
       event.clientY <= canvasRect.bottom
     ) {
       // Convert window coordinates to canvas coordinates
-      const canvasX = (event.clientX - canvasRect.left);
-      const canvasY = (event.clientY - canvasRect.top);
-      
+      const canvasX = event.clientX - canvasRect.left;
+      const canvasY = event.clientY - canvasRect.top;
+
       // Convert canvas coordinates to world coordinates
       const worldX = (canvasX - circuitBoard.offsetX) / circuitBoard.scale;
       const worldY = (canvasY - circuitBoard.offsetY) / circuitBoard.scale;
-      
+
       // Add the component at the release position
       addComponentByType(draggingType, {
         x: worldX,
         y: worldY,
       });
     }
-    
+
     cleanup();
   }
-  
+
   function cleanup() {
     // Remove shadow element and listeners
     if (shadowElement && shadowElement.parentNode) {
@@ -348,7 +344,7 @@ function setupComponentAddListeners() {
     }
     shadowElement = null;
     draggingType = null;
-    
+
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", onMouseUp);
   }
@@ -455,7 +451,6 @@ function setupKeyboardShortcuts() {
       circuitBoard.deleteSelected();
     }
 
-
     // if (event.key === "g" || event.key === "G") {
     //   circuitBoard.toggleGrid();
     // }
@@ -539,8 +534,6 @@ function setUpAI() {
   async function callMistralAPI(userMessage: string): Promise<string> {
     console.log(queue);
     try {
-      
-
       // Loading message
       const loadingMessageDiv = document.createElement("div");
       loadingMessageDiv.className = "ai-message";
@@ -576,18 +569,26 @@ function setUpAI() {
       messagesContainer.removeChild(loadingMessageDiv);
       const response = await ai.models.generateContent({
         model: "gemini-2.0-flash",
-       
-        contents: "This is the rule you should obey" + promptAI + "This is your chat history so that you can remember" + JSON.stringify(queue) + "This is the last user message which you should reply"+   userMessage,
+
+        contents: `
+                <SYSTEM>
+                ${promptAI}
+                </SYSTEM>
+
+                <HISTORY>
+                ${JSON.stringify(queue)}
+                </HISTORY>
+
+                <USER>
+                ${userMessage}
+                </USER>`,
       });
       console.log(response.text);
-      if(response.text){
-        
+      if (response.text) {
         return response.text;
-      }
-      else 
-      {
+      } else {
         return "Sorry, I couldn't generate a response at the moment. Please try again.";
-      } 
+      }
 
       // if (!response.ok) {
       //   throw new Error(`API Error: ${response.status}`);
@@ -774,17 +775,17 @@ function createExampleCircuit() {
 
   const andGate = new AndGate({ x: 500, y: 250 });
 
-  const wire1 = new Wire(switch1.outputs[0],true);
+  const wire1 = new Wire(switch1.outputs[0], true);
   wire1.connect(andGate.inputs[0]);
   circuitBoard.addWire(wire1);
 
-  const wire2 = new Wire(switch2.outputs[0],true);
+  const wire2 = new Wire(switch2.outputs[0], true);
   wire2.connect(andGate.inputs[1]);
   circuitBoard.addWire(wire2);
 
   const lightBulb = new Led({ x: 700, y: 250 });
 
-  const wire3 = new Wire(andGate.outputs[0],true);
+  const wire3 = new Wire(andGate.outputs[0], true);
   wire3.connect(lightBulb.inputs[0]);
   circuitBoard.addWire(wire3);
 
@@ -804,6 +805,47 @@ function handleFileSelect(event: Event) {
     readJSONFile(file);
   }
 }
+
+async function readJSONFile(file: File) {
+  const reader = new FileReader();
+
+  reader.onload = async function (event) {
+    try {
+      const jsonContent = event.target?.result as string;
+      const circuitData = JSON.parse(jsonContent);
+      
+      // Add userId to the circuit data
+      circuitData.userId = "current-user-id"; // You should replace this with actual user ID from your auth system
+      
+      const response = await fetch('http://localhost:3000/api/circuits', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(circuitData),
+      });
+      
+      if (response.ok) {
+        console.log("Circuit saved successfully!");
+        alert("Circuit saved successfully!");
+      } else {
+        console.error("Failed to save circuit.");
+        alert("Failed to save circuit.");
+      }
+    } catch (error) {
+      console.error("Error reading JSON file:", error);
+      alert("Error reading JSON file.");
+    }
+  };
+
+  reader.onerror = function () {
+    console.error("Failed to read file.");
+    alert("Failed to read file.");
+  };
+
+  reader.readAsText(file);
+}
+
 function setupSettings() {
   const settingsIcon = document.querySelector(".settings-icon");
 
@@ -919,8 +961,8 @@ function setFile() {
         if (text === "") {
           text = "circuit";
         }
-
-        circuitBoard.saveToFile(text + ".json");
+        const circuitData = circuitBoard.exportCircuit();
+        saveToMongoDB(text, circuitData);
       } else if (selectedFile === "saveas") {
         const veri = circuitBoard.extractVerilog();
         var text = inputText.value;
@@ -935,6 +977,58 @@ function setFile() {
     });
   });
 }
+
+async function saveToMongoDB(name: string, circuitData: any) {
+  try {
+    // Parse the circuit data if it's a string
+    const parsedData = typeof circuitData === 'string' ? JSON.parse(circuitData) : circuitData;
+    
+    const data = {
+      name: name,
+      components: parsedData.components.map((comp: any) => ({
+        id: comp.id,
+        type: comp.type,
+        position: comp.position,
+        inputs: comp.inputs,
+        outputs: comp.outputs,
+        state: comp.state
+      })),
+      wires: parsedData.wires.map((wire: any) => ({
+        id: wire.id,
+        start: {
+          componentId: wire.fromComponentId,
+          portId: wire.fromPortId
+        },
+        end: {
+          componentId: wire.toComponentId,
+          portId: wire.toPortId
+        }
+      })),
+      userId: "current-user-id"
+    };
+
+    const response = await fetch('http://localhost:3000/api/circuits', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (response.ok) {
+      console.log("Circuit saved to MongoDB successfully!");
+      alert("Circuit saved successfully!");
+      loadSavedCircuits(); // Refresh the circuit list
+    } else {
+      console.error("Failed to save circuit to MongoDB.");
+      alert("Failed to save circuit.");
+    }
+  } catch (error) {
+    console.error("Error saving circuit to MongoDB:", error);
+    alert("Error saving circuit.");
+  }
+}
+
 function setTheme() {
   const themeButton = document.querySelector(".Theme") as HTMLElement;
   const themeDropdown = document.querySelector(".theme-dropdown") as HTMLElement;
@@ -1044,37 +1138,6 @@ function setTheme() {
   }
 }
 
-function readJSONFile(file: File) {
-  const reader = new FileReader();
-
-  reader.onload = function (event) {
-    try {
-      const jsonContent = event.target?.result as string;
-
-      const success = circuitBoard.importCircuit(jsonContent);
-
-      if (success) {
-        console.log("Devre başarıyla yüklendi!");
-
-        alert("Devre başarıyla yüklendi!");
-      } else {
-        console.error("Devre yüklenirken bir hata oluştu.");
-        alert("Devre yüklenirken bir hata oluştu.");
-      }
-    } catch (error) {
-      console.error("JSON dosyası okunurken hata:", error);
-      alert("JSON dosyası okunurken hata oluştu.");
-    }
-  };
-
-  reader.onerror = function () {
-    console.error("Dosya okunamadı.");
-    alert("Dosya okunamadı.");
-  };
-
-  reader.readAsText(file);
-}
-
 inputText.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     const input = event.target as HTMLInputElement;
@@ -1095,4 +1158,71 @@ function saveToLocalStorage(key: string = "history"): void {
   }
 }
 
-window.addEventListener("DOMContentLoaded", initApp);
+async function loadSavedCircuits() {
+  try {
+    const response = await fetch('http://localhost:3000/api/circuits');
+    if (response.ok) {
+      const circuits = await response.json();
+      // Display circuits in the UI
+      const circuitList = document.getElementById('circuit-list');
+      if (circuitList) {
+        circuitList.innerHTML = circuits.map((circuit: any) => `
+          <div class="circuit-item">
+            <h3>${circuit.name}</h3>
+            <button onclick="loadCircuit('${circuit._id}')">Load</button>
+            <button onclick="deleteCircuit('${circuit._id}')">Delete</button>
+          </div>
+        `).join('');
+      }
+    }
+  } catch (error) {
+    console.error("Error loading circuits:", error);
+  }
+}
+
+async function loadCircuit(circuitId: string) {
+  try {
+    const response = await fetch(`http://localhost:3000/api/circuits/${circuitId}`);
+    if (response.ok) {
+      const circuit = await response.json();
+      // Clear the current circuit
+      circuitBoard.clearCircuit();
+      // Import the loaded circuit
+      circuitBoard.importCircuit(JSON.stringify(circuit));
+      console.log("Circuit loaded successfully!");
+      alert("Circuit loaded successfully!");
+    } else {
+      console.error("Failed to load circuit.");
+      alert("Failed to load circuit.");
+    }
+  } catch (error) {
+    console.error("Error loading circuit:", error);
+    alert("Error loading circuit.");
+  }
+}
+
+async function deleteCircuit(circuitId: string) {
+  if (confirm("Are you sure you want to delete this circuit?")) {
+    try {
+      const response = await fetch(`http://localhost:3000/api/circuits/${circuitId}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        console.log("Circuit deleted successfully!");
+        alert("Circuit deleted successfully!");
+        loadSavedCircuits(); // Refresh the list
+      } else {
+        console.error("Failed to delete circuit.");
+        alert("Failed to delete circuit.");
+      }
+    } catch (error) {
+      console.error("Error deleting circuit:", error);
+      alert("Error deleting circuit.");
+    }
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  initApp();
+  loadSavedCircuits();
+});

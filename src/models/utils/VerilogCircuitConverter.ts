@@ -19,7 +19,7 @@ import { Clock } from "../components/Clock";
 
 export class VerilogCircuitConverter {
   private parser: VerilogParser;
-  private circuitBoard: CircuitBoard;
+  public circuitBoard: CircuitBoard;
   private componentPositions: Map<string, Point> = new Map();
   private components: { [name: string]: Component } = {};
   private outputPorts: { [name: string]: any } = {};
