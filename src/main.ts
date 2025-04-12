@@ -26,7 +26,6 @@ import { Decoder } from "./models/gates/Decoder";
 import { BufferGate } from "./models/gates/BufferGate";
 import { HexDigit } from "./models/components/HexDigit";
 import { Text } from "./models/other/Text";
-import { LocalStorageCircuitRepository } from "./Repository/LocalStorageCircuitRepository";
 import { LogicGate } from "./models/LogicGate";
 import { State } from "./models/other/State";
 import { HalfAdder } from "./models/gates/HalfAdder";
@@ -35,8 +34,9 @@ import { HalfSubtractor } from "./models/gates/HalfSubtractor";
 import { FullSubtractor } from "./models/gates/FullSubtractor";
 import { Led } from "./models/components/Led";
 import { GoogleGenAI } from "@google/genai";
-import { CircuitService } from "./services/CircuitService";
 import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
+import { apiBaseUrl } from "./services/apiConfig";
+import { set } from "mongoose";
 
 class Queue {
   public items: string[] = [];
@@ -58,7 +58,6 @@ class Queue {
 }
 const queue = new Queue();
 
-// const repositoryService = new MockCircuitRepositoryService();
 const repositoryService = new MongoDBCircuitRepository();
 var converter;
 
@@ -124,11 +123,7 @@ function initApp() {
 
   converter = new VerilogCircuitConverter(circuitBoard);
 
-  setupComponentAddListeners();
 
-  setupKeyboardShortcuts();
-
-  setupZoomControls();
 
   document.querySelector(".screenshot")?.addEventListener("click", () => {
     circuitBoard.takeScreenshot();
@@ -137,19 +132,24 @@ function initApp() {
   const repository = new CircuitRepositoryController(
     repositoryService,
     converter,
-    document.body,
-    "Kaan",
-  );
+    document.body );
   storage.addEventListener("click", () => {
     repository.open();
   });
 
+  
+
   roboflow = new RoboflowService(apiKey, workflowId);
   imageUploader = new ImageUploader(roboflow, circuitBoard);
 
+  setupComponentAddListeners();
+  setupKeyboardShortcuts();
+  setupZoomControls();
+  setUpLoginAndSignup();
   setUpAI();
   setupSettings();
   setTheme();
+  
   sidebarClose.classList.add("close");
 
   window.addEventListener("resize", handleResize);
@@ -173,7 +173,7 @@ function initApp() {
   handleResize();
   setFile();
 
-  //Open it when needed to test api 
+  //Open it when needed to test api
   // const testApiBtn = document.createElement("button");
   // testApiBtn.textContent = "Test API Connection";
   // testApiBtn.className = "primary-button";
@@ -185,7 +185,7 @@ function initApp() {
   // testApiBtn.addEventListener("click", async () => {
   //   try {
   //     const startTime = Date.now();
-  //     const response = await fetch("http://localhost:3000/api/analyze/roboflow");
+  //     const response = await fetch(`${apiBaseUrl}/api/analyze/roboflow`);
   //     const endTime = Date.now();
 
   //     if (response.ok) {
@@ -204,6 +204,47 @@ function initApp() {
   // });
 
   // document.body.appendChild(testApiBtn);
+
+  // Add this function to verify token on app start
+async function verifyAuthToken() {
+  const token = localStorage.getItem("auth_token");
+  if (!token) return false;
+  
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/auth/check`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const userInfo = localStorage.getItem("user_info");
+      const user = userInfo ? JSON.parse(userInfo) : null;
+      
+      return true;
+    } else {
+      // Token invalid - clear it
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("user_info");
+     
+      return false;
+    }
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return false;
+  }
+}
+
+// Call this at the end of initApp()
+verifyAuthToken().then(valid => {
+  if (valid) {
+    console.log("Authentication verified");
+    loadSavedCircuits();
+  } else {
+    console.log("User not authenticated");
+  }
+});
 }
 
 function syncCanvasWithAnimation() {
@@ -236,7 +277,7 @@ function extractVerilogFromPrompt(prompt: string): string | null {
 }
 
 function setupZoomControls() {
-  canvas.addEventListener("wheel", (event) => {
+  canvas.addEventListener("wheel", event => {
     event.preventDefault();
 
     if (event.deltaY < 0) {
@@ -246,7 +287,7 @@ function setupZoomControls() {
     }
   });
 
-  canvas.addEventListener("mousedown", (event) => {
+  canvas.addEventListener("mousedown", event => {
     if (event.button === 1) {
       event.preventDefault();
       circuitBoard.isDraggingCanvas = true;
@@ -255,7 +296,7 @@ function setupZoomControls() {
     }
   });
 
-  canvas.addEventListener("mousemove", (event) => {
+  canvas.addEventListener("mousemove", event => {
     if (circuitBoard.isDraggingCanvas) {
       const deltaX = event.clientX - circuitBoard.lastMouseX;
       const deltaY = event.clientY - circuitBoard.lastMouseY;
@@ -267,7 +308,7 @@ function setupZoomControls() {
     }
   });
 
-  canvas.addEventListener("mouseup", (event) => {
+  canvas.addEventListener("mouseup", event => {
     if (event.button === 1) {
       circuitBoard.isDraggingCanvas = false;
     }
@@ -293,8 +334,8 @@ function setupComponentAddListeners() {
   let draggingType: string | null = null;
   let shadowElement: HTMLElement | null = null;
 
-  components.forEach((component) => {
-    component.addEventListener("mousedown", (event) => {
+  components.forEach(component => {
+    component.addEventListener("mousedown", event => {
       event.preventDefault();
 
       const type = component.getAttribute("data-type");
@@ -302,17 +343,14 @@ function setupComponentAddListeners() {
 
       draggingType = type;
 
-      // Create shadow element
       shadowElement = document.createElement("div");
       shadowElement.className = "component-shadow";
 
-      // Copy the SVG from the component to the shadow
       const componentIcon = component.querySelector(".component-icon");
       if (componentIcon) {
         shadowElement.innerHTML = componentIcon.innerHTML;
       }
 
-      // Apply styles to the shadow element
       shadowElement.style.position = "fixed";
       shadowElement.style.zIndex = "1000";
       shadowElement.style.opacity = "0.7";
@@ -321,13 +359,11 @@ function setupComponentAddListeners() {
       shadowElement.style.height = "40px";
       shadowElement.style.transform = "translate(-100%, -100%) ";
 
-      // Position shadow element at cursor
       shadowElement.style.left = `${(event as MouseEvent).clientX}px`;
       shadowElement.style.top = `${(event as MouseEvent).clientY}px`;
 
       document.body.appendChild(shadowElement);
 
-      // Add event listeners for drag movement and release
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
     });
@@ -346,7 +382,6 @@ function setupComponentAddListeners() {
       return;
     }
 
-    // Check if mouse is over the canvas
     const canvasRect = canvas.getBoundingClientRect();
     if (
       event.clientX >= canvasRect.left &&
@@ -354,15 +389,12 @@ function setupComponentAddListeners() {
       event.clientY >= canvasRect.top &&
       event.clientY <= canvasRect.bottom
     ) {
-      // Convert window coordinates to canvas coordinates
       const canvasX = event.clientX - canvasRect.left;
       const canvasY = event.clientY - canvasRect.top;
 
-      // Convert canvas coordinates to world coordinates
       const worldX = (canvasX - circuitBoard.offsetX) / circuitBoard.scale;
       const worldY = (canvasY - circuitBoard.offsetY) / circuitBoard.scale;
 
-      // Add the component at the release position
       addComponentByType(draggingType, {
         x: worldX,
         y: worldY,
@@ -373,7 +405,6 @@ function setupComponentAddListeners() {
   }
 
   function cleanup() {
-    // Remove shadow element and listeners
     if (shadowElement && shadowElement.parentNode) {
       shadowElement.parentNode.removeChild(shadowElement);
     }
@@ -477,7 +508,7 @@ function addComponentByType(type: string, position: Point) {
 }
 
 function setupKeyboardShortcuts() {
-  document.addEventListener("keydown", (event) => {
+  document.addEventListener("keydown", event => {
     if (event.key === "Delete") {
       circuitBoard.deleteSelected();
     }
@@ -485,21 +516,6 @@ function setupKeyboardShortcuts() {
     if (event.key === "Backspace") {
       circuitBoard.deleteSelected();
     }
-
-    // if (event.key === "g" || event.key === "G") {
-    //   circuitBoard.toggleGrid();
-    // }
-    // if (event.key === "l" || event.key === "L") {
-    //   const converter = new VerilogCircuitConverter(circuitBoard);
-    //   const success = converter.importVerilogCode(verilogCode);
-    //   if (success) {
-    //     console.log("Verilog import successful!");
-    //   } else {
-    //     console.error("Verilog import failed!");
-    //   }
-    // }
-
-    // Escape tuşu - seçimi kaldır
     if (event.key === "Escape") {
       circuitBoard.clearCurrentWire();
     }
@@ -591,14 +607,14 @@ function setUpAI() {
         messages.push(...queue.items);
       }
 
-      const response = await fetch("http://localhost:3000/api/generate/text", {
+      const response = await fetch(`${apiBaseUrl}/api/generate/text`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           prompt: userMessage,
-          history: queue.messages, // Send the array instead of the Queue object
+          history: queue.messages,
           systemPrompt: promptAI,
         }),
       });
@@ -640,11 +656,11 @@ function setUpAI() {
 
         if (success) {
           addAIMessage(
-            "I've created the circuit from your Verilog code! You can see it on the canvas now.",
+            "I've created the circuit from your Verilog code! You can see it on the canvas now."
           );
         } else {
           addAIMessage(
-            "I found Verilog code in your message, but I couldn't create a valid circuit from it. Please check for syntax errors or unsupported features.",
+            "I found Verilog code in your message, but I couldn't create a valid circuit from it. Please check for syntax errors or unsupported features."
           );
         }
         return;
@@ -821,10 +837,9 @@ async function readJSONFile(file: File) {
       const jsonContent = event.target?.result as string;
       const circuitData = JSON.parse(jsonContent);
 
-      // Add userId to the circuit data
-      circuitData.userId = "current-user-id"; // You should replace this with actual user ID from your auth system
+      circuitData.userId = "current-user-id";
 
-      const response = await fetch("http://localhost:3000/api/circuits", {
+      const response = await fetch(`${apiBaseUrl}/api/circuits`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -952,12 +967,12 @@ function setFile() {
     e.stopPropagation();
   });
 
-  fileOptions.forEach((option) => {
+  fileOptions.forEach(option => {
     option.addEventListener("click", function () {
       const selectedFile = this.getAttribute("data");
       if (!selectedFile) return;
 
-      fileOptions.forEach((opt) => opt.classList.remove("active"));
+      fileOptions.forEach(opt => opt.classList.remove("active"));
 
       this.classList.add("active");
 
@@ -984,40 +999,398 @@ function setFile() {
     });
   });
 }
+// setUpLoginAndSignup fonksiyonunu güncelle
+
+function setUpLoginAndSignup() {
+  const authModal = document.getElementById("auth-modal");
+  const loginForm = document.getElementById("login-form") as HTMLFormElement;
+  const signupForm = document.getElementById("signup-form") as HTMLFormElement;
+  const showSignupLink = document.getElementById("show-signup");
+  const showLoginLink = document.getElementById("show-login");
+  const closeAuthButtons = document.querySelectorAll(".close-auth-button");
+  const loginButton = document.getElementById("login-button");
+  const signupButton = document.getElementById("signup-button");
+
+  // Header'a giriş/kayıt butonu ekle
+  const addAuthButton = () => {
+    const rightContainer = document.querySelector(".rightContainer");
+    if (rightContainer) {
+      const authButton = document.createElement("div");
+      authButton.className = "storage";
+      authButton.textContent = "Sign In";
+      authButton.id = "auth-button";
+      
+      // Mevcut elementlerin önüne ekle
+      rightContainer.append(authButton);
+      
+      // Event listener ekle
+      authButton.addEventListener("click", showAuthModal);
+      
+      // Kullanıcı zaten giriş yapmışsa güncelle
+      const token = localStorage.getItem("auth_token");
+      if (token) {
+        updateUserInterface(true);
+      }
+    }
+  };
+  
+  addAuthButton();
+  
+  // Authentication modal göster
+  function showAuthModal() {
+    if (authModal) {
+      authModal.classList.add("active");
+      // Varsayılan olarak login view göster
+      showLoginView();
+    }
+  }
+
+  // Authentication modal gizle
+  function hideAuthModal() {
+    if (authModal) {
+      authModal.classList.remove("active");
+    }
+  }
+
+  // Login view göster
+  function showLoginView() {
+    loginForm.classList.add("active");
+    signupForm.classList.remove("active");
+  }
+
+  // Signup view göster
+  function showSignupView() {
+    signupForm.classList.add("active");
+    loginForm.classList.remove("active");
+  }
+  function updateUserInterface(isLoggedIn: boolean, userName?: string) {
+    const authButton = document.getElementById("auth-button");
+    
+    if (!authButton) return;
+    
+    // Remove any existing profile dropdown
+    const existingDropdown = document.getElementById("profile-dropdown");
+    if (existingDropdown) {
+      existingDropdown.remove();
+    }
+    
+    // Create a new button to clear event listeners
+    const newAuthButton = authButton.cloneNode(true) as HTMLElement;
+    authButton.parentNode?.replaceChild(newAuthButton, authButton);
+    
+    if (isLoggedIn) {
+      // Change button appearance for logged in users
+      newAuthButton.textContent = userName || "My Account";
+      newAuthButton.classList.add("logged-in");
+      
+      // Set up click handler for profile menu
+      newAuthButton.addEventListener("click", toggleProfileDropdown);
+    } else {
+      // Reset to default for logged out users
+      newAuthButton.textContent = "Sign In";
+      newAuthButton.classList.remove("logged-in");
+      
+      // Add event listener to show auth modal
+      newAuthButton.addEventListener("click", showAuthModal);
+    }
+  }
+  
+  // Separate function to toggle the profile dropdown
+  function toggleProfileDropdown(event: MouseEvent) {
+    event.stopPropagation();
+    
+    // Check if dropdown already exists
+    let profileDropdown = document.getElementById("profile-dropdown");
+    
+    // If exists, just remove it
+    if (profileDropdown) {
+      profileDropdown.remove();
+      return;
+    }
+    
+    // Get user info from localStorage
+    const userInfo = localStorage.getItem("user_info");
+    const user = userInfo ? JSON.parse(userInfo) : { name: "User", email: "" };
+    
+    // Create dropdown
+    profileDropdown = document.createElement("div");
+    profileDropdown.id = "profile-dropdown";
+    profileDropdown.className = "profile-dropdown";
+    
+    profileDropdown.innerHTML = `
+      <div class="profile-header">
+        <div class="profile-name">${user.name}</div>
+        <div class="profile-email">${user.email}</div>
+      </div>
+      <div class="profile-option" id="logout-option">Sign Out</div>
+    `;
+
+    const authButton = document.getElementById("auth-button");
+    if (authButton) {
+      const rect = authButton.getBoundingClientRect();
+      profileDropdown.style.position = "absolute";
+      profileDropdown.style.top = rect.bottom + "px";
+      profileDropdown.style.right = (window.innerWidth - rect.right) + "px";
+    }
+    profileDropdown.style.cursor = "pointer";
+  
+    document.body.appendChild(profileDropdown);
+    
+
+    document.getElementById("logout-option")?.addEventListener("click", handleLogout);
+
+    document.addEventListener("click", function closeDropdownOnClick(e) {
+      if (!profileDropdown?.contains(e.target as Node) && e.target !== authButton) {
+        profileDropdown?.remove();
+        document.removeEventListener("click", closeDropdownOnClick);
+      }
+    });
+  }
+
+  async function handleLogin() {
+    try {
+      const emailInput = document.getElementById("login-email") as HTMLInputElement;
+      const passwordInput = document.getElementById("login-password") as HTMLInputElement;
+      
+      const email = emailInput.value;
+      const password = passwordInput.value;
+
+      if (!email || !password) {
+        alert("Lütfen tüm alanları doldurun");
+        return;
+      }
+
+
+      const loginBtn = document.getElementById("login-button") as HTMLButtonElement;
+      loginBtn.disabled = true;
+      loginBtn.textContent = "Giriş yapılıyor...";
+
+      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+
+      loginBtn.disabled = false;
+      loginBtn.textContent = "Sign In";
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Login failed");
+      }
+  
+      const data = await response.json();
+      
+      // Debugging to make sure token is received
+      console.log("Login successful, received data:", 
+        { token: data.token ? "Token received" : "No token!", user: data.user ? "User data received" : "No user data!" });
+      
+      // Store token & user info
+      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("user_info", JSON.stringify(data.user));
+      
+      // Update UI
+      updateUserInterface(true, data.user.name);
+      hideAuthModal();
+      
+      // Test token was saved
+      const savedToken = localStorage.getItem("auth_token");
+      console.log("Token saved to localStorage:", savedToken ? "Yes" : "No");
+      
+      // Success message
+      alert("Login successful!");
+    } catch (error) {
+      console.error("Login error:", error);
+      let e = error as Error;
+      alert(`Login failed: ${e.message}`);
+    }
+  }
+
+  async function handleSignup() {
+    try {
+      const nameInput = document.getElementById("signup-name") as HTMLInputElement;
+      const emailInput = document.getElementById("signup-email") as HTMLInputElement;
+      const passwordInput = document.getElementById("signup-password") as HTMLInputElement;
+      const confirmPasswordInput = document.getElementById("signup-confirm-password") as HTMLInputElement;
+      
+      const name = nameInput.value;
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
+
+      if (!name || !email || !password || !confirmPassword) {
+        alert("Lütfen tüm alanları doldurun");
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        alert("Şifreler eşleşmiyor");
+        return;
+      }
+
+      // Sign up butonunu devre dışı bırak ve yükleniyor göster
+      const signupBtn = document.getElementById("signup-button") as HTMLButtonElement;
+      signupBtn.disabled = true;
+      signupBtn.textContent = "Hesap oluşturuluyor...";
+
+      // API'ye kayıt isteği gönder
+      const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name, email, password })
+      });
+
+      // Butonu tekrar etkinleştir
+      signupBtn.disabled = false;
+      signupBtn.textContent = "Create Account";
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Registration failed");
+      }
+
+      const data = await response.json();
+
+      // Kayıt başarılı, login formunu göster
+      showLoginView();
+      
+      // E-posta adresini login formuna doldur
+      (document.getElementById("login-email") as HTMLInputElement).value = email;
+      
+      // Başarılı mesajı göster
+      alert("Hesap başarıyla oluşturuldu! Lütfen giriş yapın.");
+    } catch (error) {
+      console.error("Signup error:", error);
+      alert(`Kayıt başarısız: ${error}`);
+    }
+  }
+
+  // Replace the handleLogout function with this improved version:
+
+  function handleLogout() {
+    // Remove token and user info
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user_info");
+    
+    // Remove the dropdown
+    const profileDropdown = document.getElementById("profile-dropdown");
+    if (profileDropdown) {
+      profileDropdown.remove();
+    }
+    
+    // Update the UI immediately
+    updateUserInterface(false);
+    
+    // Show success message
+    alert("Successfully logged out!");
+  }
+
+  // Event listener'ları ayarla
+  function setupAuthListeners() {
+    // Login ve signup arasında geçiş
+    showSignupLink?.addEventListener("click", e => {
+      e.preventDefault();
+      showSignupView();
+    });
+
+    showLoginLink?.addEventListener("click", e => {
+      e.preventDefault();
+      showLoginView();
+    });
+
+    // Modal'ı kapat
+    closeAuthButtons.forEach(button => {
+      button.addEventListener("click", hideAuthModal);
+    });
+
+    // Dışarı tıklayarak kapat
+    authModal?.addEventListener("click", e => {
+      if (e.target === authModal) {
+        hideAuthModal();
+      }
+    });
+
+    // Form gönderileri
+    loginButton?.addEventListener("click", handleLogin);
+    signupButton?.addEventListener("click", handleSignup);
+    
+    // Giriş yapıldığında logout seçeneği ekle
+    document.addEventListener("DOMContentLoaded", () => {
+      const userInfo = localStorage.getItem("user_info");
+      if (userInfo) {
+        const user = JSON.parse(userInfo);
+        updateUserInterface(true, user.name);
+        
+        // Çıkış yapma fonksiyonalitesi ekle
+        const authButton = document.getElementById("auth-button");
+        if (authButton) {
+          authButton.addEventListener("click", (e) => {
+            if (localStorage.getItem("auth_token")) {
+              e.stopPropagation(); 
+              if (confirm("Çıkış yapmak istiyor musunuz?")) {
+                handleLogout();
+              }
+            }
+          });
+        }
+      }
+    });
+  }
+  
+  setupAuthListeners();
+}
+
 
 async function saveToMongoDB(name: string, circuitData: any) {
   try {
+    // Get and verify auth token
+    const token = localStorage.getItem("auth_token");
+    if (!token) {
+      alert("You must be logged in to save circuits. Please sign in.");
+      return;
+    }
+    
+    // Kullanıcı bilgileri
+    const userInfo = localStorage.getItem("user_info");
+    const user = userInfo ? JSON.parse(userInfo) : { name: "Unknown" };
+    
     // Parse the circuit data if it's a string
     const parsedData = typeof circuitData === "string" ? JSON.parse(circuitData) : circuitData;
-
+    
     const data = {
       name: name,
+      authorName: user.name, // Kullanıcının adını ekle
       components: parsedData.components.map((comp: any) => ({
         id: comp.id,
         type: comp.type,
         position: comp.position,
-        inputs: comp.inputs,
-        outputs: comp.outputs,
-        state: comp.state,
+        inputs: Array.isArray(comp.inputs) ? comp.inputs : [],
+        outputs: Array.isArray(comp.outputs) ? comp.outputs : [],
+        state: comp.state || {},
       })),
       wires: parsedData.wires.map((wire: any) => ({
         id: wire.id,
         start: {
-          componentId: wire.fromComponentId,
-          portId: wire.fromPortId,
+          componentId: wire.fromComponentId || "",
+          portId: wire.fromPortId || "",
         },
         end: {
-          componentId: wire.toComponentId,
-          portId: wire.toPortId,
+          componentId: wire.toComponentId || "",
+          portId: wire.toPortId || "",
         },
       })),
-      userId: "current-user-id",
     };
 
-    const response = await fetch("http://localhost:3000/api/circuits", {
+    // Make the request with better error handling
+    const response = await fetch(`${apiBaseUrl}/api/circuits`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify(data),
     });
@@ -1025,14 +1398,115 @@ async function saveToMongoDB(name: string, circuitData: any) {
     if (response.ok) {
       console.log("Circuit saved to MongoDB successfully!");
       alert("Circuit saved successfully!");
-      loadSavedCircuits(); // Refresh the circuit list
     } else {
-      console.error("Failed to save circuit to MongoDB.");
-      alert("Failed to save circuit.");
+      // Error handling...
+    }
+  } catch (error: any) {
+    // Error handling...
+  }
+}
+
+
+async function loadSavedCircuits() {
+  try {
+    // Get auth token
+    const token = localStorage.getItem("auth_token");
+    if (!token) {
+      console.log("User not authenticated");
+      return;
+    }
+
+    const response = await fetch(`${apiBaseUrl}/api/circuits`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      const circuits = await response.json();
+      // Display circuits in the UI
+      const circuitList = document.getElementById("circuit-list");
+      if (circuitList) {
+        circuitList.innerHTML = circuits
+          .map(
+            (circuit: any) => `
+          <div class="circuit-item">
+            <h3>${circuit.name}</h3>
+            <button onclick="loadCircuit('${circuit._id}')">Load</button>
+            <button onclick="deleteCircuit('${circuit._id}')">Delete</button>
+          </div>
+        `
+          )
+          .join("");
+      }
     }
   } catch (error) {
-    console.error("Error saving circuit to MongoDB:", error);
-    alert("Error saving circuit.");
+    console.error("Error loading circuits:", error);
+  }
+}
+
+async function loadCircuit(circuitId: string) {
+  try {
+    // Get auth token
+    const token = localStorage.getItem("auth_token");
+    if (!token) {
+      alert("Please sign in to load circuits");
+      return;
+    }
+
+    const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      const circuit = await response.json();
+      // Clear the current circuit
+      circuitBoard.clearCircuit();
+      // Import the loaded circuit
+      circuitBoard.importCircuit(JSON.stringify(circuit));
+      console.log("Circuit loaded successfully!");
+      alert("Circuit loaded successfully!");
+    } else {
+      console.error("Failed to load circuit.");
+      alert("Failed to load circuit.");
+    }
+  } catch (error) {
+    console.error("Error loading circuit:", error);
+    alert("Error loading circuit.");
+  }
+}
+
+async function deleteCircuit(circuitId: string) {
+  if (confirm("Are you sure you want to delete this circuit?")) {
+    try {
+      // Get auth token
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        alert("Please sign in to delete circuits");
+        return;
+      }
+
+      const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        console.log("Circuit deleted successfully!");
+        alert("Circuit deleted successfully!");
+        loadSavedCircuits(); // Refresh the list
+      } else {
+        console.error("Failed to delete circuit.");
+        alert("Failed to delete circuit.");
+      }
+    } catch (error) {
+      console.error("Error deleting circuit:", error);
+      alert("Error deleting circuit.");
+    }
   }
 }
 
@@ -1065,12 +1539,12 @@ function setTheme() {
     e.stopPropagation();
   });
 
-  themeOptions.forEach((option) => {
+  themeOptions.forEach(option => {
     option.addEventListener("click", function () {
       const selectedTheme = this.getAttribute("data-theme");
       if (!selectedTheme) return;
 
-      themeOptions.forEach((opt) => opt.classList.remove("active"));
+      themeOptions.forEach(opt => opt.classList.remove("active"));
 
       this.classList.add("active");
 
@@ -1145,7 +1619,7 @@ function setTheme() {
   }
 }
 
-inputText.addEventListener("keydown", (event) => {
+inputText.addEventListener("keydown", event => {
   if (event.key === "Enter") {
     const input = event.target as HTMLInputElement;
     const filePath = input.value;
@@ -1162,74 +1636,6 @@ function saveToLocalStorage(key: string = "history"): void {
     console.log("Devre local storage'a kaydedildi");
   } catch (error) {
     console.error("Local storage'a kaydetme hatası:", error);
-  }
-}
-
-async function loadSavedCircuits() {
-  try {
-    const response = await fetch("http://localhost:3000/api/circuits");
-    if (response.ok) {
-      const circuits = await response.json();
-      // Display circuits in the UI
-      const circuitList = document.getElementById("circuit-list");
-      if (circuitList) {
-        circuitList.innerHTML = circuits
-          .map(
-            (circuit: any) => `
-          <div class="circuit-item">
-            <h3>${circuit.name}</h3>
-            <button onclick="loadCircuit('${circuit._id}')">Load</button>
-            <button onclick="deleteCircuit('${circuit._id}')">Delete</button>
-          </div>
-        `,
-          )
-          .join("");
-      }
-    }
-  } catch (error) {
-    console.error("Error loading circuits:", error);
-  }
-}
-
-async function loadCircuit(circuitId: string) {
-  try {
-    const response = await fetch(`http://localhost:3000/api/circuits/${circuitId}`);
-    if (response.ok) {
-      const circuit = await response.json();
-      // Clear the current circuit
-      circuitBoard.clearCircuit();
-      // Import the loaded circuit
-      circuitBoard.importCircuit(JSON.stringify(circuit));
-      console.log("Circuit loaded successfully!");
-      alert("Circuit loaded successfully!");
-    } else {
-      console.error("Failed to load circuit.");
-      alert("Failed to load circuit.");
-    }
-  } catch (error) {
-    console.error("Error loading circuit:", error);
-    alert("Error loading circuit.");
-  }
-}
-
-async function deleteCircuit(circuitId: string) {
-  if (confirm("Are you sure you want to delete this circuit?")) {
-    try {
-      const response = await fetch(`http://localhost:3000/api/circuits/${circuitId}`, {
-        method: "DELETE",
-      });
-      if (response.ok) {
-        console.log("Circuit deleted successfully!");
-        alert("Circuit deleted successfully!");
-        loadSavedCircuits(); // Refresh the list
-      } else {
-        console.error("Failed to delete circuit.");
-        alert("Failed to delete circuit.");
-      }
-    } catch (error) {
-      console.error("Error deleting circuit:", error);
-      alert("Error deleting circuit.");
-    }
   }
 }
 

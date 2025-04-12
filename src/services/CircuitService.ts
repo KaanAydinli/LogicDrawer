@@ -1,4 +1,6 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+import { apiBaseUrl } from "./apiConfig";
+
+const API_BASE_URL = `${apiBaseUrl}/api`;
 
 export interface CircuitData {
   name: string;
@@ -7,6 +9,7 @@ export interface CircuitData {
   wires: any[];
   userId: string;
 }
+
 
 export class CircuitService {
   static async getAllCircuits(userId: string) {
@@ -62,4 +65,6 @@ export class CircuitService {
     }
     return response.json();
   }
+  
 } 
+

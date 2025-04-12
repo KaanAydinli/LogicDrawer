@@ -1,6 +1,7 @@
 import { Component, Port } from "../models/Component";
 import { VerilogCircuitConverter } from "../models/utils/VerilogCircuitConverter";
 import { Wire } from "../models/Wire";
+import { apiBaseUrl } from "../services/apiConfig";
 
 export interface Comment {
   id: string;
@@ -38,7 +39,7 @@ export interface CircuitRepositoryService {
     circuit: Omit<
       CircuitEntry,
       "id" | "dateCreated" | "dateModified" | "likes" | "downloads" | "comments"
-    >,
+    >
   ): Promise<CircuitEntry>;
   likeCircuit(id: string): Promise<void>;
   downloadCircuit(id: string): Promise<string>;
@@ -740,6 +741,7 @@ export class CircuitRepositoryController {
   private detailViewElement: HTMLElement | null = null;
   private uploadFormElement: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
+  private currentUserId: string = "unknown-user";
 
   private currentCircuits: CircuitEntry[] = [];
   private currentTab: "browse" | "my-circuits" = "browse";
@@ -748,11 +750,14 @@ export class CircuitRepositoryController {
   constructor(
     private repositoryService: CircuitRepositoryService,
     private verilogConverter: VerilogCircuitConverter,
-    containerElement: HTMLElement,
-    private currentUserId: string = "default-user",
+    containerElement: HTMLElement
   ) {
     this.container = containerElement;
     this.initializeUI();
+    const userInfo = localStorage.getItem("user_info");
+    
+    const user = userInfo ? JSON.parse(userInfo) : { name: "unknown-user" };
+    this.currentUserId = user.name;
   }
 
   public open(): void {
@@ -789,15 +794,15 @@ export class CircuitRepositoryController {
       closeBtn.addEventListener("click", () => this.close());
     }
 
-    document.addEventListener("keydown", (e) => {
+    document.addEventListener("keydown", e => {
       if (e.key === "Escape" && this.modalElement) {
         this.close();
       }
     });
 
     const tabs = document.querySelectorAll(".tab");
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", (e) => {
+    tabs.forEach(tab => {
+      tab.addEventListener("click", e => {
         const tabName = (e.currentTarget as HTMLElement).getAttribute("data-tab");
         if (tabName === "browse" || tabName === "my-circuits") {
           this.switchTab(tabName);
@@ -806,7 +811,7 @@ export class CircuitRepositoryController {
     });
 
     if (this.searchInput) {
-      this.searchInput.addEventListener("input", (e) => {
+      this.searchInput.addEventListener("input", e => {
         const query = (e.target as HTMLInputElement).value;
         this.searchCircuits(query);
       });
@@ -824,7 +829,7 @@ export class CircuitRepositoryController {
 
     const uploadForm = document.getElementById("circuit-upload-form");
     if (uploadForm) {
-      uploadForm.addEventListener("submit", (e) => this.handleUploadSubmit(e));
+      uploadForm.addEventListener("submit", e => this.handleUploadSubmit(e));
     }
 
     const backBtn = document.getElementById("back-to-grid-btn");
@@ -844,7 +849,7 @@ export class CircuitRepositoryController {
       } else {
         const allCircuits = await this.repositoryService.getCircuits();
         this.currentCircuits = allCircuits.filter(
-          (c: { authorId: string }) => c.authorId === this.currentUserId,
+          (c: { authorId: string }) => c.authorId === this.currentUserId
         );
       }
 
@@ -875,7 +880,7 @@ export class CircuitRepositoryController {
 
     this.circuitGridElement.innerHTML = "";
 
-    this.currentCircuits.forEach((circuit) => {
+    this.currentCircuits.forEach(circuit => {
       const card = this.createCircuitCard(circuit);
       this.circuitGridElement?.appendChild(card);
     });
@@ -886,14 +891,18 @@ export class CircuitRepositoryController {
       console.error("Circuit ID is missing");
       return document.createElement("div");
     }
-
+  
     const card = document.createElement("div");
     card.className = "circuit-card";
     card.dataset.circuitId = circuit.id;
-
+  
     card.innerHTML = `
       <div class="circuit-thumbnail" ${circuit.thumbnailUrl ? `style="background-image: url('${circuit.thumbnailUrl}')"` : ""}>
         ${!circuit.thumbnailUrl ? "No Preview" : ""}
+        <div class="circuit-actions">
+          <button class="view-circuit" title="View details">📄</button>
+          <button class="delete-circuit" title="Delete circuit">🗑️</button>
+        </div>
       </div>
       <div class="circuit-info">
         <h3>${circuit.name || circuit.title || "Untitled Circuit"}</h3>
@@ -904,13 +913,44 @@ export class CircuitRepositoryController {
           <span>⬇️ ${circuit.downloads || 0}</span>
         </div>
         <div class="circuit-tags">
-          ${(circuit.tags || []).map((tag) => `<span class="tag">${tag}</span>`).join("")}
+          ${(circuit.tags || []).map(tag => `<span class="tag">${tag}</span>`).join("")}
         </div>
       </div>
     `;
-
+  
+    // Add view circuit event listener
+    const viewButton = card.querySelector(".view-circuit");
+    if (viewButton) {
+      viewButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.viewCircuitDetails(circuit.id);
+      });
+    }
+  
+    // Add delete circuit event listener
+    const deleteButton = card.querySelector(".delete-circuit");
+    if (deleteButton) {
+      deleteButton.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (confirm(`Are you sure you want to delete "${circuit.name || 'Untitled Circuit'}"?`)) {
+          try {
+            await this.repositoryService.deleteCircuit(circuit.id);
+            card.remove();
+            alert("Circuit deleted successfully!");
+            
+            // Refresh the circuit list after deletion
+            this.loadCircuits();
+          } catch (error) {
+            console.error("Failed to delete circuit:", error);
+            alert("Failed to delete circuit. Please try again.");
+          }
+        }
+      });
+    }
+  
+    // Keep the existing click handler for the entire card
     card.addEventListener("click", () => this.viewCircuitDetails(circuit.id));
-
+  
     return card;
   }
 
@@ -944,6 +984,7 @@ export class CircuitRepositoryController {
     if (!detailContainer) return;
 
     const isLiked = false;
+    
 
     detailContainer.innerHTML = `
       <div class="detail-header">
@@ -954,6 +995,7 @@ export class CircuitRepositoryController {
           <button class="like-button ${isLiked ? "liked" : ""}" id="like-circuit-btn">
             ❤️ ${circuit.likes || 0}
           </button>
+          <button class="delete-button" id="delete-circuit-btn">Delete</button>
         </div>
       </div>
       
@@ -964,7 +1006,7 @@ export class CircuitRepositoryController {
         
         <div class="detail-tags">
           <strong>Tags:</strong>
-          ${(circuit.tags || []).map((tag) => `<span class="tag">${tag}</span>`).join("")}
+          ${(circuit.tags || []).map(tag => `<span class="tag">${tag}</span>`).join("")}
         </div>
       </div>
       
@@ -996,7 +1038,7 @@ export class CircuitRepositoryController {
               ? "<p>No comments yet. Be the first to comment!</p>"
               : (circuit.comments || [])
                   .map(
-                    (comment) => `
+                    comment => `
                 <div class="comment">
                   <div class="comment-header">
                     <span class="comment-author">${comment.authorName || "Unknown"}</span>
@@ -1004,7 +1046,7 @@ export class CircuitRepositoryController {
                   </div>
                   <div class="comment-text">${comment.text}</div>
                 </div>
-              `,
+              `
                   )
                   .join("")
           }
@@ -1025,17 +1067,41 @@ export class CircuitRepositoryController {
     if (useBtn) {
       useBtn.addEventListener("click", () => this.useCircuit(circuit));
     }
-
+  
     const downloadBtn = document.getElementById("download-circuit-btn");
     if (downloadBtn) {
       downloadBtn.addEventListener("click", () => this.downloadCircuit(circuit));
     }
-
+  
     const likeBtn = document.getElementById("like-circuit-btn");
     if (likeBtn) {
       likeBtn.addEventListener("click", () => this.likeCircuit(circuit.id));
     }
-
+    
+    // Add event listener for the delete button
+    const deleteBtn = document.getElementById("delete-circuit-btn");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", async () => {
+        if (confirm(`Are you sure you want to delete "${circuit.name || 'Untitled Circuit'}"?`)) {
+          try {
+            await this.repositoryService.deleteCircuit(circuit.id);
+            
+            // Close the detail view and go back to the grid
+            this.showCircuitGrid();
+            
+            // Refresh the circuit list
+            this.loadCircuits();
+            
+            alert("Circuit deleted successfully!");
+          } catch (error) {
+            console.error("Failed to delete circuit:", error);
+            alert("Failed to delete circuit. Please try again.");
+          }
+        }
+      });
+    }
+  
+    // Existing code for comment handling...
     const commentBtn = document.getElementById("post-comment-btn");
     const commentText = document.getElementById("comment-text") as HTMLTextAreaElement;
     if (commentBtn && commentText) {
@@ -1052,7 +1118,7 @@ export class CircuitRepositoryController {
     this.currentTab = tab;
 
     const tabs = document.querySelectorAll(".tab");
-    tabs.forEach((t) => {
+    tabs.forEach(t => {
       if (t.getAttribute("data-tab") === tab) {
         t.classList.add("active");
       } else {
@@ -1082,7 +1148,7 @@ export class CircuitRepositoryController {
       const searchResults = await this.repositoryService.searchCircuits(query);
 
       if (this.currentTab === "my-circuits") {
-        this.currentCircuits = searchResults.filter((c) => c.authorId === this.currentUserId);
+        this.currentCircuits = searchResults.filter(c => c.authorId === this.currentUserId);
       } else {
         this.currentCircuits = searchResults;
       }
@@ -1116,14 +1182,14 @@ export class CircuitRepositoryController {
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
     const verilogCode = formData.get("verilogCode") as string;
-    const tags = (formData.get("tags") as string).split(",").map((tag) => tag.trim());
+    const tags = (formData.get("tags") as string).split(",").map(tag => tag.trim());
 
     try {
       const newCircuit = await this.repositoryService.uploadCircuit({
         name: title,
         description,
         authorId: this.currentUserId,
-        authorName: "Current User", 
+        authorName: "Current User",
         tags,
         verilogCode,
         thumbnailUrl: undefined,
@@ -1142,98 +1208,105 @@ export class CircuitRepositoryController {
 
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
-      
-      const response = await fetch(`http://localhost:3000/api/circuits/${circuit.id}`);
-  
+      // Get the authentication token
+      const token = localStorage.getItem("auth_token");
+      if (!token) {
+        alert("You must be logged in to use this circuit");
+        return;
+      }
+
+      const response = await fetch(`${apiBaseUrl}/api/circuits/${circuit.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
       if (!response.ok) {
         throw new Error(`Failed to fetch circuit: ${response.statusText}`);
       }
-  
+
       const circuitData = await response.json();
       console.log("Fetched circuit data:", circuitData);
-      
-    
+
+      // Rest of your existing code...
       const circuitBoard = this.verilogConverter.circuitBoard;
       circuitBoard.clearCircuit();
-  
-    
+
       const componentMap = new Map<string, Component>();
       const portMap = new Map<string, Port>();
-  
-      
+
       if (circuitData.components && circuitData.components.length > 0) {
         for (const compData of circuitData.components) {
           const component = circuitBoard.createComponentByType(
             compData.type,
-            compData.state.position,
+            compData.state.position
           );
-  
+
           if (component) {
-           
             component.setState(compData.state);
-  
-            
+
             componentMap.set(compData.id, component);
-            
-          
+
             component.inputs.forEach((port, index) => {
               const portId = compData.inputs?.[index]?.id || `${compData.id}-input-${index}`;
               portMap.set(portId, port);
             });
-            
+
             component.outputs.forEach((port, index) => {
               const portId = compData.outputs?.[index]?.id || `${compData.id}-output-${index}`;
               portMap.set(portId, port);
             });
-  
+
             circuitBoard.addComponent(component);
           }
         }
-  
-        
+
         if (circuitData.wires && circuitData.wires.length > 0) {
           for (const wireData of circuitData.wires) {
-            
             const sourcePort = portMap.get(wireData.start?.portId);
             const targetPort = portMap.get(wireData.end?.portId);
-  
+
             if (sourcePort && targetPort) {
               console.log(`Creating wire from ${wireData.start.portId} to ${wireData.end.portId}`);
-              
+
               const wire = new Wire(sourcePort);
               const connected = wire.connect(targetPort);
-              
+
               if (connected) {
-              
                 circuitBoard.addWire(wire);
               } else {
-                console.warn(`Failed to connect wire from ${wireData.start.portId} to ${wireData.end.portId}`);
+                console.warn(
+                  `Failed to connect wire from ${wireData.start.portId} to ${wireData.end.portId}`
+                );
               }
             } else {
-              console.warn(`Missing ports for wire: source=${wireData.start?.portId}, target=${wireData.end?.portId}`);
+              console.warn(
+                `Missing ports for wire: source=${wireData.start?.portId}, target=${wireData.end?.portId}`
+              );
             }
           }
         } else {
           console.log("No wires to create in the circuit data");
         }
-  
-      
+
         circuitBoard.simulate();
         circuitBoard.draw();
-        
-        this.close();
-        alert(`Circuit "${circuit.name || circuit.title || 'Untitled'}" loaded successfully!`);
-      } else {
 
+        this.close();
+        alert(`Circuit "${circuit.name || circuit.title || "Untitled"}" loaded successfully!`);
+      } else {
         if (circuit.verilogCode) {
           const success = this.verilogConverter.importVerilogCode(circuit.verilogCode);
           if (success) {
             this.close();
-            alert(`Circuit "${circuit.name || circuit.title || 'Untitled'}" loaded from Verilog code!`);
+            alert(
+              `Circuit "${circuit.name || circuit.title || "Untitled"}" loaded from Verilog code!`
+            );
             return;
           }
         }
-        
+
         alert("The circuit appears to be empty. No components to load.");
       }
     } catch (error) {

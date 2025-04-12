@@ -4,14 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 4000 --force",
+    "dev": "vite --host --port 4000 --force",
     "dev:server": "cd server && npm run dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
+    "dev:network": "concurrently \"vite --host --port 4000 --force\" \"cd server && npm run dev\"",
     "build": "tsc -b && vite build --outDir dist",
     "lint": "eslint src --fix && npx tsc --noEmit",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "preview": "vite preview",
+    "format": "prettier --write \"**/*.{html,css,js,ts,json}\"",
+  "format:check": "prettier --check \"**/*.{html,css,js,ts,json}\"",
+    "preview": "vite preview --host",
     "server": "ts-node server/index.ts"
+    
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

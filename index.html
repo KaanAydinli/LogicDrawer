@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
+
 </head>
 
 <body>
@@ -23,7 +24,7 @@
       <div class = "docNameContainer">
         
           <div class="logo">
-            <span>Bilkent Logic Drawer</span>
+            <span>Logic Drawer</span>
           </div>
           <input type="text" class = "docName" placeholder="Untitled" ></input>
           <div class = "rightContainer">
@@ -48,14 +49,7 @@
             
 
 
-            <div class = "aiLogo" >
-              <!-- <svg width = 40 height = 40 xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" >
-                
-                <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
-                
-              </svg> -->
-              AI
-            </div>
+            <div class = "aiLogo" >AI</div>
 
             <div class="theme-container">
               <div id="test" class="Theme">Themes</div>
@@ -80,7 +74,7 @@
 
             
           </div>
-          <div>Sign In</div>
+          
           
           
           
@@ -522,6 +516,66 @@
       </div>
     </div>
 
+    <!-- Authentication Modal -->
+<div id="auth-modal" class="auth-modal">
+  <div class="auth-panel">
+    <!-- Login Form -->
+    <div id="login-form" class="auth-form active">
+      <div class="auth-header">
+        <h3>Sign In to LogicDrawer</h3>
+        <button type="button" class="close-auth-button">&times;</button>
+      </div>
+      <div class="auth-content">
+        <div class="input-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="Enter your email" required>
+        </div>
+        <div class="input-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Enter your password" required>
+        </div>
+        <div class="forgot-password">
+          <a href="#" id="forgot-password-link">Forgot password?</a>
+        </div>
+        <button type="button" class="auth-button" id="login-button">Sign In</button>
+        <div class="auth-switch">
+          Don't have an account? <a href="#" id="show-signup">Sign Up</a>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Register Form -->
+    <div id="signup-form" class="auth-form">
+      <div class="auth-header">
+        <h3>Create LogicDrawer Account</h3>
+        <button type="button" class="close-auth-button">&times;</button>
+      </div>
+      <div class="auth-content">
+        <div class="input-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" placeholder="Enter your name" required>
+        </div>
+        <div class="input-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" placeholder="Enter your email" required>
+        </div>
+        <div class="input-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" placeholder="Create a password" required>
+        </div>
+        <div class="input-group">
+          <label for="signup-confirm-password">Confirm Password</label>
+          <input type="password" id="signup-confirm-password" placeholder="Confirm your password" required>
+        </div>
+        <button type="button" class="auth-button" id="signup-button">Create Account</button>
+        <div class="auth-switch">
+          Already have an account? <a href="#" id="show-login">Sign In</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
     <div id="ai-chat-container" class="ai-chat-container">
       <div class="ai-chat-header">
         <h3>Circuit Design Assistant</h3>
@@ -535,7 +589,7 @@
         <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
         
       </svg>
-</div>
+          </div>
           <div class="message-content">Hello, my name is LogAI. I can help you design circuits or explain logic gates. How can I assist you today?</div>
         </div>
       </div>
@@ -556,8 +610,54 @@
           </svg>
         </button>
       </div>
+   
 
   <script type="module" src="/src/main.ts"></script>
+  <script>
+  // Safari Font Fix - System Font Alternative
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if browser is Safari
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
+    if (isSafari) {
+      console.log("Safari detected - using system font alternative");
+      
+      // Create a new style element with Safari-specific font alternatives
+      const style = document.createElement('style');
+      style.textContent = `
+        /* Safari-specific text elements - use system fonts that look pixel-like */
+        .logo, .docName, .Theme, .file, .storage, .component-label, .theme-option,
+        .fileOption, .settings-content, .ai-chat-header, .aiLogo , .ai-message, .component-group-title {
+          font-family: monospace, 'Courier New', Courier, -apple-system !important;
+          font-weight: bold !important;
+          letter-spacing: -0.5px !important;
+        }
+        
+        /* Make SVG text use system fonts */
+        svg text {
+          font-family: monospace, 'Courier New', Courier, -apple-system !important;
+          font-weight: bold !important;
+        }
+        
+        /* Fix AI avatar text */
+        .ai-avatar {
+          font-family: monospace, 'Courier New', Courier !important;
+          font-weight: bold !important;
+        }
+      `;
+      
+      // Add the style to the document head
+      document.head.appendChild(style);
+      
+      // Replace SVG text elements with plain div elements
+      document.querySelectorAll('.ai-avatar').forEach(avatar => {
+        if (avatar.querySelector('svg')) {
+          avatar.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; font-weight: bold;">AI</div>';
+        }
+      });
+    }
+  });
+</script>
 </body>
 
 </html>

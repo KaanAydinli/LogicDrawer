@@ -1,5 +1,6 @@
 
 import { RoboflowResponse } from './CircuitRecognizer';
+import { apiBaseUrl } from '../services/apiConfig';
 
 export class RoboflowService {
   private apiKey: string;
@@ -11,48 +12,33 @@ export class RoboflowService {
   }
 
   async detectComponents(imageBase64: string): Promise<RoboflowResponse> {
-
-    const base64Data = imageBase64.includes(',') 
-      ? imageBase64.split(',')[1] 
-      : imageBase64;
-  
     try {
+      console.log('Sending request to server endpoint...');
+      
+      // Use dynamic API URL instead of hardcoded localhost
       const response = await fetch(
-        'https://detect.roboflow.com/infer/workflows/' + this.workflowId, 
+        `${apiBaseUrl}/api/analyze/roboflow`, 
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            api_key: this.apiKey,
-            inputs: {
-              "image": {
-                "type": "base64", 
-                "value": base64Data
-              }
-            }
+            base64Image: imageBase64
           })
         }
       );
   
- 
       console.log('Response Status:', response.status);
-      console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
   
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Detailed Error Response:', errorText);
-        throw new Error(`HTTP error ${response.status}: ${errorText}`);
+        throw new Error(`Server error: ${response.status}`);
       }
   
       const result = await response.json();
-      console.log('Raw API Result:', JSON.stringify(result, null, 2));
-      
-
       return result;
     } catch (error) {
-      console.error('Error calling Roboflow Workflow API:', error);
+      console.error('Error detecting components:', error);
       throw error;
     }
   }
