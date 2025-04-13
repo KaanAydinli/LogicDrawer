@@ -52,24 +52,25 @@ export class VerilogParser {
 
       try {
         const { inputs, outputs, wires } = this.extractPortsAndWires(portList, body);
+        
         const gates = this.extractGates(body);
 
+        const safeInputs = inputs || [];
+        const safeOutputs = outputs || [];
+        const safeWires = wires || [];
+    
         const allSignalNames = [
-          ...inputs.map((p) => p.name),
-          ...outputs.map((p) => p.name),
-          ...wires.map((p) => p.name),
+          ...safeInputs.map((p) => p.name),
+          ...safeOutputs.map((p) => p.name),
+          ...safeWires.map((p) => p.name),
         ];
-
-        
-        
-        
 
         this.currentModule = {
           name: moduleName,
-          inputs,
-          outputs,
-          wires,
-          gates,
+          inputs: safeInputs,
+          outputs: safeOutputs,
+          wires: safeWires,
+          gates: gates || [],
         };
 
         return this.currentModule;
@@ -125,6 +126,7 @@ export class VerilogParser {
   }
 
   private extractPortsAndWires(portList: string, body: string) {
+    console.log("Extracting ports and wires from Verilog code...");
     const inputRegex =
       /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|\s+(?:output|inout|wire|reg|endmodule)\b|$)/g;
     const outputRegex =
@@ -203,8 +205,7 @@ export class VerilogParser {
         else if (part.match(/^\s*\w+\s*$/)) {
           
           
-          if (parts.indexOf(part) > 0 && !initialBitRange.includes(part)) {
-            
+          if (parts.indexOf(part) > 0 && initialBitRange && !initialBitRange.includes(part)) {
             results.push({
               name: part,
               bitWidth: undefined,
@@ -212,7 +213,6 @@ export class VerilogParser {
               lsb: undefined,
             });
           } else {
-            
             results.push({
               name: part,
               bitWidth: defaultBitWidth,

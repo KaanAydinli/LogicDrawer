@@ -3,15 +3,12 @@
 // Determine the base API URL based on the current host
 export const getApiBaseUrl = (): string => {
     // Extract hostname from current URL (without port)
+    // Extract hostname from current URL
     const hostname = window.location.hostname;
+    const port = 3000; // Backend port
     
-    // For development: use port 3000 for backend with current hostname
-    if (import.meta.env.DEV) {
-      return `http://${hostname}:3000`;
-    }
-    
-    // For production: assume backend is on same host (adjust if needed)
-    return window.location.origin;
+    // Her zaman mevcut hostname'i kullan, sadece port değiştir
+    return `http://${hostname}:${port}`;
   };
   
   // Use this for all API calls

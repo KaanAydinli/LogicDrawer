@@ -24,8 +24,10 @@ app.use(express.urlencoded({ limit: "25mb", extended: true }));
 
 app.use(
   cors({
-    origin: "*",
-    credentials: true,
+    origin: '*',  // Tüm kaynaklardan erişime izin ver
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
   })
 );
 
@@ -494,6 +496,42 @@ app.delete("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) =>
     res.json({ message: "Circuit deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete circuit" });
+  }
+});
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    ip: req.ip
+  });
+});
+
+// Add this before the final app.listen() call
+app.post("/api/auth/refresh", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+    
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    // Generate new token
+    const token = jwt.sign(
+      { id: user._id, email: user.email }, 
+      JWT_SECRET, 
+      { expiresIn: "24h" }
+    );
+    
+    res.json({ token });
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    res.status(500).json({ error: "Error refreshing token" });
   }
 });
 

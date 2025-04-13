@@ -5,12 +5,14 @@ import { CircuitEntry, CircuitRepositoryService, Comment } from './CircuitReposi
 export class MongoDBCircuitRepository implements CircuitRepositoryService {
   private readonly API_BASE_URL = `${apiBaseUrl}/api`;
 
+  
   // Helper method to get auth headers
 // Update the getAuthHeaders method to ensure correct format and logging
 private getAuthHeaders(): Headers {
   const headers = new Headers({
     'Content-Type': 'application/json'
   });
+  
   
   const token = localStorage.getItem('auth_token');
   if (token) {
@@ -23,6 +25,47 @@ private getAuthHeaders(): Headers {
   }
   
   return headers;
+}
+// Add a function to refresh the token
+private async refreshAuthToken(): Promise<boolean> {
+  try {
+    // Get user info from localStorage
+    const userInfo = localStorage.getItem('user_info');
+    if (!userInfo) {
+      console.log("No user info found for token refresh");
+      return false;
+    }
+    
+    // Parse the user info
+    const user = JSON.parse(userInfo);
+    
+    console.log("Attempting to refresh token for user:", user.id);
+    
+    // Call the refresh endpoint
+    const response = await fetch(`${this.API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ userId: user.id })
+    });
+    
+    if (!response.ok) {
+      console.log("Token refresh failed:", response.status);
+      return false;
+    }
+    
+    // Get the new token
+    const data = await response.json();
+    
+    // Save the new token
+    localStorage.setItem('auth_token', data.token);
+    console.log("Token refreshed successfully");
+    return true;
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+    return false;
+  }
 }
   private checkAuthentication(): boolean {
     const token = localStorage.getItem('auth_token');
@@ -43,22 +86,38 @@ private getAuthHeaders(): Headers {
     return true;
   }
   
-
   async getCircuits(): Promise<CircuitEntry[]> {
     try {
-      // Check if user is authenticated
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        console.log('User not authenticated');
-        return [];
-      }
-
       const response = await fetch(`${this.API_BASE_URL}/circuits`, {
         headers: this.getAuthHeaders()
       });
       
+      // If unauthorized, try to refresh token
+      if (response.status === 401) {
+        console.log("Unauthorized - attempting token refresh");
+        const refreshed = await this.refreshAuthToken();
+        
+        if (refreshed) {
+          // Retry the request with new token
+          return this.getCircuits();
+        } else {
+          // Token refresh failed, redirect to login
+          console.log("Token refresh failed, clearing auth data");
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_info');
+          
+          // Show login modal if it exists
+          const authModal = document.getElementById("auth-modal");
+          if (authModal) {
+            authModal.classList.add("active");
+          }
+          
+          return [];
+        }
+      }
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch circuits');
+        throw new Error(`Failed to fetch circuits: ${response.status}`);
       }
       
       const circuits = await response.json();
