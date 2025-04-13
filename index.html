@@ -29,7 +29,14 @@
           <input type="text" class = "docName" placeholder="Untitled" ></input>
           <div class = "rightContainer">
             <div class = "storage" >Circuits</div>
-
+            <button id="open-verilog-editor" class="verilog-button">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6L6 18M18 18L6 6"></path>
+                <path d="M18 2h-3v4h3v3h4V2h-4z"></path>
+                <path d="M6 13H2v9h9v-4H6v-5z"></path>
+              </svg>
+              IDE
+            </button>
             <div class="fileContainer">
               <div  class = "file">File</div>
               <div class="file-dropdown">
@@ -435,6 +442,22 @@
       </div>
     </div>
 
+    <div id="verilog-editor-container" class="verilog-editor-container">
+      <div class="verilog-editor-panel">
+        <div class="verilog-editor-header">
+          <h3>Code Editor</h3>
+          <button id="close-verilog-editor" class="close-verilog-button">&times;</button>
+        </div>
+        <div class="ide-toolbar">
+          <button id="run-code">Run</button>
+          <button id="save-code">Save</button>
+          
+        </div>
+        <div class="verilog-editor-content">
+          <div id="verilog-editor" style="width:100%;height:100%;"></div>
+        </div>
+      </div>
+    </div>
       <div id="settings-panel" class="settings-panel">
         <div class="settings-header">
           <h3>Settings</h3>
@@ -506,6 +529,7 @@
           </div>
         </div>
       </div>
+
     
       <div class="canvas-container">
         <canvas id="circuit-canvas"></canvas>
@@ -574,6 +598,8 @@
       </div>
     </div>
   </div>
+
+  
 </div>
 
     <div id="ai-chat-container" class="ai-chat-container">
@@ -613,6 +639,11 @@
    
 
   <script type="module" src="/src/main.ts"></script>
+
+  
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.36.1/min/vs/loader.js"></script>
+<!-- Kendi JS dosyanızı en sonda yükleyin -->
+<script src="src/verilog-ide.js"></script>
   <script>
   // Safari Font Fix - System Font Alternative
   document.addEventListener('DOMContentLoaded', function() {

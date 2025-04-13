@@ -431,7 +431,116 @@ body {
 .circuit-card:hover .circuit-actions {
   opacity: 1;
 }
+/* IDE stili ekleyin veya güncelleyin */
+/* Verilog Editör Popup Stil */
+.verilog-editor-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.7);
+  justify-content: center;
+  align-items: center;
+}
 
+.verilog-editor-panel {
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  width: 80%;
+  max-width: 1200px;
+  height: 80%;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.verilog-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #333;
+}
+
+.verilog-editor-header h3 {
+  margin: 0;
+  color: #fff;
+}
+
+.close-verilog-button {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.close-verilog-button:hover {
+  color: #fff;
+}
+
+.verilog-editor-content {
+  flex: 1;
+  padding: 0;
+  overflow: hidden;
+}
+
+.verilog-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #18191a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: "Pixelify Sans", sans-serif;
+  font-size: larger;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.verilog-button svg {
+  margin-right: 8px;
+}
+
+.verilog-button:hover {
+  background-color: #1f1f1f;
+}
+
+/* Animasyon */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* IDE Araç Çubuğu */
+.ide-toolbar {
+  padding: 8px;
+  background-color: #252526;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.ide-toolbar button {
+  background-color: #333;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.ide-toolbar button:hover {
+  background-color: #1177bb;
+}
 .circuit-actions button {
   background-color: rgba(0, 0, 0, 0.6);
   color: white;

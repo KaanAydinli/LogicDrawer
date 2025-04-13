@@ -11,10 +11,9 @@
     "build": "tsc -b && vite build --outDir dist",
     "lint": "eslint src --fix && npx tsc --noEmit",
     "format": "prettier --write \"**/*.{html,css,js,ts,json}\"",
-  "format:check": "prettier --check \"**/*.{html,css,js,ts,json}\"",
+    "format:check": "prettier --check \"**/*.{html,css,js,ts,json}\"",
     "preview": "vite preview --host",
     "server": "ts-node server/index.ts"
-    
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
@@ -46,6 +45,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
+    "hdl-js": "^0.0.72",
     "mongoose": "^8.2.0",
     "multer": "^1.4.5-lts.2"
   }

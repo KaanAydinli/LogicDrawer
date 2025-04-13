@@ -1,3 +1,9 @@
+declare global {
+  interface Window {
+    circuitBoard: any;
+  }
+}
+
 import { CircuitBoard } from "./models/CircuitBoard";
 import { AndGate } from "./models/gates/AndGate";
 import { OrGate } from "./models/gates/OrGate";
@@ -37,6 +43,7 @@ import { GoogleGenAI } from "@google/genai";
 import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
 import { apiBaseUrl } from "./services/apiConfig";
 import { set } from "mongoose";
+
 
 class Queue {
   public items: string[] = [];
@@ -115,12 +122,13 @@ const sidebar = document.querySelector(".sidebar") as HTMLElement;
 const sidebarClose = document.querySelector(".closeSide") as HTMLElement;
 var minimap: HTMLCanvasElement;
 
+
 function initApp() {
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
   minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
 
   initCircuitBoard();
-
+  window.circuitBoard = circuitBoard;
   converter = new VerilogCircuitConverter(circuitBoard);
 
 
@@ -149,6 +157,7 @@ function initApp() {
   setUpAI();
   setupSettings();
   setTheme();
+
   
   sidebarClose.classList.add("close");
 
@@ -172,6 +181,11 @@ function initApp() {
 
   handleResize();
   setFile();
+
+  // Extend Window interface to include circuitBoard property
+
+  
+
 
   //Open it when needed to test api
   // const testApiBtn = document.createElement("button");
@@ -325,7 +339,7 @@ function setupZoomControls() {
 
 function initCircuitBoard() {
   circuitBoard = new CircuitBoard(canvas, minimap);
-
+  window.circuitBoard = circuitBoard;
   createExampleCircuit();
 }
 
