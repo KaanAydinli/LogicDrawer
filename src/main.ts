@@ -1,6 +1,6 @@
 declare global {
   interface Window {
-    circuitBoard: any;
+    circuitBoard: CircuitBoard;
   }
 }
 
@@ -42,7 +42,6 @@ import { Led } from "./models/components/Led";
 import { GoogleGenAI } from "@google/genai";
 import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
 import { apiBaseUrl } from "./services/apiConfig";
-import { set } from "mongoose";
 
 
 class Queue {

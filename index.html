@@ -641,9 +641,22 @@
   <script type="module" src="/src/main.ts"></script>
 
   
-<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.36.1/min/vs/loader.js"></script>
-<!-- Kendi JS dosyanızı en sonda yükleyin -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.36.1/min/vs/loader.js"></script> -->
+
 <script src="src/verilog-ide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ext-language_tools.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/mode-verilog.js"></script>
+
+<script>
+  const editor = ace.edit("verilog-editor");
+  editor.setTheme("ace/theme/monokai");
+  editor.session.setMode("ace/mode/verilog");
+  editor.setOptions({
+    fontSize: "14pt"
+  });
+</script>
+
   <script>
   // Safari Font Fix - System Font Alternative
   document.addEventListener('DOMContentLoaded', function() {

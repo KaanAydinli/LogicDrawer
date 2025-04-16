@@ -231,13 +231,13 @@ export class VerilogParser {
   }
 
   private extractGates(body: string): VerilogGate[] {
-    // Mevcut gate extraction kodunu koru
+    
     const basicGates = this.extractBasicGates(body);
     
-    // Assign ifadelerini parse et
+    
     const assignGates = this.extractAndProcessAssignments(body);
     
-    // Tüm kapıları birleştir
+    
     return [...basicGates, ...assignGates];
   }
   private extractAndProcessAssignments(body: string): VerilogGate[] {
@@ -250,31 +250,31 @@ export class VerilogParser {
     while ((match = assignRegex.exec(body)) !== null) {
       const [, outputRaw, expression] = match;
 
-      // Çıkış sinyali adını temizle ([x:y] gibi bit aralıklarını kaldır)
+      
       const output = outputRaw.replace(/\[.*\]/, "");
       const trimmedExpr = expression.trim();
 
-      // 1. Basit tek operatörlü ifadeler
+      
       if (this.isSimpleExpression(trimmedExpr)) {
         this.processSimpleExpression(trimmedExpr, output, gates);
         continue;
       }
 
-      // 2. Parantezli ifadeler
+      
       if (trimmedExpr.includes("(")) {
         this.processParenthesisExpression(trimmedExpr, output, gates, gateCounter);
         gateCounter += this.countOperators(trimmedExpr);
         continue;
       }
 
-      // 3. Ternary operatör
+      
       if (trimmedExpr.includes("?") && trimmedExpr.includes(":")) {
         this.processTernaryExpression(trimmedExpr, output, gates, gateCounter);
         gateCounter += 1;
         continue;
       }
 
-      // 4. Karışık operatörler için öncelik sırasında işle
+      
       this.processComplexExpression(trimmedExpr, output, gates, gateCounter);
       gateCounter += this.countOperators(trimmedExpr);
     }
@@ -286,7 +286,7 @@ export class VerilogParser {
    * Basit bir ifade mi kontrol eder (tek operatör içeren)
    */
   private isSimpleExpression(expr: string): boolean {
-    // Tek bir operatör içeren ifadeler
+    
     return (
       (expr.includes("&") && !expr.includes("|") && !expr.includes("^") && !expr.includes("~")) ||
       (expr.includes("|") && !expr.includes("&") && !expr.includes("^") && !expr.includes("~")) ||
@@ -299,7 +299,7 @@ export class VerilogParser {
    * Basit ifadeleri işler (AND, OR, XOR, NOT)
    */
   private processSimpleExpression(expr: string, output: string, gates: VerilogGate[]): void {
-    // AND işlemi
+    
     if (expr.includes("&") && !expr.includes("|") && !expr.includes("^")) {
       const inputs = expr.split("&").map(s => this.cleanSignalName(s));
       gates.push({
@@ -309,7 +309,7 @@ export class VerilogParser {
         inputs,
       });
     }
-    // OR işlemi
+    
     else if (expr.includes("|") && !expr.includes("&") && !expr.includes("^")) {
       const inputs = expr.split("|").map(s => this.cleanSignalName(s));
       gates.push({
@@ -319,7 +319,7 @@ export class VerilogParser {
         inputs,
       });
     }
-    // XOR işlemi
+    
     else if (expr.includes("^") && !expr.includes("&") && !expr.includes("|")) {
       const inputs = expr.split("^").map(s => this.cleanSignalName(s));
       gates.push({
@@ -329,7 +329,7 @@ export class VerilogParser {
         inputs,
       });
     }
-    // NOT işlemi
+    
     else if (
       expr.startsWith("~") &&
       !expr.includes("&") &&
@@ -346,41 +346,38 @@ export class VerilogParser {
     }
   }
 
-  /**
-   * Parantez içi ifadeleri işler
-   */
   private processParenthesisExpression(
     expr: string,
     output: string,
     gates: VerilogGate[],
     gateCounter: number
   ): void {
-    // Parantez içi ifadeleri parçala ve işle
+    
     const parentheses = this.extractParenthesisGroups(expr);
     let processedExpr = expr;
     const tempWires: string[] = [];
 
-    // Her parantez grubunu ayrı bir ara kapı olarak işle
+    
     parentheses.forEach((parenthesis, index) => {
       const tempOutput = `_temp_wire_${gateCounter + index}`;
       tempWires.push(tempOutput);
 
-      // Parantez içini temizle
+      
       const innerExpr = parenthesis.substring(1, parenthesis.length - 1);
 
-      // Parantez içi ifadeyi işle
+      
       if (this.isSimpleExpression(innerExpr)) {
         this.processSimpleExpression(innerExpr, tempOutput, gates);
       } else {
-        // Daha karmaşık parantez içi ifadeler için
+        
         this.processComplexExpression(innerExpr, tempOutput, gates, gateCounter + index + 10);
       }
 
-      // Ana ifadede parantezi temp wire ile değiştir
+      
       processedExpr = processedExpr.replace(parenthesis, tempOutput);
     });
 
-    // Parantezler çözüldükten sonraki ifadeyi işle
+    
     if (this.isSimpleExpression(processedExpr)) {
       this.processSimpleExpression(processedExpr, output, gates);
     } else {
@@ -388,9 +385,6 @@ export class VerilogParser {
     }
   }
 
-  /**
-   * Parantez gruplarını çıkarır
-   */
   private extractParenthesisGroups(expr: string): string[] {
     const groups: string[] = [];
     let depth = 0;
@@ -431,55 +425,55 @@ private processTernaryExpression(
 
   const [condition, trueExpr, falseExpr] = parts;
 
-  // Temiz sinyal adları - bit genişliğini kaldır
+  
   const cleanCondition = this.cleanSignalName(condition);
   const cleanTrueExpr = this.cleanSignalName(trueExpr);
   const cleanFalseExpr = this.cleanSignalName(falseExpr);
   
-  // Basit durumlar için doğrudan bağlantı - ara sinyalleri azalt
+  
   if (this.isSimpleIdentifier(condition) && this.isSimpleIdentifier(trueExpr) && this.isSimpleIdentifier(falseExpr)) {
-    // Eğer hepsi basit değişkenlerse, doğrudan bağlantı yap
+    
     gates.push({
       type: "mux2",
       name: `assign_ternary_${output}`,
       output,
-      inputs: [cleanTrueExpr, cleanFalseExpr, cleanCondition], // [a, b, sel] sırası önemli
+      inputs: [cleanTrueExpr, cleanFalseExpr, cleanCondition], 
     });
     return;
   }
 
-  // Karmaşık ifadeler için ara sinyaller oluştur
+  
   const tempCondition = `_temp_cond_${gateCounter}`;
   const tempTrue = `_temp_true_${gateCounter}`;
   const tempFalse = `_temp_false_${gateCounter}`;
 
-  // Koşulu işle
+  
   if (this.isSimpleExpression(condition)) {
     this.processSimpleExpression(condition, tempCondition, gates);
   } else {
     this.processComplexExpression(condition, tempCondition, gates, gateCounter + 100);
   }
 
-  // True ifadesini işle
+  
   if (this.isSimpleExpression(trueExpr)) {
     this.processSimpleExpression(trueExpr, tempTrue, gates);
   } else {
     this.processComplexExpression(trueExpr, tempTrue, gates, gateCounter + 200);
   }
 
-  // False ifadesini işle
+  
   if (this.isSimpleExpression(falseExpr)) {
     this.processSimpleExpression(falseExpr, tempFalse, gates);
   } else {
     this.processComplexExpression(falseExpr, tempFalse, gates, gateCounter + 300);
   }
 
-  // MUX2 kapısı oluştur - doğru sırada girişleri bağla
+  
   gates.push({
     type: "mux2",
     name: `assign_ternary_${output}`,
     output,
-    inputs: [tempTrue, tempFalse, tempCondition], // [a, b, sel] sırası önemli
+    inputs: [tempTrue, tempFalse, tempCondition], 
   });
 }
 
@@ -498,7 +492,7 @@ private isSimpleIdentifier(expr: string): boolean {
     let questionIdx = -1;
     let colonIdx = -1;
 
-    // ? ve : operatörlerinin konumunu bul (parantez derinliğini dikkate alarak)
+    
     for (let i = 0; i < expr.length; i++) {
       if (expr[i] === "(") depth++;
       else if (expr[i] === ")") depth--;
@@ -525,10 +519,10 @@ private isSimpleIdentifier(expr: string): boolean {
     gates: VerilogGate[],
     gateCounter: number
   ): void {
-    // Operatör önceliği: ~ -> & -> ^ -> |
+    
     let processedExpr = expr;
 
-    // 1. NOT operatörünü işle
+    
     const notMatch = processedExpr.match(/~(\w+)/g);
     if (notMatch) {
       notMatch.forEach((match, index) => {
@@ -546,7 +540,7 @@ private isSimpleIdentifier(expr: string): boolean {
       });
     }
 
-    // 2. AND operatörünü işle
+    
     if (processedExpr.includes("&")) {
       const tempOutput = `_temp_and_${gateCounter}`;
       const andParts = processedExpr.split("&").map(s => this.cleanSignalName(s));
@@ -561,7 +555,7 @@ private isSimpleIdentifier(expr: string): boolean {
       processedExpr = tempOutput;
     }
 
-    // 3. XOR operatörünü işle
+    
     if (processedExpr.includes("^")) {
       const tempOutput = `_temp_xor_${gateCounter}`;
       const xorParts = processedExpr.split("^").map(s => this.cleanSignalName(s));
@@ -576,7 +570,7 @@ private isSimpleIdentifier(expr: string): boolean {
       processedExpr = tempOutput;
     }
 
-    // 4. OR operatörünü işle
+    
     if (processedExpr.includes("|")) {
       const orParts = processedExpr.split("|").map(s => this.cleanSignalName(s));
 
@@ -587,8 +581,8 @@ private isSimpleIdentifier(expr: string): boolean {
         inputs: orParts,
       });
     } else {
-      // Son işlenmiş ifade sonucunu çıkışa bağla
-      // Bu kısım, AND veya XOR işlemlerinin sonucu olabilir
+      
+      
       if (processedExpr !== expr && processedExpr !== output) {
         gates.push({
           type: "buf",

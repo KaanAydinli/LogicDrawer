@@ -36,7 +36,7 @@ export class CircuitBoard {
   canvas: HTMLCanvasElement;
   minimap: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
-  minimapCtx: any;
+  minimapCtx: CanvasRenderingContext2D;
   selectedComponent: Component | null;
   draggedComponent: Component | null;
   selectedWire: Wire | null;
@@ -75,6 +75,8 @@ export class CircuitBoard {
       this.minimapCtx = this.minimap.getContext("2d") as CanvasRenderingContext2D;
       this.setupMinimap();
     }
+    else 
+      this.minimapCtx = null as any;
 
     this.setupCanvas();
     this.setupEvents();
