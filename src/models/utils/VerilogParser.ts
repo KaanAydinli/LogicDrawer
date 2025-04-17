@@ -315,101 +315,88 @@ export class VerilogParser {
   private extractIfStatementsManually(alwaysBody: string, gates: VerilogGate[], gateCounter: number): void {
     console.log("Manually extracting if statements from alwaysBody:", alwaysBody);
 
-    
-    
-    const ifElseRegex = /if\s*\(\s*([^)]+?)\s*\)\s*begin\s*([\s\S]*?)\s*end\s*else\s*begin\s*([\s\S]*?)\s*end/i;
-    const ifOnlyRegex = /if\s*\(\s*([^)]+?)\s*\)\s*begin\s*([\s\S]*?)\s*end(?!\s*else)/i; 
+    // Find the first 'if' that is not inside another structure (simplistic approach)
+    const ifRegex = /\bif\s*\(([\s\S]+?)\)/; // Non-greedy condition match
+    const ifMatch = alwaysBody.match(ifRegex);
 
-    let match = alwaysBody.match(ifElseRegex);
-    let isIfElse = true;
-
-    if (!match) {
-        match = alwaysBody.match(ifOnlyRegex);
-        isIfElse = false;
+    if (!ifMatch || ifMatch.index === undefined) {
+      // No more top-level if statements in this block
+      return;
     }
 
-    if (!match) {
-        
-        return; 
+    const condition = ifMatch[1].trim();
+    const afterIfConditionIndex = ifMatch.index + ifMatch[0].length;
+    let remainingBody = alwaysBody.substring(afterIfConditionIndex).trim(); // Start processing right after if(...)
+
+    // --- Extract 'then' block/statement ---
+    const thenResult = this.extractStatementOrBlock(remainingBody);
+    if (!thenResult) {
+        console.error(`Could not parse 'then' block/statement for condition: ${condition}`);
+        return; // Stop processing this if statement
     }
+    const thenContent = thenResult.content;
+    remainingBody = thenResult.remaining; // Update remaining body
 
-    const condition = match[1].trim();
-    const thenBody = match[2].trim();
-    const elseBody = isIfElse && match[3] ? match[3].trim() : '';
-
-    console.log("Found if condition:", condition);
-    console.log("Found then body:", thenBody);
-    if (isIfElse) console.log("Found else body:", elseBody);
-
-    
-    const assignmentRegex = /(\w+)\s*=\s*([^;]+);/g; 
-
-    const parseAssignments = (body: string): Map<string, string> => {
-        const assignments = new Map<string, string>();
-        let assignMatch;
-        assignmentRegex.lastIndex = 0; 
-        while ((assignMatch = assignmentRegex.exec(body)) !== null) {
-            
-            if (!body.substring(0, assignMatch.index).includes('case')) {
-               assignments.set(assignMatch[1].trim(), assignMatch[2].trim());
-            }
-        }
-        return assignments;
-    };
-
-    const thenAssignments = parseAssignments(thenBody);
-    const elseAssignments = parseAssignments(elseBody);
-
-    console.log("Then assignments Map:", thenAssignments);
-    console.log("Else assignments Map:", elseAssignments);
-
-    let muxCounter = 0;
-    const processedTargets = new Set<string>();
-
-    
-    for (const [target, thenExpression] of thenAssignments.entries()) {
-        if (processedTargets.has(target)) continue;
-
-        const elseExpression = elseAssignments.get(target);
-
-        if (elseExpression !== undefined) { 
-            const muxGate: VerilogGate = {
-                type: 'mux2',
-                name: `if_mux_${target}_${gateCounter + muxCounter}`,
-                output: target,
-                inputs: [elseExpression, thenExpression], 
-                controlSignal: condition
-            };
-            console.log("Creating MUX2 gate from if/else:", muxGate);
-            gates.push(muxGate);
-            processedTargets.add(target);
-            muxCounter++;
-        } else if (!isIfElse) { 
-            
-            
-            console.warn(`Assignment to '${target}' only in 'then' block (no 'else'). Potential latch.`);
-            
-            
-            
-            processedTargets.add(target);
+    // --- Extract 'else' block/statement (if exists) ---
+    let elseContent: string | null = null;
+    if (remainingBody.startsWith('else')) {
+        remainingBody = remainingBody.substring('else'.length).trim(); // Consume 'else' keyword
+        const elseResult = this.extractStatementOrBlock(remainingBody);
+        if (!elseResult) {
+            console.error(`Could not parse 'else' block/statement for condition: ${condition}`);
+            // Decide whether to continue without else or stop
+        } else {
+            elseContent = elseResult.content;
+            remainingBody = elseResult.remaining; // Update remaining body after else
         }
     }
 
-    
-    if (isIfElse) {
-        for (const [target, elseExpression] of elseAssignments.entries()) {
-            if (processedTargets.has(target)) continue;
-            
-            console.warn(`Assignment to '${target}' only in 'else' block. Potential latch.`);
-            
-            
-            
-            
-            
-            processedTargets.add(target);
-        }
+    console.log(`Found if: Condition='${condition}'`);
+    console.log(`  Then: '${thenContent}'`);
+    if (elseContent !== null) {
+        console.log(`  Else: '${elseContent}'`);
     }
-}
+
+    // --- Process the blocks/statements to generate gates ---
+    const assignmentRegex = /(\w+)\s*=\s*([^;]+);/; // Simple assignment regex
+
+    const thenAssignMatch = thenContent.match(assignmentRegex);
+    const elseAssignMatch = elseContent ? elseContent.match(assignmentRegex) : null;
+
+    if (thenAssignMatch && elseAssignMatch && thenAssignMatch[1] === elseAssignMatch[1]) {
+      // Both branches assign to the same variable -> MUX
+      const target = thenAssignMatch[1];
+      const trueSignal = this.cleanSignalName(thenAssignMatch[2]);
+      const falseSignal = this.cleanSignalName(elseAssignMatch[2]);
+      const controlSignal = this.cleanSignalName(condition); // Assuming condition is simple
+
+      // Check if signals are simple identifiers before creating MUX directly
+      if (this.isSimpleIdentifier(controlSignal) && this.isSimpleIdentifier(trueSignal) && this.isSimpleIdentifier(falseSignal)) {
+          const muxGate: VerilogGate = {
+            type: 'mux2',
+            name: `if_mux2_${target}_${gateCounter}`, // Use gateCounter for uniqueness
+            output: target,
+            inputs: [falseSignal, trueSignal], // [sel=0, sel=1]
+            controlSignal: controlSignal,
+          };
+          console.log("Generated MUX2 for if/else:", JSON.stringify(muxGate));
+          gates.push(muxGate);
+          gateCounter++; // Increment counter for next potential gate
+      } else {
+          // Handle complex expressions (requires temporary wires)
+          console.warn(`Complex expressions inside if/else branches not fully implemented for MUX generation yet: ${condition}`);
+          // Placeholder logic...
+      }
+
+    } else if (thenAssignMatch && elseContent === null) {
+        // Handle 'if' without 'else'
+        console.warn(`Handling 'if' without 'else' for target '${thenAssignMatch[1]}' is not fully implemented (potential latch).`);
+        // Placeholder logic...
+    } else {
+        // Handle assignments to different targets or no assignments
+        console.warn(`Assignments in 'if'/'else' branches do not match or are missing for condition: ${condition}`);
+    }
+  }
 
   private extractCaseStatements(body: string, gates: VerilogGate[], gateCounter: number): void {
     console.log("Extracting case statements from:", body);
@@ -860,6 +847,89 @@ private isSimpleIdentifier(expr: string): boolean {
     }
 
     return [];
+  }
+  private findMatchingEnd(text: string, startIndex: number = 0): number {
+    let balance = 0;
+    let currentIndex = startIndex;
+    const beginKeyword = 'begin';
+    const endKeyword = 'end';
+    let inBegin = false; // Track if we are inside the initial 'begin'
+
+    // Find the start of the block content
+    while(currentIndex < text.length && /\s/.test(text[currentIndex])) {
+        currentIndex++;
+    }
+    if (text.substring(currentIndex, currentIndex + beginKeyword.length) === beginKeyword) {
+        currentIndex += beginKeyword.length;
+        balance = 1; // Start balance at 1 since we are inside the 'begin'
+        inBegin = true;
+    } else {
+        // If not starting with begin, we can't find a matching end for it
+        return -1;
+    }
+
+
+    while (currentIndex < text.length) {
+      // Check for nested 'begin'
+      if (text.substring(currentIndex, currentIndex + beginKeyword.length) === beginKeyword) {
+        balance++;
+        currentIndex += beginKeyword.length;
+      // Check for 'end'
+      } else if (text.substring(currentIndex, currentIndex + endKeyword.length) === endKeyword) {
+        balance--;
+        if (balance === 0 && inBegin) { // Found the matching end for the initial 'begin'
+          return currentIndex + endKeyword.length; // Return position *after* 'end'
+        }
+        if (balance < 0) return -1; // Mismatched 'end'
+        currentIndex += endKeyword.length;
+      } else {
+        currentIndex++;
+      }
+    }
+    return -1; // Matching end not found
+  }
+
+  // Helper function to extract a block (either begin..end or single statement)
+  private extractStatementOrBlock(text: string): { content: string; remaining: string } | null {
+      text = text.trim();
+      if (!text) return null;
+
+      if (text.startsWith('begin')) {
+          const endBlockIndex = this.findMatchingEnd(text, 0); // Start search from beginning
+          if (endBlockIndex !== -1) {
+              // Extract content between 'begin' and its matching 'end'
+              const beginContentStart = text.indexOf('begin') + 'begin'.length;
+              const endContentEnd = endBlockIndex - 'end'.length; // Position before 'end' keyword
+              const content = text.substring(beginContentStart, endContentEnd).trim();
+              const remaining = text.substring(endBlockIndex).trim();
+              return { content, remaining };
+          } else {
+              console.error("Syntax error: Missing 'end' for 'begin' block starting near:", text.substring(0, 50) + "...");
+              return null; // Error: missing end
+          }
+      } else {
+          // Assume single statement ending with semicolon
+          // Need to handle potential nested structures like case inside single statement? (Keep simple for now)
+          let semicolonIndex = -1;
+          let parenDepth = 0;
+          for(let i = 0; i < text.length; i++) {
+              if (text[i] === '(') parenDepth++;
+              else if (text[i] === ')') parenDepth--;
+              else if (text[i] === ';' && parenDepth === 0) {
+                  semicolonIndex = i;
+                  break;
+              }
+          }
+
+          if (semicolonIndex !== -1) {
+              const content = text.substring(0, semicolonIndex + 1).trim(); // Include semicolon
+              const remaining = text.substring(semicolonIndex + 1).trim();
+              return { content, remaining };
+          } else {
+              console.error("Syntax error: Expected single statement ending with ';' near:", text.substring(0, 50) + "...");
+              return null; // Error: missing semicolon or invalid single statement
+          }
+      }
   }
 
   /**
