@@ -75,12 +75,18 @@ window.initAceEditor = function () {
     }
 
     // Başlangıç kodunu ayarla
-    window.editor.setValue(`// Write your Verilog code here
-module example(
-  input a, b,
-  output c
+    window.editor.setValue(`module if_test(
+  input a, b, sel,
+  output out
 );
-  assign c = a & b;
+  // If-else ile 2:1 multiplexer
+  always @(a or b or sel) begin
+    if (sel) begin
+      out = a;
+    end else begin
+      out = b;
+    end
+  end
 endmodule`);
 
     // İmleç pozisyonunu başa getir

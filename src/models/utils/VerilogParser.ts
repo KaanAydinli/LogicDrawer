@@ -15,9 +15,11 @@ export interface VerilogModule {
 
 export interface VerilogGate {
   type: string;
-  inputs: string[];
+  name?: string;
   output: string;
-  name: string;
+  inputs: string[];
+  controlSignal?: string; // Mux için seçim sinyali
+  conditions?: {value: string, result: string}[]; // Case koşulları
 }
 
 export class VerilogParser {
@@ -236,9 +238,268 @@ export class VerilogParser {
     
     
     const assignGates = this.extractAndProcessAssignments(body);
+
+    const controlStructureGates = this.extractControlStructures(body);
     
-    
-    return [...basicGates, ...assignGates];
+    // Tüm kapıları birleştir
+    return [...basicGates, ...assignGates, ...controlStructureGates];
+  }
+  
+  private extractControlStructures(body: string): VerilogGate[] {
+    console.log("Control structures extraction from body:", body);
+    const gates: VerilogGate[] = [];
+    let gateCounter = 0;
+  
+    // Düzeltilmiş alwaysRegex - İçeriği greedy olarak yakala (*)
+    const alwaysRegex = /always\s*@\s*\(\s*([^)]*?)\s*\)\s*begin([\s\S]*)end\b/g; // [\s\S]*? yerine [\s\S]*
+    let alwaysMatch;
+  
+    while ((alwaysMatch = alwaysRegex.exec(body)) !== null) {
+      const sensitivity = alwaysMatch[1].trim();
+      // alwaysBody: begin ve end arasındaki içerik
+      const alwaysBody = alwaysMatch[2].trim();
+  
+      console.log("Found always block with sensitivity:", sensitivity);
+      console.log("Always body:", alwaysBody); // Bu çıktının artık tam olması lazım
+      console.log("Full always match:", alwaysMatch[0]); // Tam eşleşmeyi kontrol et
+  
+      // extractIfStatementsManually metoduna doğru alwaysBody'yi geçirelim
+      this.extractIfStatementsManually(alwaysBody, gates, gateCounter);
+      gateCounter += 100;
+  
+      // Case kontrolü normal devam edebilir
+      this.extractCaseStatements(alwaysBody, gates, gateCounter);
+      gateCounter += 100;
+    }
+  
+    console.log("Extracted gates from control structures:", gates);
+    return gates;
+  }
+
+  private extractIfStatementsManually(alwaysBody: string, gates: VerilogGate[], gateCounter: number): void {
+    console.log("Manually extracting if statements from alwaysBody:", alwaysBody);
+  
+    // Regex'leri alwaysBody üzerinde çalışacak şekilde ayarla
+    // if (koşul)
+    const ifConditionMatch = alwaysBody.match(/if\s*\(\s*([^)]+?)\s*\)/);
+    if (!ifConditionMatch) {
+      console.log("No if condition found in alwaysBody");
+      return;
+    }
+    const condition = ifConditionMatch[1].trim();
+    console.log("Found if condition:", condition);
+  
+    // Then bloğu: if(...) begin ... end
+    // [\s\S]*? kullanarak tembel eşleşme yapalım
+    const thenMatch = alwaysBody.match(/if\s*\([^)]+?\)\s*begin\s*([\s\S]*?)\s*end/);
+    if (!thenMatch) {
+      console.log("No then block found (begin...end)");
+      // Belki begin/end olmadan tek satırlık if? (Şimdilik kapsam dışı)
+      return;
+    }
+    const thenBody = thenMatch[1].trim();
+    console.log("Found then body:", thenBody);
+  
+    // Else bloğu: end else begin ... end
+    const elseMatch = alwaysBody.match(/end\s*else\s*begin\s*([\s\S]*?)\s*end/);
+    const elseBody = elseMatch ? elseMatch[1].trim() : ''; // Else bloğu opsiyonel
+    console.log("Found else body:", elseBody);
+  
+    // Then ve else bloğundaki atamaları bul
+    const thenAssignments = thenBody.match(/(\w+)\s*=\s*([^;]+);/g) || [];
+    const elseAssignments = elseBody.match(/(\w+)\s*=\s*([^;]+);/g) || [];
+  
+    console.log("Then assignments:", thenAssignments);
+    console.log("Else assignments:", elseAssignments);
+  
+    let ifCounter = 0;
+  
+    // Then bloğundaki atamaları işle
+    for (const thenAssign of thenAssignments) {
+      const thenAssignMatch = thenAssign.match(/(\w+)\s*=\s*([^;]+)/);
+      if (!thenAssignMatch) continue;
+  
+      const target = thenAssignMatch[1].trim();
+      const thenExpression = thenAssignMatch[2].trim();
+  
+      // Else bloğunda aynı hedef var mı bul
+      let elseExpression = '';
+      for (const elseAssign of elseAssignments) {
+        // Dinamik regex oluştururken özel karakterlere dikkat et
+        const elseAssignMatch = elseAssign.match(new RegExp(`^\\s*${target}\\s*=\\s*([^;]+)`));
+        if (elseAssignMatch) {
+          elseExpression = elseAssignMatch[1].trim();
+          console.log(`Found matching else assignment for ${target}: ${elseExpression}`);
+          break;
+        }
+      }
+  
+      // MUX2 kapısı oluştur
+      const muxGate: VerilogGate = {
+        type: 'mux2',
+        name: `if_mux_${gateCounter + ifCounter}`,
+        output: target,
+        // MUX2 giriş sırası: [false_değeri, true_değeri]
+        inputs: elseExpression ?
+          [elseExpression, thenExpression] :
+          ['0', thenExpression], // Else yoksa varsayılan olarak 0 kullan
+        controlSignal: condition
+      };
+  
+      console.log("Creating MUX2 gate:", muxGate);
+      gates.push(muxGate);
+  
+      ifCounter++;
+    }
+  }
+  private extractCaseStatements(body: string, gates: VerilogGate[], gateCounter: number): void {
+    console.log("Extracting case statements from:", body);
+
+    // case (selector) ... endcase
+    const caseRegex = /case\s*\(\s*([^)]+?)\s*\)([\s\S]*?)endcase/g;
+    // case_item: assignment; (default dahil)
+    const caseItemRegex = /(?:(\d+'[bB][01xXzZ]+|\d+'[hH][0-9a-fA-FxXzZ]+|\d+'[dD][0-9xXzZ]+|\d+'[oO][0-7xXzZ]+|\d+|default)\s*:)\s*([^;]+);/g;
+
+    let caseMatch;
+    while ((caseMatch = caseRegex.exec(body)) !== null) {
+      const selector = caseMatch[1].trim();
+      const caseBody = caseMatch[2];
+      console.log("Found case statement with selector:", selector);
+      console.log("Case body:", caseBody);
+
+      // Seçici sinyalin bit genişliğini tahmin etmeye çalış (varsayılan 1 bit)
+      // TODO: Daha sağlam bit genişliği tespiti için port/wire bilgilerini kullan
+      let selectorBitWidth = 1;
+      const selectorWidthMatch = selector.match(/\[(\d+):(\d+)\]/);
+      if (selectorWidthMatch) {
+        const msb = parseInt(selectorWidthMatch[1]);
+        const lsb = parseInt(selectorWidthMatch[2]);
+        selectorBitWidth = Math.abs(msb - lsb) + 1;
+      } else {
+        // Port/wire listesinden bulmayı dene (this.currentModule kullanarak)
+        const portOrWire = this.currentModule?.inputs.find(p => p.name === selector) ||
+                           this.currentModule?.wires.find(w => w.name === selector);
+        if (portOrWire?.bitWidth) {
+          selectorBitWidth = portOrWire.bitWidth;
+        } else {
+           console.warn(`Selector '${selector}' bit width could not be determined, assuming 1.`);
+        }
+      }
+
+
+      const muxSize = 2 ** selectorBitWidth;
+      const muxInputs: (string | null)[] = new Array(muxSize).fill(null); // Başlangıçta null ile doldur
+      let defaultAssignment: string | null = null;
+      const conditions: { value: string; result: string }[] = [];
+      let targetOutput: string | null = null;
+
+      let caseItemMatch;
+      while ((caseItemMatch = caseItemRegex.exec(caseBody)) !== null) {
+        const caseValue = caseItemMatch[1].trim();
+        const assignment = caseItemMatch[2].trim();
+        console.log(`Found case item: ${caseValue} -> ${assignment}`);
+
+        // Atamayı ayrıştır (örn: out = a)
+        const assignmentMatch = assignment.match(/(\w+)\s*=\s*(.+)/);
+        if (!assignmentMatch) {
+          console.warn(`Could not parse assignment: ${assignment}`);
+          continue;
+        }
+        const currentTarget = assignmentMatch[1].trim();
+        const expression = assignmentMatch[2].trim();
+
+        // Tüm case kollarının aynı hedefi atadığından emin ol (basitleştirme)
+        if (targetOutput === null) {
+          targetOutput = currentTarget;
+        } else if (targetOutput !== currentTarget) {
+          console.error(`Case statement assigns to multiple targets ('${targetOutput}' and '${currentTarget}'). This is not supported.`);
+          return; // Desteklenmeyen durum
+        }
+
+        conditions.push({ value: caseValue, result: expression });
+
+        if (caseValue === "default") {
+          defaultAssignment = expression;
+        } else {
+          // Case değerini integer'a çevir
+          let index: number | null = null;
+          try {
+            if (caseValue.includes("'b")) {
+              index = parseInt(caseValue.split("'b")[1].replace(/[xXzZ_]/g, '0'), 2);
+            } else if (caseValue.includes("'h")) {
+              index = parseInt(caseValue.split("'h")[1].replace(/[xXzZ_]/g, '0'), 16);
+            } else if (caseValue.includes("'d")) {
+              index = parseInt(caseValue.split("'d")[1].replace(/[xXzZ_]/g, '0'), 10);
+            } else if (caseValue.includes("'o")) {
+              index = parseInt(caseValue.split("'o")[1].replace(/[xXzZ_]/g, '0'), 8);
+            } else {
+              index = parseInt(caseValue, 10);
+            }
+          } catch (e) {
+             console.error(`Could not parse case value '${caseValue}' to integer index.`, e);
+          }
+
+
+          if (index !== null && index >= 0 && index < muxSize) {
+            if (muxInputs[index] !== null) {
+               console.warn(`Duplicate case index ${index} ('${caseValue}'). Overwriting previous assignment.`);
+            }
+            muxInputs[index] = expression;
+          } else {
+             console.warn(`Case value '${caseValue}' (index ${index}) is out of bounds for MUX size ${muxSize}.`);
+          }
+        }
+      }
+
+      if (targetOutput === null) {
+        console.warn("No valid assignments found in case statement.");
+        continue;
+      }
+
+      // Default değeri atanmamış girişlere uygula
+      if (defaultAssignment !== null) {
+        for (let i = 0; i < muxSize; i++) {
+          if (muxInputs[i] === null) {
+            muxInputs[i] = defaultAssignment;
+          }
+        }
+      } else {
+         // Default yoksa ve boşluklar varsa, varsayılan olarak '0' ata
+         for (let i = 0; i < muxSize; i++) {
+          if (muxInputs[i] === null) {
+            console.warn(`MUX input at index ${i} is unspecified and no default case found. Assigning '0'.`);
+            muxInputs[i] = "'b0"; // Veya 1'b0
+          }
+        }
+      }
+
+
+      // MUX kapısı oluştur
+      let muxType: string;
+      if (muxSize <= 2) muxType = 'mux2';
+      else if (muxSize <= 4) muxType = 'mux4';
+      // else if (muxSize <= 8) muxType = 'mux8'; // Gerekirse eklenebilir
+      else {
+        console.error(`MUX size ${muxSize} is too large or unsupported.`);
+        continue;
+      }
+
+      console.log(`Creating MUX for target ${targetOutput} with ${muxSize} inputs.`);
+
+      const muxGate: VerilogGate = {
+        type: muxType,
+        name: `case_${muxType}_${gateCounter}`,
+        output: targetOutput,
+        // DİKKAT: MUX giriş sırası önemli! [input0, input1, input2, input3]
+        inputs: muxInputs.filter(input => input !== null) as string[], // Null olmayanları al
+        controlSignal: selector,
+        conditions: conditions // Koşulları da ekleyelim (Converter'da yardımcı olabilir)
+      };
+
+      console.log(`Creating ${muxType} gate:`, muxGate);
+      gates.push(muxGate);
+      gateCounter += 100; // Sonraki kapı için sayacı artır
+    }
   }
   private extractAndProcessAssignments(body: string): VerilogGate[] {
     const assignRegex =
