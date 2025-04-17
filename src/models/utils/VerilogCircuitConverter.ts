@@ -18,6 +18,7 @@ import { BufferGate } from "../gates/BufferGate";
 import { Clock } from "../components/Clock";
 import { Constant0 } from "../components/Constant0";
 import { Constant1 } from "../components/Constant1";
+import { DFlipFlop } from "../Sequential/DFlipFlop";
 
 export class VerilogCircuitConverter {
   private parser: VerilogParser;
@@ -494,6 +495,28 @@ export class VerilogCircuitConverter {
             }
 
             continue;
+          case "dflipflop":
+            component = new DFlipFlop(position);
+
+            // Component'i ekle
+            this.components[gate.output] = component;
+            // DFF'nin Q çıkışını (index 0) outputPorts'a ekle
+            this.outputPorts[gate.output] = component.outputs[0];
+            this.circuitBoard.addComponent(component);
+
+            // Girişleri bağla:
+            // gate.inputs[0] -> D girişi (component.inputs[0])
+            // gate.inputs[1] -> CLK girişi (component.inputs[1])
+            if (gate.inputs.length >= 2) {
+              this.connectGateInputToComponent(gate.inputs[0], component, 0); // D girişi
+              this.connectGateInputToComponent(gate.inputs[1], component, 1); // CLK girişi
+            } else {
+              console.error(
+                `DFlipFlop gate '${gate.name || gate.output}' has insufficient inputs.`
+              );
+            }
+            // DFF için özel bağlantı mantığı burada bitti, genel bağlantıya geçme
+            continue;
           default:
             console.error(`Unsupported gate type: ${gate.type}`);
         }
@@ -558,7 +581,11 @@ export class VerilogCircuitConverter {
       return false;
     }
   }
-  private connectGateInputToComponent(inputName: string, component: Component, inputIndex: number): void {
+  private connectGateInputToComponent(
+    inputName: string,
+    component: Component,
+    inputIndex: number
+  ): void {
     // Sayısal sabit değer mi kontrol et (0, 1, 2'b00, vb.)
     if (this.isConstant(inputName)) {
       this.connectConstantValue(inputName, component, inputIndex);
@@ -578,14 +605,16 @@ export class VerilogCircuitConverter {
       wire.connect(component.inputs[inputIndex]);
       this.circuitBoard.addWire(wire);
     } else {
-      console.error(`Source port for ${inputName} not found, needed for component ${component.id} input ${inputIndex}. Creating auto-toggle.`);
+      console.error(
+        `Source port for ${inputName} not found, needed for component ${component.id} input ${inputIndex}. Creating auto-toggle.`
+      );
 
       // Otomatik oluşturulan toggle switch ile bağla
       const position = this.findUnusedPosition();
       const toggle = new ToggleSwitch(position);
 
       // Otomatik oluşturulan toggle'ları ayırt etmek için isim verelim
-      const autoCompName = `auto_${inputName.replace(/[\[\]:]/g, '_')}`; // Geçersiz karakterleri değiştir
+      const autoCompName = `auto_${inputName.replace(/[\[\]:]/g, "_")}`; // Geçersiz karakterleri değiştir
       this.components[autoCompName] = toggle;
       this.outputPorts[inputName] = toggle.outputs[0]; // Orijinal sinyal adıyla kaydet
       this.circuitBoard.addComponent(toggle);
@@ -602,38 +631,42 @@ export class VerilogCircuitConverter {
       this.circuitBoard.addComponent(label);
     }
   }
-  
+
   // MUX için kontrol sinyalini bağlar
-  private connectControlSignal(controlSignal: string, component: Component, inputIndex: number): void {
+  private connectControlSignal(
+    controlSignal: string,
+    component: Component,
+    inputIndex: number
+  ): void {
     // Kontrol ifadesi karmaşık bir ifade olabilir (örn: a & b, ~c, vb.)
     if (this.isComplexExpression(controlSignal)) {
       this.connectComplexControlExpression(controlSignal, component, inputIndex);
       return;
     }
-    
+
     // Basit değişken adı
     const sourcePort = this.outputPorts[controlSignal];
-    
+
     if (sourcePort) {
       const wire = new Wire(sourcePort);
       wire.connect(component.inputs[inputIndex]);
       this.circuitBoard.addWire(wire);
     } else {
       console.error(`Control signal source port for ${controlSignal} not found`);
-      
+
       // Otomatik oluşturulan switch
       const position = this.findUnusedPosition();
       const toggle = new ToggleSwitch(position);
-      
+
       const toggleName = `auto_${controlSignal}`;
       this.components[toggleName] = toggle;
       this.outputPorts[controlSignal] = toggle.outputs[0];
       this.circuitBoard.addComponent(toggle);
-      
+
       const wire = new Wire(toggle.outputs[0]);
       wire.connect(component.inputs[inputIndex]);
       this.circuitBoard.addWire(wire);
-      
+
       const labelPosition = {
         x: position.x - 80,
         y: position.y + 20,
@@ -642,38 +675,40 @@ export class VerilogCircuitConverter {
       this.circuitBoard.addComponent(label);
     }
   }
-  
+
   // MUX4 için 2-bit kontrol sinyalini bağlar
   private connectControlSignalForMux4(
     controlSignal: string,
     component: Component, // MUX4 component
-    conditions?: {value: string, result: string}[]
+    conditions?: { value: string; result: string }[]
   ): void {
-    console.log(`Connecting control signals for MUX4 ${component.id} using signal: ${controlSignal}`);
-  
+    console.log(
+      `Connecting control signals for MUX4 ${component.id} using signal: ${controlSignal}`
+    );
+
     // 1. Kontrol sinyali çok-bitli bir giriş portu mu? (örn: "sel")
     //    Bu kontrol, setupMultiBitSignals'ın bitleri outputPorts'a eklediğini varsayar.
     const bit0SignalName = `${controlSignal}[0]`;
     const bit1SignalName = `${controlSignal}[1]`;
-  
+
     const sourcePortBit0 = this.outputPorts[bit0SignalName];
     const sourcePortBit1 = this.outputPorts[bit1SignalName];
-  
+
     if (sourcePortBit0 && sourcePortBit1) {
-        console.log(`Found existing multi-bit signals: ${bit0SignalName} and ${bit1SignalName}`);
-        // Doğrudan bitleri bağla
-        const wire0 = new Wire(sourcePortBit0);
-        wire0.connect(component.inputs[4]); // select0
-        this.circuitBoard.addWire(wire0);
-        console.log(`Connected ${bit0SignalName} to MUX4 select0`);
-  
-        const wire1 = new Wire(sourcePortBit1);
-        wire1.connect(component.inputs[5]); // select1
-        this.circuitBoard.addWire(wire1);
-        console.log(`Connected ${bit1SignalName} to MUX4 select1`);
-        return; // Başarıyla bağlandı, başka işleme gerek yok
+      console.log(`Found existing multi-bit signals: ${bit0SignalName} and ${bit1SignalName}`);
+      // Doğrudan bitleri bağla
+      const wire0 = new Wire(sourcePortBit0);
+      wire0.connect(component.inputs[4]); // select0
+      this.circuitBoard.addWire(wire0);
+      console.log(`Connected ${bit0SignalName} to MUX4 select0`);
+
+      const wire1 = new Wire(sourcePortBit1);
+      wire1.connect(component.inputs[5]); // select1
+      this.circuitBoard.addWire(wire1);
+      console.log(`Connected ${bit1SignalName} to MUX4 select1`);
+      return; // Başarıyla bağlandı, başka işleme gerek yok
     }
-  
+
     // 2. Kontrol sinyali bit aralığı mı? (örn: sel[1:0])
     //    Bu durum genellikle parser tarafından zaten bitlere ayrılmalı,
     //    ama yine de kontrol edelim.
@@ -682,109 +717,116 @@ export class VerilogCircuitConverter {
       const [, baseName, msbStr, lsbStr] = bitRangeMatch;
       const msb = parseInt(msbStr);
       const lsb = parseInt(lsbStr);
-  
+
       if (Math.abs(msb - lsb) === 1) {
         // İki bit bağla (connectGateInputToComponent bunları bulamazsa toggle oluşturur)
         const bit0Index = Math.min(msb, lsb);
         const bit1Index = Math.max(msb, lsb);
         const derivedBit0Name = `${baseName}[${bit0Index}]`;
         const derivedBit1Name = `${baseName}[${bit1Index}]`;
-  
-        console.log(`Control signal is a bit range. Connecting derived bits: ${derivedBit0Name} and ${derivedBit1Name}`);
+
+        console.log(
+          `Control signal is a bit range. Connecting derived bits: ${derivedBit0Name} and ${derivedBit1Name}`
+        );
         this.connectGateInputToComponent(derivedBit0Name, component, 4); // select0
         this.connectGateInputToComponent(derivedBit1Name, component, 5); // select1
         return;
       } else {
-          console.warn(`Control signal ${controlSignal} has an unexpected bit range for MUX4.`);
+        console.warn(`Control signal ${controlSignal} has an unexpected bit range for MUX4.`);
       }
     }
-  
+
     // 3. Case ifadesinden mi geliyor? (conditions listesi var)
     if (conditions && conditions.length > 0) {
-      console.log(`Control signal likely from a case statement. Creating toggles based on conditions.`);
+      console.log(
+        `Control signal likely from a case statement. Creating toggles based on conditions.`
+      );
       // Case değerlerini ikili sayılara dönüştür ve MUX4 seçim girişlerine bağla
       // Bu metot kendi içinde toggle'ları oluşturur.
       this.connectMux4SelectionsBasedOnCaseValues(conditions, component);
       return;
     }
-  
+
     // 4. Varsayılan Durum: Tek bit kontrol sinyali veya bilinmeyen durum
     //    Tek sinyali select0'a bağla, select1'i 0 yap.
-    console.warn(`Could not directly map control signal ${controlSignal} to 2 bits. Connecting ${controlSignal} to select0 and grounding select1.`);
+    console.warn(
+      `Could not directly map control signal ${controlSignal} to 2 bits. Connecting ${controlSignal} to select0 and grounding select1.`
+    );
     this.connectGateInputToComponent(controlSignal, component, 4); // select0
-  
+
     // select1'i 0'a bağla
-    this.connectConstantValue('0', component, 5); // select1
+    this.connectConstantValue("0", component, 5); // select1
   }
-  
+
   // MUX4 seçim girişlerini case değerlerine göre bağlar
   private connectMux4SelectionsBasedOnCaseValues(
-    conditions: {value: string, result: string}[], 
+    conditions: { value: string; result: string }[],
     mux: Component
   ): void {
     // Tüm case değerlerini incele ve 2-bit kodlama oluştur
     const bitMapping = new Map<string, [boolean, boolean]>();
-    
+
     // Kodlamayı belirle
     conditions.forEach((condition, index) => {
-      if (index < 4) { // MUX4 maksimum 4 giriş destekler
+      if (index < 4) {
+        // MUX4 maksimum 4 giriş destekler
         // Değer ikili sayı mı? (örn: 2'b01, 2'h2, vb.)
         const binaryMatch = condition.value.match(/(\d+)'b([01]+)/);
         const hexMatch = condition.value.match(/(\d+)'h([0-9A-Fa-f]+)/);
         const decimalMatch = condition.value.match(/^(\d+)$/);
-        
-        let binaryValue: string = '';
-        
+
+        let binaryValue: string = "";
+
         if (binaryMatch) {
-          binaryValue = binaryMatch[2].padStart(parseInt(binaryMatch[1]), '0');
+          binaryValue = binaryMatch[2].padStart(parseInt(binaryMatch[1]), "0");
         } else if (hexMatch) {
           const hexValue = hexMatch[2];
           const decimal = parseInt(hexValue, 16);
-          binaryValue = decimal.toString(2).padStart(parseInt(hexMatch[1]), '0');
+          binaryValue = decimal.toString(2).padStart(parseInt(hexMatch[1]), "0");
         } else if (decimalMatch) {
           const decimal = parseInt(decimalMatch[1]);
-          binaryValue = decimal.toString(2).padStart(2, '0');
+          binaryValue = decimal.toString(2).padStart(2, "0");
         } else {
           // Özel durum: default veya isimlendirilen durum
-          binaryValue = index.toString(2).padStart(2, '0');
+          binaryValue = index.toString(2).padStart(2, "0");
         }
-        
+
         // Son 2 biti al
-        const lastTwoBits = binaryValue.slice(-2).padStart(2, '0');
+        const lastTwoBits = binaryValue.slice(-2).padStart(2, "0");
         bitMapping.set(condition.value, [
-          lastTwoBits[1] === '1', // Bit 0
-          lastTwoBits[0] === '1'  // Bit 1
+          lastTwoBits[1] === "1", // Bit 0
+          lastTwoBits[0] === "1", // Bit 1
         ]);
       }
     });
-    
+
     // Bit 0 ve Bit 1 için toggle switch oluştur (select0 ve select1)
     const pos0 = this.findUnusedPosition();
     const toggle0 = new ToggleSwitch(pos0);
     this.components[`select0_${mux.id}`] = toggle0;
     this.circuitBoard.addComponent(toggle0);
-    
+
     const pos1 = { x: pos0.x, y: pos0.y + 60 };
     const toggle1 = new ToggleSwitch(pos1);
     this.components[`select1_${mux.id}`] = toggle1;
     this.circuitBoard.addComponent(toggle1);
-    
+
     // Etiketler ekle
     const label0 = new Text({ x: pos0.x - 80, y: pos0.y + 20 }, "select0", 16);
     this.circuitBoard.addComponent(label0);
-    
+
     const label1 = new Text({ x: pos1.x - 80, y: pos1.y + 20 }, "select1", 16);
     this.circuitBoard.addComponent(label1);
-    
+
     // Bağlantıları yap
     const wire0 = new Wire(toggle0.outputs[0]);
     wire0.connect(mux.inputs[4]); // select0
     this.circuitBoard.addWire(wire0);
-    
+
     const wire1 = new Wire(toggle1.outputs[0]);
     wire1.connect(mux.inputs[5]); // select1
     this.circuitBoard.addWire(wire1);
-    
+
     // Case değerlerini gösteren bir bilgi etiketi ekle
     if (conditions.length > 0) {
       let caseInfoText = "Case Değerleri:\n";
@@ -794,84 +836,88 @@ export class VerilogCircuitConverter {
           caseInfoText += `${condition.value}: [${bit1 ? 1 : 0}, ${bit0 ? 1 : 0}] -> ${index}\n`;
         }
       });
-      
+
       const infoPos = { x: mux.position.x, y: mux.position.y - 80 };
       const infoLabel = new Text(infoPos, caseInfoText, 14);
       this.circuitBoard.addComponent(infoLabel);
     }
   }
-  
+
   // Karmaşık kontrol ifadesini bağlar (a & b, ~c, vb.)
-  private connectComplexControlExpression(expression: string, component: Component, inputIndex: number): void {
+  private connectComplexControlExpression(
+    expression: string,
+    component: Component,
+    inputIndex: number
+  ): void {
     // AND işlemi
-    if (expression.includes('&')) {
-      const andPosition = { 
-        x: component.position.x - 120, 
-        y: component.position.y - 50 
+    if (expression.includes("&")) {
+      const andPosition = {
+        x: component.position.x - 120,
+        y: component.position.y - 50,
       };
       const andGate = new AndGate(andPosition);
       this.components[`and_ctrl_${component.id}`] = andGate;
       this.circuitBoard.addComponent(andGate);
-      
-      const parts = expression.split('&').map(p => p.trim());
+
+      const parts = expression.split("&").map(p => p.trim());
       this.connectGateInputToComponent(parts[0], andGate, 0);
       this.connectGateInputToComponent(parts[1], andGate, 1);
-      
+
       const wire = new Wire(andGate.outputs[0]);
       wire.connect(component.inputs[inputIndex]);
       this.circuitBoard.addWire(wire);
       return;
     }
-    
+
     // OR işlemi
-    if (expression.includes('|')) {
-      const orPosition = { 
-        x: component.position.x - 120, 
-        y: component.position.y - 50 
+    if (expression.includes("|")) {
+      const orPosition = {
+        x: component.position.x - 120,
+        y: component.position.y - 50,
       };
       const orGate = new OrGate(orPosition);
       this.components[`or_ctrl_${component.id}`] = orGate;
       this.circuitBoard.addComponent(orGate);
-      
-      const parts = expression.split('|').map(p => p.trim());
+
+      const parts = expression.split("|").map(p => p.trim());
       this.connectGateInputToComponent(parts[0], orGate, 0);
       this.connectGateInputToComponent(parts[1], orGate, 1);
-      
+
       const wire = new Wire(orGate.outputs[0]);
       wire.connect(component.inputs[inputIndex]);
       this.circuitBoard.addWire(wire);
       return;
     }
-    
+
     // NOT işlemi
-    if (expression.startsWith('~')) {
-      const notPosition = { 
-        x: component.position.x - 120, 
-        y: component.position.y - 50 
+    if (expression.startsWith("~")) {
+      const notPosition = {
+        x: component.position.x - 120,
+        y: component.position.y - 50,
       };
       const notGate = new NotGate(notPosition);
       this.components[`not_ctrl_${component.id}`] = notGate;
       this.circuitBoard.addComponent(notGate);
-      
+
       const input = expression.substring(1).trim();
       this.connectGateInputToComponent(input, notGate, 0);
-      
+
       const wire = new Wire(notGate.outputs[0]);
       wire.connect(component.inputs[inputIndex]);
       this.circuitBoard.addWire(wire);
       return;
     }
-    
+
     // Basit kontrol sinyali olarak bağla
     this.connectControlSignal(expression, component, inputIndex);
   }
-  
+
   private connectConstantValue(value: string, component: Component, inputIndex: number): void {
     const constPosition = this.findUnusedPosition(); // Sabit için pozisyon bul
-  
+
     // Değeri belirle
     let boolValue = false; // Varsayılan olarak false (0)
-  
+
     if (value === "1" || value === "true") {
       boolValue = true;
     } else if (value === "0" || value === "false") {
@@ -882,31 +928,31 @@ export class VerilogCircuitConverter {
       const hexMatch = value.match(/(\d+)'[hH]([0-9a-fA-FxXzZ]+)$/);
       const decimalMatch = value.match(/(\d+)'[dD]([0-9xXzZ]+)$/);
       const octalMatch = value.match(/(\d+)'[oO]([0-7xXzZ]+)$/);
-  
+
       let numericValue = 0;
-  
+
       try {
-          if (binaryMatch) {
-              const binaryString = binaryMatch[2].replace(/[xXzZ]/g, '0'); // X/Z'yi 0 kabul et
-              numericValue = parseInt(binaryString, 2);
-          } else if (hexMatch) {
-              const hexString = hexMatch[2].replace(/[xXzZ]/g, '0');
-              numericValue = parseInt(hexString, 16);
-          } else if (decimalMatch) {
-              const decimalString = decimalMatch[2].replace(/[xXzZ]/g, '0');
-              numericValue = parseInt(decimalString, 10);
-          } else if (octalMatch) {
-              const octalString = octalMatch[2].replace(/[xXzZ]/g, '0');
-              numericValue = parseInt(octalString, 8);
-          }
+        if (binaryMatch) {
+          const binaryString = binaryMatch[2].replace(/[xXzZ]/g, "0"); // X/Z'yi 0 kabul et
+          numericValue = parseInt(binaryString, 2);
+        } else if (hexMatch) {
+          const hexString = hexMatch[2].replace(/[xXzZ]/g, "0");
+          numericValue = parseInt(hexString, 16);
+        } else if (decimalMatch) {
+          const decimalString = decimalMatch[2].replace(/[xXzZ]/g, "0");
+          numericValue = parseInt(decimalString, 10);
+        } else if (octalMatch) {
+          const octalString = octalMatch[2].replace(/[xXzZ]/g, "0");
+          numericValue = parseInt(octalString, 8);
+        }
       } catch (e) {
-          console.error(`Sabit değer ayrıştırılamadı: ${value}`, e);
+        console.error(`Sabit değer ayrıştırılamadı: ${value}`, e);
       }
-  
+
       // En düşük anlamlı bit (LSB) 1 ise true kabul et
       boolValue = (numericValue & 1) === 1;
     }
-  
+
     // DÜZELTME: ToggleSwitch yerine Constant0 veya Constant1 kullan
     let constantComponent: Component;
     if (boolValue) {
@@ -914,33 +960,27 @@ export class VerilogCircuitConverter {
     } else {
       constantComponent = new Constant0(constPosition);
     }
-  
+
     // Component'i ekle
-    const constCompName = `const_${component.id}_${inputIndex}_${value.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    const constCompName = `const_${component.id}_${inputIndex}_${value.replace(/[^a-zA-Z0-9]/g, "_")}`;
     this.components[constCompName] = constantComponent;
     this.circuitBoard.addComponent(constantComponent);
-  
+
     // Bağlantıyı yap
     // Constant0/1'in tek bir çıkışı var (index 0)
     const wire = new Wire(constantComponent.outputs[0]);
     wire.connect(component.inputs[inputIndex]);
     this.circuitBoard.addWire(wire);
-  
-    // Değer etiketi eklemeye gerek yok, Constant bileşenleri zaten kendilerini çiziyor.
-    // const labelPosition = {
-    //   x: constPosition.x - 40,
-    //   y: constPosition.y + 20,
-    // };
-    // const label = new Text(labelPosition, value, 16);
-    // this.circuitBoard.addComponent(label);
-  
-    console.log(`Connected constant value ${value} (interpreted as ${boolValue}) to ${component.id} input ${inputIndex} using ${constantComponent.type}`);
+
+    console.log(
+      `Connected constant value ${value} (interpreted as ${boolValue}) to ${component.id} input ${inputIndex} using ${constantComponent.type}`
+    );
   }
-  
+
   // Bir değerin sabit olup olmadığını kontrol eder
   private isConstant(value: string): boolean {
     // Basit 0 veya 1
-    if (value === '0' || value === '1') return true;
+    if (value === "0" || value === "1") return true;
     // Verilog formatları: 1'b0, 4'hF, 8'd12 vb.
     // 'b, 'h, 'd, 'o harflerinden sonra sayısal değerler
     if (/^\d+'[bB][01xXzZ]+$/.test(value)) return true; // Binary
@@ -948,15 +988,21 @@ export class VerilogCircuitConverter {
     if (/^\d+'[dD][0-9xXzZ]+$/.test(value)) return true; // Decimal
     if (/^\d+'[oO][0-7xXzZ]+$/.test(value)) return true; // Octal
     // true/false
-    if (value === 'true' || value === 'false') return true;
-  
+    if (value === "true" || value === "false") return true;
+
     return false;
   }
-  
+
   // Karmaşık bir ifade olup olmadığını kontrol eder
   private isComplexExpression(expr: string): boolean {
-    return expr.includes('&') || expr.includes('|') || expr.includes('~') || 
-           expr.includes('^') || expr.includes('(') || expr.includes(')');
+    return (
+      expr.includes("&") ||
+      expr.includes("|") ||
+      expr.includes("~") ||
+      expr.includes("^") ||
+      expr.includes("(") ||
+      expr.includes(")")
+    );
   }
   private getGateLayer(output: string): number {
     const layer = Array.from(this.componentPositions.entries()).find(
@@ -1062,9 +1108,12 @@ export class VerilogCircuitConverter {
 
       for (let i = 0; i < input.bitWidth; i++) {
         // Bit sırasını doğru belirle (msb/lsb'ye göre)
-        const bitActualIndex = (input.msb !== undefined && input.lsb !== undefined && input.msb < input.lsb)
-                               ? (input.lsb - i) // Örn: [0:7] -> i=0 -> bit 7
-                               : (input.lsb !== undefined ? input.lsb + i : i); // Örn: [7:0] -> i=0 -> bit 0
+        const bitActualIndex =
+          input.msb !== undefined && input.lsb !== undefined && input.msb < input.lsb
+            ? input.lsb - i // Örn: [0:7] -> i=0 -> bit 7
+            : input.lsb !== undefined
+              ? input.lsb + i
+              : i; // Örn: [7:0] -> i=0 -> bit 0
 
         const bitName = `${input.name}[${bitActualIndex}]`;
         const position = {

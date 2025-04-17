@@ -11,6 +11,7 @@ export interface VerilogModule {
   outputs: VerilogPort[];
   wires: VerilogPort[];
   gates: VerilogGate[];
+  
 }
 
 export interface VerilogGate {
@@ -18,12 +19,13 @@ export interface VerilogGate {
   name?: string;
   output: string;
   inputs: string[];
-  controlSignal?: string; // Mux için seçim sinyali
-  conditions?: {value: string, result: string}[]; // Case koşulları
+  controlSignal?: string; 
+  conditions?: {value: string, result: string}[]; 
 }
 
 export class VerilogParser {
   private currentModule: VerilogModule | null = null;
+
 
   parseVerilog(code: string): VerilogModule {
     try {
@@ -55,25 +57,26 @@ export class VerilogParser {
       try {
         const { inputs, outputs, wires } = this.extractPortsAndWires(portList, body);
 
-        const gates = this.extractGates(body);
-
         const safeInputs = inputs || [];
         const safeOutputs = outputs || [];
         const safeWires = wires || [];
 
-        const allSignalNames = [
-          ...safeInputs.map(p => p.name),
-          ...safeOutputs.map(p => p.name),
-          ...safeWires.map(p => p.name),
-        ];
-
+        
         this.currentModule = {
           name: moduleName,
           inputs: safeInputs,
           outputs: safeOutputs,
           wires: safeWires,
-          gates: gates || [],
+          gates: [], 
         };
+
+        
+        const gates = this.extractGates(body);
+
+        
+        this.currentModule.gates = gates || [];
+
+        
 
         return this.currentModule;
       } catch (error) {
@@ -87,148 +90,178 @@ export class VerilogParser {
     }
   }
 
-  private validateWireConnections(gates: VerilogGate[], allSignals: string[]): void {
-    const wireOutputMap: Record<string, string> = {};
-
-    for (const gate of gates) {
-      const outputNet = gate.output;
-
-      if (!outputNet) {
-        throw new Error(`Gate ${gate.name} has no output defined`);
-      }
-
-      if (outputNet in wireOutputMap) {
-        throw new Error(
-          `Signal '${outputNet}' is driven by multiple gates (${wireOutputMap[outputNet]} and ${gate.type}). Each wire can only have one driver.`
-        );
-      }
-
-      wireOutputMap[outputNet] = gate.type;
-    }
-  }
-
-  private validateGateConnections(gates: VerilogGate[], allSignals: string[]): void {
-    for (const gate of gates) {
-      if (!gate.output || !allSignals.includes(gate.output)) {
-        throw new Error(`Gate ${gate.name} output '${gate.output}' is not a declared signal`);
-      }
-
-      for (const input of gate.inputs) {
-        if (!input || !allSignals.includes(input)) {
-          throw new Error(`Gate ${gate.name} input '${input}' is not a declared signal`);
-        }
-      }
-    }
-  }
-
   getModule(): VerilogModule | null {
     return this.currentModule;
   }
 
   private extractPortsAndWires(portList: string, body: string) {
     console.log("Extracting ports and wires from Verilog code...");
-    const inputRegex =
-      /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|\s+(?:output|inout|wire|reg|endmodule)\b|$)/g;
-    const outputRegex =
-      /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|\s+(?:input|inout|wire|reg|endmodule)\b|$)/g;
+    console.log("Raw Port List:", portList); 
+
+    const inputs: VerilogPort[] = [];
+    const outputs: VerilogPort[] = [];
+
+    
+    
+    
+    
+    const portListItemRegex = /(input|output|inout)?\s*(?:\[\s*(\d+)\s*:\s*(\d+)\s*\])?\s*(\w+)/g;
+
+    
+    const portListItems = portList.split(',').map(item => item.trim()).filter(Boolean);
+
+    let currentDirection = 'inout'; 
+    let currentMsb: number | undefined = undefined;
+    let currentLsb: number | undefined = undefined;
+    let currentBitWidth: number | undefined = undefined;
+
+    for (const item of portListItems) {
+        portListItemRegex.lastIndex = 0; 
+        const match = portListItemRegex.exec(item);
+
+        if (match) {
+            const [, direction, msbStr, lsbStr, name] = match;
+
+            
+            if (direction) {
+                currentDirection = direction;
+                
+                
+                currentMsb = msbStr ? parseInt(msbStr, 10) : undefined;
+                currentLsb = lsbStr ? parseInt(lsbStr, 10) : undefined;
+                currentBitWidth = (currentMsb !== undefined && currentLsb !== undefined)
+                                    ? Math.abs(currentMsb - currentLsb) + 1 : undefined;
+            } else {
+                 
+                 if (msbStr) { 
+                    currentMsb = parseInt(msbStr, 10);
+                    currentLsb = lsbStr ? parseInt(lsbStr, 10) : undefined; 
+                    currentBitWidth = (currentMsb !== undefined && currentLsb !== undefined)
+                                        ? Math.abs(currentMsb - currentLsb) + 1 : undefined;
+                 }
+                 
+            }
+
+
+            const port: VerilogPort = {
+                name: name,
+                bitWidth: currentBitWidth,
+                msb: currentMsb,
+                lsb: currentLsb,
+            };
+
+            if (currentDirection === 'input') {
+                inputs.push(port);
+            } else if (currentDirection === 'output') {
+                outputs.push(port);
+            }
+            
+             console.log(`Parsed PortList Item: Name=${name}, Dir=${currentDirection}, Width=${currentBitWidth}`); 
+        } else {
+            console.warn(`Could not parse item from port list: "${item}"`);
+        }
+    }
+
+
+    
+    
+    const bodyInputRegex = /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?);/g;
+    const bodyOutputRegex = /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?);/g;
     const wireRegex = /wire\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|$)/g;
 
-    const inputs = this.collectPortsWithBitWidths(portList, inputRegex);
-    const outputs = this.collectPortsWithBitWidths(portList, outputRegex);
+    
+    
+    const bodyInputs = this.collectPortsWithBitWidths(body, bodyInputRegex);
+    const bodyOutputs = this.collectPortsWithBitWidths(body, bodyOutputRegex);
+    const wires = this.collectPortsWithBitWidths(body, wireRegex);
 
-    const bodyInputs = this.collectPortsWithBitWidths(body, inputRegex);
-    const bodyOutputs = this.collectPortsWithBitWidths(body, outputRegex);
-
+    
     inputs.push(...bodyInputs);
     outputs.push(...bodyOutputs);
 
-    const wires = this.collectPortsWithBitWidths(body, wireRegex);
+    var temp = [];
 
+    temp.push(...inputs);
+    temp.push(...outputs);
+    temp.push(...wires);
+
+    temp = this.removeDuplicatePorts(temp);
+
+
+    
     if (inputs.length === 0) {
-      throw new Error("No input ports defined in the module");
+      
+      console.warn("No input ports defined or detected in the module.");
+       throw new Error("No input ports defined in the module");
     }
     if (outputs.length === 0) {
       throw new Error("No output ports defined in the module");
     }
 
-    return { inputs, outputs, wires };
+    return { inputs: inputs, outputs: outputs, wires: wires };
+  }
+  
+  
+  private removeDuplicatePorts(ports: VerilogPort[]): VerilogPort[] {
+    const uniquePorts: VerilogPort[] = [];
+    const portNames = new Set<string>();
+
+    for (const port of ports) {
+      // Port ve isminin geçerli olduğundan emin ol
+      if (port && port.name) {
+          if (portNames.has(port.name)) {
+              // Yinelenen isim bulunduğunda hata fırlat
+              throw new Error(`Duplicate port name found: ${port.name}`);
+          }
+          portNames.add(port.name);
+          uniquePorts.push(port);
+      } else {
+          console.warn("Encountered an invalid port/wire object during deduplication:", port);
+      }
+    }
+    return uniquePorts;
   }
 
   private collectPortsWithBitWidths(source: string, regex: RegExp): VerilogPort[] {
     const results: VerilogPort[] = [];
     let match;
+    regex.lastIndex = 0; 
 
     while ((match = regex.exec(source)) !== null) {
-      const [, initialBitRange, initialMsbStr, initialLsbStr, identifiers] = match;
+      
+      const [, bitRange, msbStr, lsbStr, identifiers] = match;
+      if (!identifiers || identifiers.trim() === "") continue;
 
-      if (!identifiers || identifiers.trim() === "") {
-        continue;
-      }
+      const defaultMsb = msbStr ? parseInt(msbStr, 10) : undefined;
+      const defaultLsb = lsbStr ? parseInt(lsbStr, 10) : undefined;
+      const defaultBitWidth = (defaultMsb !== undefined && defaultLsb !== undefined)
+                                ? Math.abs(defaultMsb - defaultLsb) + 1 : undefined;
 
-      const defaultMsb = initialMsbStr ? parseInt(initialMsbStr, 10) : undefined;
-      const defaultLsb = initialLsbStr ? parseInt(initialLsbStr, 10) : undefined;
-      const defaultBitWidth =
-        defaultMsb !== undefined && defaultLsb !== undefined
-          ? Math.abs(defaultMsb - defaultLsb) + 1
-          : undefined;
+      
+      var parts = identifiers.split(",").map(s => s.trim()).filter(Boolean);
+      for (var part of parts) {
+          
+          part
+          const nameMatch = part.match(/(?:\[\s*(\d+)\s*:\s*(\d+)\s*\]\s*)?(\w+)/);
+          if (nameMatch) {
+              const [, partMsbStr, partLsbStr, name] = nameMatch;
+              const partMsb = partMsbStr ? parseInt(partMsbStr, 10) : defaultMsb;
+              const partLsb = partLsbStr ? parseInt(partLsbStr, 10) : defaultLsb;
+              const partBitWidth = (partMsb !== undefined && partLsb !== undefined)
+                                    ? Math.abs(partMsb - partLsb) + 1 : defaultBitWidth;
 
-      const parts = identifiers
-        .split(",")
-        .map(s => s.trim())
-        .filter(Boolean);
-
-      let applyDefaultBitWidth = true;
-
-      for (const part of parts) {
-        const bitRangeMatch = part.match(/^\s*(?:\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+(\w+)$/);
-
-        if (bitRangeMatch) {
-          const [, msbStr, lsbStr, name] = bitRangeMatch;
-          const msb = parseInt(msbStr, 10);
-          const lsb = parseInt(lsbStr, 10);
-          const bitWidth = Math.abs(msb - lsb) + 1;
-
-          results.push({
-            name,
-            bitWidth,
-            msb,
-            lsb,
-          });
-        } else if (part.match(/^\s*\w+\s*$/)) {
-          if (parts.indexOf(part) > 0 && initialBitRange && !initialBitRange.includes(part)) {
-            results.push({
-              name: part,
-              bitWidth: undefined,
-              msb: undefined,
-              lsb: undefined,
-            });
+              results.push({
+                  name: name,
+                  bitWidth: partBitWidth,
+                  msb: partMsb,
+                  lsb: partLsb,
+              });
           } else {
-            results.push({
-              name: part,
-              bitWidth: defaultBitWidth,
-              msb: defaultMsb,
-              lsb: defaultLsb,
-            });
+              console.warn(`Could not parse port/wire identifier part: ${part}`);
           }
-        } else {
-          const individualBitRangeMatch = part.match(/^\s*\[\s*(\d+)\s*:\s*(\d+)\s*\](\w+)$/);
-          if (individualBitRangeMatch) {
-            const [, msbStr, lsbStr, name] = individualBitRangeMatch;
-            const msb = parseInt(msbStr, 10);
-            const lsb = parseInt(lsbStr, 10);
-            const bitWidth = Math.abs(msb - lsb) + 1;
-
-            results.push({
-              name,
-              bitWidth,
-              msb,
-              lsb,
-            });
-          }
-        }
       }
     }
-
+    console.log(`Collected ports/wires with regex ${regex}:`, results);
     return results;
   }
 
@@ -241,7 +274,7 @@ export class VerilogParser {
 
     const controlStructureGates = this.extractControlStructures(body);
     
-    // Tüm kapıları birleştir
+    
     return [...basicGates, ...assignGates, ...controlStructureGates];
   }
   
@@ -249,115 +282,141 @@ export class VerilogParser {
     console.log("Control structures extraction from body:", body);
     const gates: VerilogGate[] = [];
     let gateCounter = 0;
-  
-    // Düzeltilmiş alwaysRegex - İçeriği greedy olarak yakala (*)
-    const alwaysRegex = /always\s*@\s*\(\s*([^)]*?)\s*\)\s*begin([\s\S]*)end\b/g; // [\s\S]*? yerine [\s\S]*
+
+    
+    const alwaysRegex = /always\s*@\s*\(([^)]*?)\)\s*begin([\s\S]*?)end(?=\s*(?:always|assign|endmodule|$))/g;
     let alwaysMatch;
-  
+    alwaysRegex.lastIndex = 0; 
+
     while ((alwaysMatch = alwaysRegex.exec(body)) !== null) {
       const sensitivity = alwaysMatch[1].trim();
-      // alwaysBody: begin ve end arasındaki içerik
-      const alwaysBody = alwaysMatch[2].trim();
-  
+      const alwaysBody = alwaysMatch[2].trim(); 
+
       console.log("Found always block with sensitivity:", sensitivity);
-      console.log("Always body:", alwaysBody); // Bu çıktının artık tam olması lazım
-      console.log("Full always match:", alwaysMatch[0]); // Tam eşleşmeyi kontrol et
-  
-      // extractIfStatementsManually metoduna doğru alwaysBody'yi geçirelim
-      this.extractIfStatementsManually(alwaysBody, gates, gateCounter);
-      gateCounter += 100;
-  
-      // Case kontrolü normal devam edebilir
-      this.extractCaseStatements(alwaysBody, gates, gateCounter);
-      gateCounter += 100;
+      console.log("Always body:", alwaysBody);
+      
+
+      
+      
+      const currentBlockGates: VerilogGate[] = []; 
+
+      
+      this.extractIfStatementsManually(alwaysBody, currentBlockGates, gateCounter);
+      
+      this.extractCaseStatements(alwaysBody, currentBlockGates, gateCounter + 100); 
+
+      gates.push(...currentBlockGates); 
+      gateCounter += 200; 
     }
-  
+
     console.log("Extracted gates from control structures:", gates);
     return gates;
   }
-
   private extractIfStatementsManually(alwaysBody: string, gates: VerilogGate[], gateCounter: number): void {
     console.log("Manually extracting if statements from alwaysBody:", alwaysBody);
-  
-    // Regex'leri alwaysBody üzerinde çalışacak şekilde ayarla
-    // if (koşul)
-    const ifConditionMatch = alwaysBody.match(/if\s*\(\s*([^)]+?)\s*\)/);
-    if (!ifConditionMatch) {
-      console.log("No if condition found in alwaysBody");
-      return;
+
+    
+    
+    const ifElseRegex = /if\s*\(\s*([^)]+?)\s*\)\s*begin\s*([\s\S]*?)\s*end\s*else\s*begin\s*([\s\S]*?)\s*end/i;
+    const ifOnlyRegex = /if\s*\(\s*([^)]+?)\s*\)\s*begin\s*([\s\S]*?)\s*end(?!\s*else)/i; 
+
+    let match = alwaysBody.match(ifElseRegex);
+    let isIfElse = true;
+
+    if (!match) {
+        match = alwaysBody.match(ifOnlyRegex);
+        isIfElse = false;
     }
-    const condition = ifConditionMatch[1].trim();
+
+    if (!match) {
+        
+        return; 
+    }
+
+    const condition = match[1].trim();
+    const thenBody = match[2].trim();
+    const elseBody = isIfElse && match[3] ? match[3].trim() : '';
+
     console.log("Found if condition:", condition);
-  
-    // Then bloğu: if(...) begin ... end
-    // [\s\S]*? kullanarak tembel eşleşme yapalım
-    const thenMatch = alwaysBody.match(/if\s*\([^)]+?\)\s*begin\s*([\s\S]*?)\s*end/);
-    if (!thenMatch) {
-      console.log("No then block found (begin...end)");
-      // Belki begin/end olmadan tek satırlık if? (Şimdilik kapsam dışı)
-      return;
-    }
-    const thenBody = thenMatch[1].trim();
     console.log("Found then body:", thenBody);
-  
-    // Else bloğu: end else begin ... end
-    const elseMatch = alwaysBody.match(/end\s*else\s*begin\s*([\s\S]*?)\s*end/);
-    const elseBody = elseMatch ? elseMatch[1].trim() : ''; // Else bloğu opsiyonel
-    console.log("Found else body:", elseBody);
-  
-    // Then ve else bloğundaki atamaları bul
-    const thenAssignments = thenBody.match(/(\w+)\s*=\s*([^;]+);/g) || [];
-    const elseAssignments = elseBody.match(/(\w+)\s*=\s*([^;]+);/g) || [];
-  
-    console.log("Then assignments:", thenAssignments);
-    console.log("Else assignments:", elseAssignments);
-  
-    let ifCounter = 0;
-  
-    // Then bloğundaki atamaları işle
-    for (const thenAssign of thenAssignments) {
-      const thenAssignMatch = thenAssign.match(/(\w+)\s*=\s*([^;]+)/);
-      if (!thenAssignMatch) continue;
-  
-      const target = thenAssignMatch[1].trim();
-      const thenExpression = thenAssignMatch[2].trim();
-  
-      // Else bloğunda aynı hedef var mı bul
-      let elseExpression = '';
-      for (const elseAssign of elseAssignments) {
-        // Dinamik regex oluştururken özel karakterlere dikkat et
-        const elseAssignMatch = elseAssign.match(new RegExp(`^\\s*${target}\\s*=\\s*([^;]+)`));
-        if (elseAssignMatch) {
-          elseExpression = elseAssignMatch[1].trim();
-          console.log(`Found matching else assignment for ${target}: ${elseExpression}`);
-          break;
+    if (isIfElse) console.log("Found else body:", elseBody);
+
+    
+    const assignmentRegex = /(\w+)\s*=\s*([^;]+);/g; 
+
+    const parseAssignments = (body: string): Map<string, string> => {
+        const assignments = new Map<string, string>();
+        let assignMatch;
+        assignmentRegex.lastIndex = 0; 
+        while ((assignMatch = assignmentRegex.exec(body)) !== null) {
+            
+            if (!body.substring(0, assignMatch.index).includes('case')) {
+               assignments.set(assignMatch[1].trim(), assignMatch[2].trim());
+            }
         }
-      }
-  
-      // MUX2 kapısı oluştur
-      const muxGate: VerilogGate = {
-        type: 'mux2',
-        name: `if_mux_${gateCounter + ifCounter}`,
-        output: target,
-        // MUX2 giriş sırası: [false_değeri, true_değeri]
-        inputs: elseExpression ?
-          [elseExpression, thenExpression] :
-          ['0', thenExpression], // Else yoksa varsayılan olarak 0 kullan
-        controlSignal: condition
-      };
-  
-      console.log("Creating MUX2 gate:", muxGate);
-      gates.push(muxGate);
-  
-      ifCounter++;
+        return assignments;
+    };
+
+    const thenAssignments = parseAssignments(thenBody);
+    const elseAssignments = parseAssignments(elseBody);
+
+    console.log("Then assignments Map:", thenAssignments);
+    console.log("Else assignments Map:", elseAssignments);
+
+    let muxCounter = 0;
+    const processedTargets = new Set<string>();
+
+    
+    for (const [target, thenExpression] of thenAssignments.entries()) {
+        if (processedTargets.has(target)) continue;
+
+        const elseExpression = elseAssignments.get(target);
+
+        if (elseExpression !== undefined) { 
+            const muxGate: VerilogGate = {
+                type: 'mux2',
+                name: `if_mux_${target}_${gateCounter + muxCounter}`,
+                output: target,
+                inputs: [elseExpression, thenExpression], 
+                controlSignal: condition
+            };
+            console.log("Creating MUX2 gate from if/else:", muxGate);
+            gates.push(muxGate);
+            processedTargets.add(target);
+            muxCounter++;
+        } else if (!isIfElse) { 
+            
+            
+            console.warn(`Assignment to '${target}' only in 'then' block (no 'else'). Potential latch.`);
+            
+            
+            
+            processedTargets.add(target);
+        }
     }
-  }
+
+    
+    if (isIfElse) {
+        for (const [target, elseExpression] of elseAssignments.entries()) {
+            if (processedTargets.has(target)) continue;
+            
+            console.warn(`Assignment to '${target}' only in 'else' block. Potential latch.`);
+            
+            
+            
+            
+            
+            processedTargets.add(target);
+        }
+    }
+}
+
   private extractCaseStatements(body: string, gates: VerilogGate[], gateCounter: number): void {
     console.log("Extracting case statements from:", body);
 
-    // case (selector) ... endcase
+    
     const caseRegex = /case\s*\(\s*([^)]+?)\s*\)([\s\S]*?)endcase/g;
-    // case_item: assignment; (default dahil)
+    
     const caseItemRegex = /(?:(\d+'[bB][01xXzZ]+|\d+'[hH][0-9a-fA-FxXzZ]+|\d+'[dD][0-9xXzZ]+|\d+'[oO][0-7xXzZ]+|\d+|default)\s*:)\s*([^;]+);/g;
 
     let caseMatch;
@@ -367,8 +426,8 @@ export class VerilogParser {
       console.log("Found case statement with selector:", selector);
       console.log("Case body:", caseBody);
 
-      // Seçici sinyalin bit genişliğini tahmin etmeye çalış (varsayılan 1 bit)
-      // TODO: Daha sağlam bit genişliği tespiti için port/wire bilgilerini kullan
+      
+      
       let selectorBitWidth = 1;
       const selectorWidthMatch = selector.match(/\[(\d+):(\d+)\]/);
       if (selectorWidthMatch) {
@@ -376,7 +435,7 @@ export class VerilogParser {
         const lsb = parseInt(selectorWidthMatch[2]);
         selectorBitWidth = Math.abs(msb - lsb) + 1;
       } else {
-        // Port/wire listesinden bulmayı dene (this.currentModule kullanarak)
+        
         const portOrWire = this.currentModule?.inputs.find(p => p.name === selector) ||
                            this.currentModule?.wires.find(w => w.name === selector);
         if (portOrWire?.bitWidth) {
@@ -388,7 +447,7 @@ export class VerilogParser {
 
 
       const muxSize = 2 ** selectorBitWidth;
-      const muxInputs: (string | null)[] = new Array(muxSize).fill(null); // Başlangıçta null ile doldur
+      const muxInputs: (string | null)[] = new Array(muxSize).fill(null); 
       let defaultAssignment: string | null = null;
       const conditions: { value: string; result: string }[] = [];
       let targetOutput: string | null = null;
@@ -399,7 +458,7 @@ export class VerilogParser {
         const assignment = caseItemMatch[2].trim();
         console.log(`Found case item: ${caseValue} -> ${assignment}`);
 
-        // Atamayı ayrıştır (örn: out = a)
+        
         const assignmentMatch = assignment.match(/(\w+)\s*=\s*(.+)/);
         if (!assignmentMatch) {
           console.warn(`Could not parse assignment: ${assignment}`);
@@ -408,12 +467,12 @@ export class VerilogParser {
         const currentTarget = assignmentMatch[1].trim();
         const expression = assignmentMatch[2].trim();
 
-        // Tüm case kollarının aynı hedefi atadığından emin ol (basitleştirme)
+        
         if (targetOutput === null) {
           targetOutput = currentTarget;
         } else if (targetOutput !== currentTarget) {
           console.error(`Case statement assigns to multiple targets ('${targetOutput}' and '${currentTarget}'). This is not supported.`);
-          return; // Desteklenmeyen durum
+          return; 
         }
 
         conditions.push({ value: caseValue, result: expression });
@@ -421,7 +480,7 @@ export class VerilogParser {
         if (caseValue === "default") {
           defaultAssignment = expression;
         } else {
-          // Case değerini integer'a çevir
+          
           let index: number | null = null;
           try {
             if (caseValue.includes("'b")) {
@@ -456,7 +515,7 @@ export class VerilogParser {
         continue;
       }
 
-      // Default değeri atanmamış girişlere uygula
+      
       if (defaultAssignment !== null) {
         for (let i = 0; i < muxSize; i++) {
           if (muxInputs[i] === null) {
@@ -464,21 +523,21 @@ export class VerilogParser {
           }
         }
       } else {
-         // Default yoksa ve boşluklar varsa, varsayılan olarak '0' ata
+         
          for (let i = 0; i < muxSize; i++) {
           if (muxInputs[i] === null) {
             console.warn(`MUX input at index ${i} is unspecified and no default case found. Assigning '0'.`);
-            muxInputs[i] = "'b0"; // Veya 1'b0
+            muxInputs[i] = "'b0"; 
           }
         }
       }
 
 
-      // MUX kapısı oluştur
+      
       let muxType: string;
       if (muxSize <= 2) muxType = 'mux2';
       else if (muxSize <= 4) muxType = 'mux4';
-      // else if (muxSize <= 8) muxType = 'mux8'; // Gerekirse eklenebilir
+      
       else {
         console.error(`MUX size ${muxSize} is too large or unsupported.`);
         continue;
@@ -490,15 +549,15 @@ export class VerilogParser {
         type: muxType,
         name: `case_${muxType}_${gateCounter}`,
         output: targetOutput,
-        // DİKKAT: MUX giriş sırası önemli! [input0, input1, input2, input3]
-        inputs: muxInputs.filter(input => input !== null) as string[], // Null olmayanları al
+        
+        inputs: muxInputs.filter(input => input !== null) as string[], 
         controlSignal: selector,
-        conditions: conditions // Koşulları da ekleyelim (Converter'da yardımcı olabilir)
+        conditions: conditions 
       };
 
       console.log(`Creating ${muxType} gate:`, muxGate);
       gates.push(muxGate);
-      gateCounter += 100; // Sonraki kapı için sayacı artır
+      gateCounter += 100; 
     }
   }
   private extractAndProcessAssignments(body: string): VerilogGate[] {
@@ -675,67 +734,99 @@ export class VerilogParser {
  /**
  * Ternary ifadeleri işler (? :)
  */
-private processTernaryExpression(
+
+ private processTernaryExpression(
   expr: string,
   output: string,
   gates: VerilogGate[],
   gateCounter: number
 ): void {
   const parts = this.splitTernary(expr);
-  if (parts.length !== 3) return;
+  if (parts.length !== 3) {
+      console.error(`Could not properly split ternary expression: ${expr}`);
+      return; // Hatalı ifadeyi işlemeyi durdur
+  }
 
   const [condition, trueExpr, falseExpr] = parts;
 
-  
   const cleanCondition = this.cleanSignalName(condition);
   const cleanTrueExpr = this.cleanSignalName(trueExpr);
   const cleanFalseExpr = this.cleanSignalName(falseExpr);
-  
-  
+
+  // --- BASİT DURUM DÜZELTMESİ ---
   if (this.isSimpleIdentifier(condition) && this.isSimpleIdentifier(trueExpr) && this.isSimpleIdentifier(falseExpr)) {
-    
-    gates.push({
+    // MUX kapısını oluştur
+    const muxGate: VerilogGate = { // Tip tanımını ekle
       type: "mux2",
-      name: `assign_ternary_${output}`,
-      output,
-      inputs: [cleanTrueExpr, cleanFalseExpr, cleanCondition], 
-    });
-    return;
+      name: `assign_mux2_${output}_${gateCounter}`, // Daha belirgin isim
+      output: output,
+      // MUX2 girişleri: [select=0, select=1]
+      inputs: [cleanTrueExpr, cleanFalseExpr], // Doğru sıra: false, true
+      // Kontrol sinyalini ayrı özelliğe ata
+      controlSignal: cleanCondition,
+    };
+    console.log("Created MUX2 directly (simple):", JSON.stringify(muxGate)); // Log ekle
+    gates.push(muxGate);
+    return; // Basit durum işlendi, fonksiyondan çık
+  }
+  // --- BASİT DURUM DÜZELTMESİ SONU ---
+
+  // --- Karmaşık İfadeler Durumu (Önceki düzeltme burada geçerli olmalı) ---
+  let finalConditionSignal = cleanCondition;
+  let finalTrueSignal = cleanTrueExpr;
+  let finalFalseSignal = cleanFalseExpr;
+  let tempGateCounter = gateCounter + 1; // Geçici kapılar için sayaç
+
+  // Koşul ifadesini işle (karmaşıksa)
+  if (!this.isSimpleIdentifier(condition)) {
+      finalConditionSignal = `_temp_cond_${gateCounter}`;
+      console.log(`Processing complex condition: ${condition} -> ${finalConditionSignal}`);
+      // processComplexExpression veya processParenthesisExpression çağrılabilir
+      if (condition.includes('(')) {
+          this.processParenthesisExpression(condition, finalConditionSignal, gates, tempGateCounter);
+      } else {
+          this.processComplexExpression(condition, finalConditionSignal, gates, tempGateCounter);
+      }
+      tempGateCounter += this.countOperators(condition) + 1; // Sayaç artırımı
   }
 
-  
-  const tempCondition = `_temp_cond_${gateCounter}`;
-  const tempTrue = `_temp_true_${gateCounter}`;
-  const tempFalse = `_temp_false_${gateCounter}`;
-
-  
-  if (this.isSimpleExpression(condition)) {
-    this.processSimpleExpression(condition, tempCondition, gates);
-  } else {
-    this.processComplexExpression(condition, tempCondition, gates, gateCounter + 100);
+  // True ifadesini işle (karmaşıksa)
+  if (!this.isSimpleIdentifier(trueExpr)) {
+      finalTrueSignal = `_temp_true_${gateCounter}`;
+      console.log(`Processing complex true expression: ${trueExpr} -> ${finalTrueSignal}`);
+      if (trueExpr.includes('(')) {
+          this.processParenthesisExpression(trueExpr, finalTrueSignal, gates, tempGateCounter);
+      } else {
+          this.processComplexExpression(trueExpr, finalTrueSignal, gates, tempGateCounter);
+      }
+      tempGateCounter += this.countOperators(trueExpr) + 1;
   }
 
-  
-  if (this.isSimpleExpression(trueExpr)) {
-    this.processSimpleExpression(trueExpr, tempTrue, gates);
-  } else {
-    this.processComplexExpression(trueExpr, tempTrue, gates, gateCounter + 200);
+  // False ifadesini işle (karmaşıksa)
+  if (!this.isSimpleIdentifier(falseExpr)) {
+      finalFalseSignal = `_temp_false_${gateCounter}`;
+       console.log(`Processing complex false expression: ${falseExpr} -> ${finalFalseSignal}`);
+      if (falseExpr.includes('(')) {
+          this.processParenthesisExpression(falseExpr, finalFalseSignal, gates, tempGateCounter);
+      } else {
+          this.processComplexExpression(falseExpr, finalFalseSignal, gates, tempGateCounter);
+      }
+      // tempGateCounter += this.countOperators(falseExpr) + 1; // Sonraki adım yoksa artırmaya gerek yok
   }
 
-  
-  if (this.isSimpleExpression(falseExpr)) {
-    this.processSimpleExpression(falseExpr, tempFalse, gates);
-  } else {
-    this.processComplexExpression(falseExpr, tempFalse, gates, gateCounter + 300);
-  }
-
-  
-  gates.push({
+  // Son MUX kapısını oluştur (geçici veya orijinal sinyallerle)
+  const finalMuxGate: VerilogGate = { // Tip tanımını ekle
     type: "mux2",
-    name: `assign_ternary_${output}`,
-    output,
-    inputs: [tempTrue, tempFalse, tempCondition], 
-  });
+    name: `assign_mux2_${output}_${gateCounter}`, // Ana kapı ismi
+    output: output,
+    // MUX2 girişleri: [select=0, select=1]
+    inputs: [finalTrueSignal, finalFalseSignal], // Doğru sıra
+    // Kontrol sinyalini ayrı özelliğe ata
+    controlSignal: finalConditionSignal,
+  };
+  console.log(`Created final MUX2 for ternary (complex):`, JSON.stringify(finalMuxGate)); // Log ekle
+  gates.push(finalMuxGate);
+  // --- Karmaşık Durum Sonu ---
 }
 
 /**
@@ -778,82 +869,111 @@ private isSimpleIdentifier(expr: string): boolean {
     expr: string,
     output: string,
     gates: VerilogGate[],
-    gateCounter: number
+    gateCounter: number 
   ): void {
-    
-    let processedExpr = expr;
+    let currentExpr = expr.trim();
+    let tempCounter = 0; 
 
     
-    const notMatch = processedExpr.match(/~(\w+)/g);
-    if (notMatch) {
-      notMatch.forEach((match, index) => {
-        const input = this.cleanSignalName(match.substring(1));
-        const tempOutput = `_temp_not_${gateCounter + index}`;
+    const generateTempName = (op: string): string => `_temp_${op}_${gateCounter}_${tempCounter++}`;
 
-        gates.push({
-          type: "not",
-          name: `assign_not_${gateCounter + index}`,
-          output: tempOutput,
-          inputs: [input],
+    
+    
+    
+    const notRegex = /~\s*([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)/g; 
+    let tempExpr = currentExpr;
+    do {
+        currentExpr = tempExpr;
+        tempExpr = currentExpr.replace(notRegex, (match, signal) => {
+            const tempNotOut = generateTempName('not');
+            const cleanSignal = this.cleanSignalName(signal); 
+            gates.push({
+                type: 'not',
+                name: `not_${tempNotOut}`,
+                output: tempNotOut,
+                inputs: [cleanSignal],
+            });
+            return tempNotOut; 
         });
+    } while (tempExpr !== currentExpr); 
 
-        processedExpr = processedExpr.replace(match, tempOutput);
-      });
+    
+    
+    
+    const andRegex = /([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)\s*&\s*([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)/;
+    let andMatch;
+    while ((andMatch = currentExpr.match(andRegex)) !== null) {
+        const tempAndOut = generateTempName('and');
+        
+        
+        const input1 = this.cleanSignalName(andMatch[1]);
+        const input2 = this.cleanSignalName(andMatch[2]);
+        gates.push({
+            type: 'and',
+            name: `and_${tempAndOut}`,
+            output: tempAndOut,
+            inputs: [input1, input2],
+        });
+        
+        currentExpr = currentExpr.replace(andMatch[0], tempAndOut);
     }
 
     
-    if (processedExpr.includes("&")) {
-      const tempOutput = `_temp_and_${gateCounter}`;
-      const andParts = processedExpr.split("&").map(s => this.cleanSignalName(s));
-
-      gates.push({
-        type: "and",
-        name: `assign_and_${gateCounter}`,
-        output: tempOutput,
-        inputs: andParts,
-      });
-
-      processedExpr = tempOutput;
+    const xorRegex = /([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)\s*\^\s*([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)/;
+    let xorMatch;
+    while ((xorMatch = currentExpr.match(xorRegex)) !== null) {
+        const tempXorOut = generateTempName('xor');
+        const input1 = this.cleanSignalName(xorMatch[1]);
+        const input2 = this.cleanSignalName(xorMatch[2]);
+        gates.push({
+            type: 'xor',
+            name: `xor_${tempXorOut}`,
+            output: tempXorOut,
+            inputs: [input1, input2],
+        });
+        currentExpr = currentExpr.replace(xorMatch[0], tempXorOut);
     }
 
     
-    if (processedExpr.includes("^")) {
-      const tempOutput = `_temp_xor_${gateCounter}`;
-      const xorParts = processedExpr.split("^").map(s => this.cleanSignalName(s));
-
-      gates.push({
-        type: "xor",
-        name: `assign_xor_${gateCounter}`,
-        output: tempOutput,
-        inputs: xorParts,
-      });
-
-      processedExpr = tempOutput;
+    const orRegex = /([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)\s*\|\s*([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)/;
+    let orMatch;
+    while ((orMatch = currentExpr.match(orRegex)) !== null) {
+        const tempOrOut = generateTempName('or');
+        const input1 = this.cleanSignalName(orMatch[1]);
+        const input2 = this.cleanSignalName(orMatch[2]);
+        gates.push({
+            type: 'or',
+            name: `or_${tempOrOut}`,
+            output: tempOrOut,
+            inputs: [input1, input2],
+        });
+        currentExpr = currentExpr.replace(orMatch[0], tempOrOut);
     }
 
     
-    if (processedExpr.includes("|")) {
-      const orParts = processedExpr.split("|").map(s => this.cleanSignalName(s));
+    
+    const finalSource = this.cleanSignalName(currentExpr);
 
-      gates.push({
-        type: "or",
-        name: `assign_or_${gateCounter}`,
-        output,
-        inputs: orParts,
-      });
+    
+    if (finalSource !== output) {
+        
+        
+        
+        
+        
+        gates.push({
+            type: 'buf', 
+            name: `buf_assign_${output}`, 
+            output: output,
+            inputs: [finalSource],
+        });
+        console.log(`Assigning final result '${finalSource}' to output '${output}' via buffer.`);
     } else {
-      
-      
-      if (processedExpr !== expr && processedExpr !== output) {
-        gates.push({
-          type: "buf",
-          name: `assign_buf_${gateCounter}`,
-          output,
-          inputs: [processedExpr],
-        });
-      }
+        
+        console.log(`Expression simplified directly to the output name: ${output}. No final gate needed.`);
     }
   }
+
 
   /**
    * Sinyal adındaki boşluk ve bit aralıklarını temizler
