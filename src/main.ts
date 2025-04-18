@@ -522,6 +522,24 @@ function addComponentByType(type: string, position: Point) {
 
 function setupKeyboardShortcuts() {
   document.addEventListener("keydown", event => {
+
+    const activeElement = document.activeElement;
+    const tagName = activeElement?.tagName.toLowerCase();
+    
+    // Eğer aktif eleman bir metin giriş alanıysa, kısayolları işleme
+    const isTextInput = 
+      tagName === 'input' || 
+      tagName === 'textarea' || 
+      
+      (activeElement?.getAttribute && activeElement?.getAttribute('role') === 'textbox') ||
+      activeElement?.id === 'ai-chat-input' || // AI chat alanı
+      activeElement?.id === 'verilog-editor'; // Verilog editörü
+    
+    // Eğer metin giriş alanında ise, kısayolları devre dışı bırak
+    if (isTextInput) {
+      return; // Metin girişi sırasında kısayolları çalıştırma
+    }
+
     if (event.key === "Delete") {
       circuitBoard.deleteSelected();
     }
@@ -562,6 +580,9 @@ function setupKeyboardShortcuts() {
           circuitBoard.draw();
         }
       }
+    }
+    if (event.key === "a") {
+      circuitBoard.autoArrangeCircuit();
     }
   });
 }

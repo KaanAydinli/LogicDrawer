@@ -142,6 +142,277 @@ export class CircuitBoard {
     this.components.push(component);
     this.draw();
   }
+    /**
+   * Tüm bileşenleri otomatik olarak düzenler ve grid'e hizalar
+   */
+    public autoArrangeCircuit(): void {
+      if (this.components.length === 0) {
+        console.log("Düzenlenecek bileşen yok.");
+        return;
+      }
+  
+      console.log("Devre otomatik olarak düzenleniyor...");
+      
+      // 1. Önce her bileşeni en yakın grid çizgisine hizala
+      this.snapAllComponentsToGrid();
+      
+      // 2. Devre yapısını analiz et ve bileşenleri düzenle
+      this.organizeCircuitLayout();
+      
+      // 3. Tüm kabloları yeniden yönlendir
+      this.rerouteAllWires();
+      
+      // 4. Değişiklikleri ekrana yansıt
+      this.simulate();
+      this.draw();
+      
+      console.log("Devre düzenleme tamamlandı.");
+    }
+    
+    /**
+     * Tüm bileşenleri en yakın grid noktasına hizalar
+     */
+    private snapAllComponentsToGrid(): void {
+      const gridSize = 20; // Grid boyutu (piksel)
+      
+      this.components.forEach(component => {
+        // Bileşenin mevcut pozisyonunu al
+        const currentPos = component.position;
+        
+        // En yakın grid noktasını hesapla
+        const newX = Math.round(currentPos.x / gridSize) * gridSize;
+        const newY = Math.round(currentPos.y / gridSize) * gridSize;
+        
+        // Bileşeni yeni pozisyona taşı
+        component.move({ x: newX, y: newY });
+      });
+      
+      console.log("Tüm bileşenler grid'e hizalandı.");
+    }
+    
+    /**
+     * Devre yerleşimini optimize eden fonksiyon
+     */
+    private organizeCircuitLayout(): void {
+      // Bileşenleri türlerine göre grupla
+      const inputComponents: Component[] = [];
+      const logicGateComponents: Component[] = [];
+      const outputComponents: Component[] = [];
+      const otherComponents: Component[] = [];
+      
+      this.components.forEach(component => {
+        if (
+          component.type === "toggle" || 
+          component.type === "button" || 
+          component.type === "constant0" || 
+          component.type === "constant1" ||
+          component.type === "clock"
+        ) {
+          inputComponents.push(component);
+        } else if (
+          component.type === "light-bulb" || 
+          component.type === "hex" ||
+          component.type === "led"
+        ) {
+          outputComponents.push(component);
+        } else if (component.type !== "text" && component.type !== "state") {
+          logicGateComponents.push(component);
+        } else {
+          otherComponents.push(component);
+        }
+      });
+      
+      // Giriş bileşenlerini sol tarafta düzenle
+      this.organizeComponentsInColumn(inputComponents, 100, 100, 80);
+      
+      // Mantık kapılarını ortada düzenle (katmanlar halinde)
+      this.organizeLogicGatesByLayers(logicGateComponents, 300);
+      
+      // Çıkış bileşenlerini sağ tarafta düzenle
+      this.organizeComponentsInColumn(outputComponents, 800, 100, 80);
+      
+      // Diğer bileşenleri ayrı bir alanda düzenle
+      this.organizeComponentsInColumn(otherComponents, 50, 500, 100);
+      
+      console.log("Devre yerleşimi optimize edildi.");
+    }
+    
+    /**
+     * Bileşenleri bir sütun halinde düzenler
+     */
+    private organizeComponentsInColumn(
+      components: Component[], 
+      startX: number, 
+      startY: number, 
+      spacing: number
+    ): void {
+      components.forEach((component, index) => {
+        component.move({ x: startX, y: startY + index * spacing });
+      });
+    }
+    
+    /**
+     * Mantık kapılarını katmanlar halinde düzenler
+     */
+    private organizeLogicGatesByLayers(components: Component[], startX: number): void {
+      // Kapılar arasındaki mantıksal bağlantıları analiz et
+      const gateLayers = this.analyzeGateLayers(components);
+      
+      // Her katmandaki kapıları düzenle
+      Object.keys(gateLayers).forEach((layerIndex) => {
+        const layerComponents = gateLayers[parseInt(layerIndex)];
+        const layerX = startX + parseInt(layerIndex) * 150;
+        
+        layerComponents.forEach((component, index) => {
+          component.move({ x: layerX, y: 150 + index * 100 });
+        });
+      });
+    }
+    
+    /**
+     * Mantık kapıları arasındaki bağlantıları analiz ederek katmanlar oluşturur
+     */
+    private analyzeGateLayers(gates: Component[]): { [layer: number]: Component[] } {
+      const layeredGates: { [layer: number]: Component[] } = { 0: [] };
+      const assignedGates = new Set<string>();
+      
+      // İlk katmana giriş bağlantısı olmayan veya sadece giriş bileşenlerinden bağlantı alan kapıları yerleştir
+      gates.forEach(gate => {
+        const hasInputOnly = this.hasInputsOnlyFromInputComponents(gate);
+        if (hasInputOnly) {
+          layeredGates[0].push(gate);
+          assignedGates.add(gate.id);
+        }
+      });
+      
+      // Geri kalan kapıları katmanlara yerleştir
+      let currentLayer = 0;
+      let allAssigned = false;
+      
+      while (!allAssigned) {
+        let somethingChanged = false;
+        const nextLayer = currentLayer + 1;
+        
+        if (!layeredGates[nextLayer]) {
+          layeredGates[nextLayer] = [];
+        }
+        
+        gates.forEach(gate => {
+          if (assignedGates.has(gate.id)) return;
+          
+          const allInputsAssigned = this.areAllInputsAssigned(gate, assignedGates, currentLayer, layeredGates);
+          
+          if (allInputsAssigned) {
+            layeredGates[nextLayer].push(gate);
+            assignedGates.add(gate.id);
+            somethingChanged = true;
+          }
+        });
+        
+        if (!somethingChanged) {
+          // Eğer hiçbir kapı atanmadıysa, kalan tüm kapıları son katmana ekle
+          gates.forEach(gate => {
+            if (!assignedGates.has(gate.id)) {
+              layeredGates[nextLayer].push(gate);
+              assignedGates.add(gate.id);
+            }
+          });
+          allAssigned = true;
+        }
+        
+        currentLayer = nextLayer;
+      }
+      
+      return layeredGates;
+    }
+    
+    /**
+     * Bir kapının tüm girişlerinin belirli bir katmana kadar atanmış olup olmadığını kontrol eder
+     */
+    private areAllInputsAssigned(
+      gate: Component, 
+      assignedGates: Set<string>, 
+      currentLayer: number,
+      layeredGates: { [layer: number]: Component[] }
+    ): boolean {
+      // Kapının girişlerini kontrol et
+      const inputConnections = this.getInputConnections(gate);
+      
+      if (inputConnections.length === 0) return true;
+      
+      for (const sourceGate of inputConnections) {
+        if (!assignedGates.has(sourceGate.id)) {
+          return false;
+        }
+        
+        // Girişin hangi katmanda olduğunu kontrol et
+        let foundInPreviousLayers = false;
+        for (let layer = 0; layer <= currentLayer; layer++) {
+          if (layeredGates[layer] && layeredGates[layer].some(g => g.id === sourceGate.id)) {
+            foundInPreviousLayers = true;
+            break;
+          }
+        }
+        
+        if (!foundInPreviousLayers) {
+          return false;
+        }
+      }
+      
+      return true;
+    }
+    
+    /**
+     * Bir kapının sadece giriş bileşenlerinden bağlantı alıp almadığını kontrol eder
+     */
+    private hasInputsOnlyFromInputComponents(gate: Component): boolean {
+      const inputConnections = this.getInputConnections(gate);
+      
+      if (inputConnections.length === 0) return true;
+      
+      for (const sourceGate of inputConnections) {
+        const isInputComponent = 
+          sourceGate.type === "toggle" || 
+          sourceGate.type === "button" || 
+          sourceGate.type === "constant0" || 
+          sourceGate.type === "constant1" ||
+          sourceGate.type === "clock";
+        
+        if (!isInputComponent) {
+          return false;
+        }
+      }
+      
+      return true;
+    }
+    
+    /**
+     * Bir kapının girişlerine bağlı olan bileşenleri bulur
+     */
+    private getInputConnections(gate: Component): Component[] {
+      const connectedComponents: Component[] = [];
+      
+      gate.inputs.forEach(input => {
+        this.wires.forEach(wire => {
+          if (wire.to === input && wire.from) {
+            connectedComponents.push(wire.from.component);
+          }
+        });
+      });
+      
+      return connectedComponents;
+    }
+    
+    /**
+     * Tüm kabloları yeniden yönlendirir
+     */
+    private rerouteAllWires(): void {
+      this.wires.forEach(wire => {
+        wire.autoRoute();
+      });
+      
+      console.log("Tüm kablolar yeniden yönlendirildi.");
+    }
 
   public extractVerilog(): string {
  
