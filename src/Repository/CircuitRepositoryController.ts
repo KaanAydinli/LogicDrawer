@@ -17,7 +17,7 @@ export interface CircuitEntry {
   name: string;
   title?: string;
   description: string;
-  authorId: string;
+  userId: string | { _id: string };
   authorName: string;
   dateCreated: Date;
   dateModified: Date;
@@ -755,9 +755,9 @@ export class CircuitRepositoryController {
     this.container = containerElement;
     this.initializeUI();
     const userInfo = localStorage.getItem("user_info");
-    
-    const user = userInfo ? JSON.parse(userInfo) : { name: "unknown-user" };
-    this.currentUserId = user.name;
+  
+    const user = userInfo ? JSON.parse(userInfo) : { id: "unknown-user" };
+    this.currentUserId = user.id || user._id; // Use the actual ID field from user object
   }
 
   public open(): void {
@@ -845,15 +845,37 @@ export class CircuitRepositoryController {
 
     try {
       if (this.currentTab === "browse") {
-        this.currentCircuits = await this.repositoryService.getCircuits();
-      } else {
         const allCircuits = await this.repositoryService.getCircuits();
+        
         this.currentCircuits = allCircuits.filter(
-          (c: { authorId: string }) => c.authorId === this.currentUserId
+          (c) => {
+            // Handle both cases: when userId is an object or when it's a string
+            if (typeof c.userId === 'object' && c.userId !== null) {
+              return c.userId._id !== this.currentUserId;
+            } else {
+              return c.userId !== this.currentUserId;
+            }
+          }
         );
-      }
+      } else {
+        
+        const allCircuits = await this.repositoryService.getCircuits();
+        
+        this.currentCircuits = allCircuits.filter(
+          (c) => {
+            // Handle both cases: when userId is an object or when it's a string
+            if (typeof c.userId === 'object' && c.userId !== null) {
+              return c.userId._id === this.currentUserId;
+            } else {
+              return c.userId === this.currentUserId;
+            }
+          }
+        );
 
-      this.renderCircuitGrid();
+        console.log("Filtered circuits:", this.currentCircuits);
+      }
+      
+     this.renderCircuitGrid();
     } catch (error) {
       console.error("Failed to load circuits:", error);
       this.circuitGridElement.innerHTML = `
@@ -1148,7 +1170,7 @@ export class CircuitRepositoryController {
       const searchResults = await this.repositoryService.searchCircuits(query);
 
       if (this.currentTab === "my-circuits") {
-        this.currentCircuits = searchResults.filter(c => c.authorId === this.currentUserId);
+        this.currentCircuits = searchResults.filter(c => c.userId === this.currentUserId);
       } else {
         this.currentCircuits = searchResults;
       }
@@ -1188,7 +1210,7 @@ export class CircuitRepositoryController {
       const newCircuit = await this.repositoryService.uploadCircuit({
         name: title,
         description,
-        authorId: this.currentUserId,
+        userId: this.currentUserId,
         authorName: "Current User",
         tags,
         verilogCode,

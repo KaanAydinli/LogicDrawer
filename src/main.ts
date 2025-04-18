@@ -1444,6 +1444,8 @@ async function loadSavedCircuits() {
       },
     });
 
+    console.log("Response statusasddddddddd:");
+
     if (response.ok) {
       const circuits = await response.json();
       // Display circuits in the UI
