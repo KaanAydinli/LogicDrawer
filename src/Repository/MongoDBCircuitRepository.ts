@@ -6,8 +6,8 @@ export class MongoDBCircuitRepository implements CircuitRepositoryService {
   private readonly API_BASE_URL = `${apiBaseUrl}/api`;
 
   
-  // Helper method to get auth headers
-// Update the getAuthHeaders method to ensure correct format and logging
+  
+
 private getAuthHeaders(): Headers {
   const headers = new Headers({
     'Content-Type': 'application/json'
@@ -20,28 +20,28 @@ private getAuthHeaders(): Headers {
     console.log("Adding auth token to request:", token.substring(0, 10) + "...");
   } else {
     console.warn("No auth token found in localStorage");
-    // Try to automatically open login modal
+    
     this.checkAuthentication();
   }
   
   return headers;
 }
-// Add a function to refresh the token
+
 private async refreshAuthToken(): Promise<boolean> {
   try {
-    // Get user info from localStorage
+    
     const userInfo = localStorage.getItem('user_info');
     if (!userInfo) {
       console.log("No user info found for token refresh");
       return false;
     }
     
-    // Parse the user info
+    
     const user = JSON.parse(userInfo);
     
     console.log("Attempting to refresh token for user:", user.id);
     
-    // Call the refresh endpoint
+    
     const response = await fetch(`${this.API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       headers: {
@@ -55,10 +55,10 @@ private async refreshAuthToken(): Promise<boolean> {
       return false;
     }
     
-    // Get the new token
+    
     const data = await response.json();
     
-    // Save the new token
+    
     localStorage.setItem('auth_token', data.token);
     console.log("Token refreshed successfully");
     return true;
@@ -73,7 +73,7 @@ private async refreshAuthToken(): Promise<boolean> {
       console.error("User not authenticated");
       alert("Please sign in to access your circuits");
       
-      // Trigger the login modal to appear
+      
       const authModal = document.getElementById("auth-modal");
       if (authModal) {
         authModal.classList.add("active");
@@ -92,21 +92,21 @@ private async refreshAuthToken(): Promise<boolean> {
         headers: this.getAuthHeaders()
       });
       
-      // If unauthorized, try to refresh token
+      
       if (response.status === 401) {
         console.log("Unauthorized - attempting token refresh");
         const refreshed = await this.refreshAuthToken();
         
         if (refreshed) {
-          // Retry the request with new token
+          
           return this.getCircuits();
         } else {
-          // Token refresh failed, redirect to login
+          
           console.log("Token refresh failed, clearing auth data");
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user_info');
           
-          // Show login modal if it exists
+          
           const authModal = document.getElementById("auth-modal");
           if (authModal) {
             authModal.classList.add("active");
@@ -136,6 +136,7 @@ private async refreshAuthToken(): Promise<boolean> {
 
   async getCircuitById(id: string): Promise<CircuitEntry> {
     try {
+      console.log("Fetching circuit by ID:", id);
       const response = await fetch(`${this.API_BASE_URL}/circuits/${id}`, {
         headers: this.getAuthHeaders()
       });
@@ -158,43 +159,67 @@ private async refreshAuthToken(): Promise<boolean> {
     }
   }
 
-  async searchCircuits(query: string): Promise<CircuitEntry[]> {
-    try {
-      const response = await fetch(
-        `${this.API_BASE_URL}/circuits/search?q=${encodeURIComponent(query)}`,
-        {
-          headers: this.getAuthHeaders()
-        }
-      );
+
+async searchCircuits(query: string): Promise<CircuitEntry[]> {
+  try {
+    console.log(`Searching circuits with query: "${query}"`);
+    
+    const encodedQuery = encodeURIComponent(query);
+    const url = `${this.API_BASE_URL}/circuits/search?q=${encodedQuery}`;
+    
+    console.log(`Search URL: ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
+    });
+    
+    if (response.status === 401) {
+      console.log("Unauthorized search - attempting token refresh");
+      const refreshed = await this.refreshAuthToken();
       
-      if (!response.ok) {
-        throw new Error('Failed to search circuits');
+      if (refreshed) {
+        
+        return this.searchCircuits(query);
+      } else {
+        throw new Error('Authentication failed. Please sign in again.');
       }
-      
-      const circuits = await response.json();
-      return circuits.map((circuit: any) => ({
-        ...circuit,
-        verilogCode: circuit.verilogCode || '',
-        components: circuit.components || [],
-        wires: circuit.wires || []
-      }));
-    } catch (error) {
-      console.error('Error searching circuits:', error);
-      return [];
     }
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Search error (${response.status}):`, errorText);
+      throw new Error(`Search failed: ${response.statusText}`);
+    }
+    
+    const circuits = await response.json();
+    console.log(`Found ${circuits.length} matching circuits`);
+    
+    return circuits.map((circuit: any) => ({
+      ...circuit,
+      id: circuit._id || circuit.id,
+      verilogCode: circuit.verilogCode || '',
+      components: circuit.components || [],
+      wires: circuit.wires || []
+    }));
+  } catch (error) {
+    console.error('Error searching circuits:', error);
+    
+    return [];
   }
+}
 
   async uploadCircuit(
     circuit: Omit<CircuitEntry, "id" | "dateCreated" | "dateModified" | "likes" | "downloads" | "comments">
   ): Promise<CircuitEntry> {
     try {
-      // Check if user is authenticated
+      
       const token = localStorage.getItem('auth_token');
       if (!token) {
         throw new Error('User not authenticated. Please sign in to upload circuits.');
       }
 
-      // Ensure circuit data is properly formatted
+      
       const circuitData = {
         ...circuit,
         components: circuit.components || [],
@@ -250,7 +275,7 @@ private async refreshAuthToken(): Promise<boolean> {
         throw new Error('Failed to download circuit');
       }
       
-      // Get the circuit data directly from the API
+      
       return await response.json();
     } catch (error) {
       console.error("Error downloading circuit:", error);
@@ -258,15 +283,15 @@ private async refreshAuthToken(): Promise<boolean> {
     }
   }
 
-  // Add this method for direct import
+  
   async useCircuitInEditor(id: string, circuitBoard: CircuitBoard): Promise<boolean> {
     try {
       const circuitData = await this.downloadCircuit(id);
       
-      // Clear the current circuit board
+      
       circuitBoard.clearCircuit();
       
-      // Import the circuit directly
+      
       const success = circuitBoard.importCircuit(circuitData);
       
       return success;

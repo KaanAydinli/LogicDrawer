@@ -22,6 +22,19 @@ const circuitSchema = new mongoose.Schema({
     ref: 'User',  
     required: true,
   },
+  // Add sharedWith array to store usernames/IDs of users this circuit is shared with
+  sharedWith: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  isShared: {
+    type: Boolean,
+    required: false,
+  },
+  isPublic: {
+    type: Boolean,
+    required: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -32,4 +45,4 @@ const circuitSchema = new mongoose.Schema({
   },
 });
 
-export const Circuit = mongoose.model('Circuit', circuitSchema); 
+export const Circuit = mongoose.model('Circuit', circuitSchema);

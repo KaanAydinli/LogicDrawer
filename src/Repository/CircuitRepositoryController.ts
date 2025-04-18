@@ -13,6 +13,7 @@ export interface Comment {
 }
 
 export interface CircuitEntry {
+  isPublic: boolean;
   id: string;
   name: string;
   title?: string;
@@ -29,6 +30,7 @@ export interface CircuitEntry {
   thumbnailUrl?: string;
   components: any[];
   wires: any[];
+  isShared?: boolean;
 }
 
 export interface CircuitRepositoryService {
@@ -755,9 +757,9 @@ export class CircuitRepositoryController {
     this.container = containerElement;
     this.initializeUI();
     const userInfo = localStorage.getItem("user_info");
-  
+
     const user = userInfo ? JSON.parse(userInfo) : { id: "unknown-user" };
-    this.currentUserId = user.id || user._id; // Use the actual ID field from user object
+    this.currentUserId = user.id || user._id; 
   }
 
   public open(): void {
@@ -811,10 +813,22 @@ export class CircuitRepositoryController {
     });
 
     if (this.searchInput) {
+
+      let debounceTimeout: number | null = null;
+      
       this.searchInput.addEventListener("input", e => {
         const query = (e.target as HTMLInputElement).value;
-        this.searchCircuits(query);
+        
+        
+        if (debounceTimeout) {
+          clearTimeout(debounceTimeout);
+        }
+        
+        debounceTimeout = setTimeout(() => {
+          this.searchCircuits(query);
+        }, 200) as unknown as number;
       });
+    
     }
 
     const uploadBtn = document.getElementById("upload-circuit-btn");
@@ -844,38 +858,36 @@ export class CircuitRepositoryController {
     this.circuitGridElement.innerHTML = `<div class="loading-indicator">Loading circuits...</div>`;
 
     try {
+      const allCircuits = await this.repositoryService.getCircuits();
+
       if (this.currentTab === "browse") {
-        const allCircuits = await this.repositoryService.getCircuits();
         
-        this.currentCircuits = allCircuits.filter(
-          (c) => {
-            // Handle both cases: when userId is an object or when it's a string
-            if (typeof c.userId === 'object' && c.userId !== null) {
-              return c.userId._id !== this.currentUserId;
-            } else {
-              return c.userId !== this.currentUserId;
-            }
+        this.currentCircuits = allCircuits.filter(c => {
+          
+          const isPublic = c.isPublic === true;
+
+          
+          let isNotOwned = false;
+          if (typeof c.userId === "object" && c.userId !== null) {
+            isNotOwned = c.userId._id !== this.currentUserId;
+          } else {
+            isNotOwned = c.userId !== this.currentUserId;
           }
-        );
+
+          return isPublic && isNotOwned;
+        });
       } else {
         
-        const allCircuits = await this.repositoryService.getCircuits();
-        
-        this.currentCircuits = allCircuits.filter(
-          (c) => {
-            // Handle both cases: when userId is an object or when it's a string
-            if (typeof c.userId === 'object' && c.userId !== null) {
-              return c.userId._id === this.currentUserId;
-            } else {
-              return c.userId === this.currentUserId;
-            }
+        this.currentCircuits = allCircuits.filter(c => {
+          if (typeof c.userId === "object" && c.userId !== null) {
+            return c.userId._id === this.currentUserId;
+          } else {
+            return c.userId === this.currentUserId;
           }
-        );
-
-        console.log("Filtered circuits:", this.currentCircuits);
+        });
       }
-      
-     this.renderCircuitGrid();
+
+      this.renderCircuitGrid();
     } catch (error) {
       console.error("Failed to load circuits:", error);
       this.circuitGridElement.innerHTML = `
@@ -886,7 +898,70 @@ export class CircuitRepositoryController {
       `;
     }
   }
+  private showShareModal(circuitId: string, circuitName: string): void {
+    
+    const shareModal = document.createElement("div");
+    shareModal.className = "share-modal";
+    shareModal.innerHTML = `
+      <div class="share-modal-content">
+        <div class="share-modal-header">
+          <h3>Share "${circuitName}"</h3>
+          <button class="close-share-modal">×</button>
+        </div>
+        <div class="share-modal-body">
+          <p>Enter the username of the person you want to share this circuit with:</p>
+          <input type="text" id="share-username" placeholder="Username" class="share-input">
+          <div class="share-error" style="color: red; display: none;"></div>
+          <button id="share-submit-btn" class="share-button">Share</button>
+        </div>
+      </div>
+    `;
 
+    document.body.appendChild(shareModal);
+
+    
+    const closeBtn = shareModal.querySelector(".close-share-modal");
+    closeBtn?.addEventListener("click", () => {
+      shareModal.remove();
+    });
+
+    const shareBtn = shareModal.querySelector("#share-submit-btn");
+    shareBtn?.addEventListener("click", async () => {
+      const usernameInput = shareModal.querySelector("#share-username") as HTMLInputElement;
+      const username = usernameInput.value.trim();
+      const errorElement = shareModal.querySelector(".share-error") as HTMLElement;
+
+      if (!username) {
+        errorElement.textContent = "Please enter a username";
+        errorElement.style.display = "block";
+        return;
+      }
+
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}/share`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}`,
+          },
+          body: JSON.stringify({ username }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to share circuit");
+        }
+
+        
+        shareModal.remove();
+        alert(`Circuit successfully shared with ${username}`);
+      } catch (error) {
+        
+        errorElement.textContent = "Failed to share circuit";
+        errorElement.style.display = "block";
+      }
+    });
+  }
   private renderCircuitGrid(): void {
     if (!this.circuitGridElement) return;
 
@@ -913,11 +988,20 @@ export class CircuitRepositoryController {
       console.error("Circuit ID is missing");
       return document.createElement("div");
     }
-  
+
     const card = document.createElement("div");
     card.className = "circuit-card";
+
+    if (circuit.isShared) {
+      card.classList.add("shared");
+    }
+
+    if (circuit.isPublic) {
+      card.classList.add("public");
+    }
+
     card.dataset.circuitId = circuit.id;
-  
+
     card.innerHTML = `
       <div class="circuit-thumbnail" ${circuit.thumbnailUrl ? `style="background-image: url('${circuit.thumbnailUrl}')"` : ""}>
         ${!circuit.thumbnailUrl ? "No Preview" : ""}
@@ -939,28 +1023,28 @@ export class CircuitRepositoryController {
         </div>
       </div>
     `;
-  
-    // Add view circuit event listener
+
+    
     const viewButton = card.querySelector(".view-circuit");
     if (viewButton) {
-      viewButton.addEventListener("click", (e) => {
+      viewButton.addEventListener("click", e => {
         e.stopPropagation();
         this.viewCircuitDetails(circuit.id);
       });
     }
-  
-    // Add delete circuit event listener
+
+    
     const deleteButton = card.querySelector(".delete-circuit");
     if (deleteButton) {
-      deleteButton.addEventListener("click", async (e) => {
+      deleteButton.addEventListener("click", async e => {
         e.stopPropagation();
-        if (confirm(`Are you sure you want to delete "${circuit.name || 'Untitled Circuit'}"?`)) {
+        if (confirm(`Are you sure you want to delete "${circuit.name || "Untitled Circuit"}"?`)) {
           try {
             await this.repositoryService.deleteCircuit(circuit.id);
             card.remove();
             alert("Circuit deleted successfully!");
+
             
-            // Refresh the circuit list after deletion
             this.loadCircuits();
           } catch (error) {
             console.error("Failed to delete circuit:", error);
@@ -969,10 +1053,10 @@ export class CircuitRepositoryController {
         }
       });
     }
-  
-    // Keep the existing click handler for the entire card
+
+    
     card.addEventListener("click", () => this.viewCircuitDetails(circuit.id));
-  
+
     return card;
   }
 
@@ -998,15 +1082,48 @@ export class CircuitRepositoryController {
       alert("Error loading circuit details. Please try again.");
     }
   }
-
+  private async toggleCircuitPublicStatus(circuitId: string): Promise<void> {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}/toggle-public`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update circuit visibility');
+      }
+      
+      const result = await response.json();
+      
+      
+      this.viewCircuitDetails(circuitId);
+      
+      
+      alert(`Circuit is now ${result.isPublic ? 'public' : 'private'}`);
+    } catch (error) {
+      console.error('Error toggling circuit public status:', error);
+      alert('Failed to update circuit visibility. Please try again.');
+    }
+  }
   private renderCircuitDetail(circuit: CircuitEntry): void {
     if (!this.detailViewElement) return;
 
     const detailContainer = document.getElementById("detail-container");
     if (!detailContainer) return;
 
+    const userInfo = localStorage.getItem("user_info");
+    const user = userInfo ? JSON.parse(userInfo) : null;
+    const isOwner =
+      user &&
+      ((typeof circuit.userId === "object" && circuit.userId?._id === user.id) ||
+        circuit.userId === user.id);
+
     const isLiked = false;
-    
+
+    const isPublic = circuit.isPublic || false;
 
     detailContainer.innerHTML = `
       <div class="detail-header">
@@ -1016,6 +1133,10 @@ export class CircuitRepositoryController {
           <button class="download-button" id="download-circuit-btn">Download</button>
           <button class="like-button ${isLiked ? "liked" : ""}" id="like-circuit-btn">
             ❤️ ${circuit.likes || 0}
+          </button>
+          ${isOwner ? `<button id="share-circuit-btn" class="secondary-button">Share</button>` : ""}
+                    <button id="public-toggle-btn" class="visibility-button ${isPublic ? "public" : "private"}">
+            ${isPublic ? "🌎 Public" : "🔒 Private"}
           </button>
           <button class="delete-button" id="delete-circuit-btn">Delete</button>
         </div>
@@ -1089,31 +1210,43 @@ export class CircuitRepositoryController {
     if (useBtn) {
       useBtn.addEventListener("click", () => this.useCircuit(circuit));
     }
-  
+
     const downloadBtn = document.getElementById("download-circuit-btn");
     if (downloadBtn) {
       downloadBtn.addEventListener("click", () => this.downloadCircuit(circuit));
     }
-  
+
     const likeBtn = document.getElementById("like-circuit-btn");
     if (likeBtn) {
       likeBtn.addEventListener("click", () => this.likeCircuit(circuit.id));
     }
+
+    const publicToggleBtn = document.getElementById("public-toggle-btn");
+    if (publicToggleBtn) {
+      publicToggleBtn.addEventListener("click", () => this.toggleCircuitPublicStatus(circuit.id));
+    }
+
+    const shareBtn = document.getElementById("share-circuit-btn");
+    if (shareBtn) {
+      shareBtn.addEventListener("click", () =>
+        this.showShareModal(circuit.id, circuit.name || "Untitled Circuit")
+      );
+    }
+
     
-    // Add event listener for the delete button
     const deleteBtn = document.getElementById("delete-circuit-btn");
     if (deleteBtn) {
       deleteBtn.addEventListener("click", async () => {
-        if (confirm(`Are you sure you want to delete "${circuit.name || 'Untitled Circuit'}"?`)) {
+        if (confirm(`Are you sure you want to delete "${circuit.name || "Untitled Circuit"}"?`)) {
           try {
             await this.repositoryService.deleteCircuit(circuit.id);
+
             
-            // Close the detail view and go back to the grid
             this.showCircuitGrid();
+
             
-            // Refresh the circuit list
             this.loadCircuits();
-            
+
             alert("Circuit deleted successfully!");
           } catch (error) {
             console.error("Failed to delete circuit:", error);
@@ -1122,8 +1255,8 @@ export class CircuitRepositoryController {
         }
       });
     }
-  
-    // Existing code for comment handling...
+
+    
     const commentBtn = document.getElementById("post-comment-btn");
     const commentText = document.getElementById("comment-text") as HTMLTextAreaElement;
     if (commentBtn && commentText) {
@@ -1161,25 +1294,72 @@ export class CircuitRepositoryController {
     this.selectedCircuitId = null;
   }
 
-  private async searchCircuits(query: string): Promise<void> {
-    if (query.trim() === "") {
-      return this.loadCircuits();
-    }
-
-    try {
-      const searchResults = await this.repositoryService.searchCircuits(query);
-
-      if (this.currentTab === "my-circuits") {
-        this.currentCircuits = searchResults.filter(c => c.userId === this.currentUserId);
-      } else {
-        this.currentCircuits = searchResults;
-      }
-
-      this.renderCircuitGrid();
-    } catch (error) {
-      console.error("Search failed:", error);
-    }
+  
+private async searchCircuits(query: string): Promise<void> {
+  if (!this.circuitGridElement) return;
+  
+  
+  this.circuitGridElement.innerHTML = `<div class="loading-indicator">Searching circuits...</div>`;
+  
+  if (query.trim() === "") {
+    
+    return this.loadCircuits();
   }
+
+  try {
+    
+    const searchResults = await this.repositoryService.searchCircuits(query);
+    
+    
+    if (this.currentTab === "my-circuits") {
+      
+      this.currentCircuits = searchResults.filter(c => {
+        if (typeof c.userId === "object" && c.userId !== null) {
+          return c.userId._id === this.currentUserId;
+        } else {
+          return c.userId === this.currentUserId;
+        }
+      });
+    } else {
+      
+      this.currentCircuits = searchResults.filter(c => {
+        
+        const isPublic = c.isPublic === true;
+        
+        
+        let isNotOwned = false;
+        if (typeof c.userId === "object" && c.userId !== null) {
+          isNotOwned = c.userId._id !== this.currentUserId;
+        } else {
+          isNotOwned = c.userId !== this.currentUserId;
+        }
+        
+        return isPublic && isNotOwned;
+      });
+    }
+
+    
+    this.renderCircuitGrid();
+    
+    
+    if (this.currentCircuits.length === 0) {
+      this.circuitGridElement.innerHTML = `
+        <div class="no-results">
+          <h3>No matches found</h3>
+          <p>No circuits matching "${query}" were found.</p>
+        </div>
+      `;
+    }
+  } catch (error) {
+    console.error("Search failed:", error);
+    this.circuitGridElement.innerHTML = `
+      <div class="no-results">
+        <h3>Search Failed</h3>
+        <p>Sorry, we couldn't complete your search. Please try again later.</p>
+      </div>
+    `;
+  }
+}
 
   private showUploadForm(): void {
     if (this.uploadFormElement) {
@@ -1195,42 +1375,46 @@ export class CircuitRepositoryController {
       if (form) form.reset();
     }
   }
+private async handleUploadSubmit(e: Event): Promise<void> {
+  e.preventDefault();
+  if (!this.uploadFormElement) return;
 
-  private async handleUploadSubmit(e: Event): Promise<void> {
-    e.preventDefault();
-    if (!this.uploadFormElement) return;
+  const formData = new FormData(this.uploadFormElement as HTMLFormElement);
+  const title = formData.get("title") as string;
+  const description = formData.get("description") as string;
+  const verilogCode = formData.get("verilogCode") as string;
+  const tags = (formData.get("tags") as string).split(",").map(tag => tag.trim());
 
-    const formData = new FormData(this.uploadFormElement as HTMLFormElement);
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const verilogCode = formData.get("verilogCode") as string;
-    const tags = (formData.get("tags") as string).split(",").map(tag => tag.trim());
+  
+  const isPublic = formData.get("isPublic") === "on" || true; 
 
-    try {
-      const newCircuit = await this.repositoryService.uploadCircuit({
-        name: title,
-        description,
-        userId: this.currentUserId,
-        authorName: "Current User",
-        tags,
-        verilogCode,
-        thumbnailUrl: undefined,
-        components: [],
-        wires: [],
-      });
+  try {
+    const newCircuit = await this.repositoryService.uploadCircuit({
+      name: title,
+      description,
+      userId: this.currentUserId,
+      authorName: "Current User",
+      tags,
+      verilogCode,
+      thumbnailUrl: undefined,
+      components: [],
+      wires: [],
+      isPublic: isPublic, 
+    });
 
-      this.currentCircuits.unshift(newCircuit);
-      this.renderCircuitGrid();
-      this.hideUploadForm();
-    } catch (error) {
-      console.error("Failed to upload circuit:", error);
-      alert("Failed to upload circuit. Please try again.");
-    }
+    
+    this.loadCircuits();
+    this.currentCircuits.unshift(newCircuit);
+    this.hideUploadForm();
+  } catch (error) {
+    console.error("Upload failed:", error);
+    alert("Failed to upload circuit. Please try again.");
   }
+}
 
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
-      // Get the authentication token
+      
       const token = localStorage.getItem("auth_token");
       if (!token) {
         alert("You must be logged in to use this circuit");
@@ -1251,7 +1435,7 @@ export class CircuitRepositoryController {
       const circuitData = await response.json();
       console.log("Fetched circuit data:", circuitData);
 
-      // Rest of your existing code...
+      
       const circuitBoard = this.verilogConverter.circuitBoard;
       circuitBoard.clearCircuit();
 

@@ -41,18 +41,120 @@ mongoose
     console.error("MongoDB connection error:", err);
     console.error("Connection URI:", MONGODB_URI);
   });
-
+// Modify the existing endpoint
+// Update the GET /api/circuits endpoint
 app.get("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    // Fetch circuits and populate with user data
-    const circuits = await Circuit.find({ userId: req.user?.id })
-      .populate("userId", "name email") // Populate with just name and email
+    // Fetch user's own circuits
+    const ownCircuits = await Circuit.find({ userId: req.user?.id })
+      .populate("userId", "name email")
       .sort({ createdAt: -1 });
-
-    res.json(circuits);
+      
+    // Fetch circuits shared with the user
+    const sharedCircuits = await Circuit.find({ 
+      sharedWith: req.user?.id 
+    })
+    .populate("userId", "name email")
+    .sort({ createdAt: -1 });
+    
+    // Fetch public circuits (that aren't owned by the user)
+    const publicCircuits = await Circuit.find({
+      userId: { $ne: req.user?.id },
+      isPublic: true
+    })
+    .populate("userId", "name email")
+    .sort({ createdAt: -1 });
+    
+    // Mark shared and public circuits
+    const sharedCircuitsWithFlag = sharedCircuits.map(circuit => {
+      const circuitObj = circuit.toObject();
+      circuitObj.isShared = true;
+      return circuitObj;
+    });
+    
+    const publicCircuitsWithFlag = publicCircuits.map(circuit => {
+      const circuitObj = circuit.toObject();
+      circuitObj.isPublic = true;
+      return circuitObj;
+    });
+    
+    // Combine all sets
+    const allCircuits = [...ownCircuits, ...sharedCircuitsWithFlag, ...publicCircuitsWithFlag];
+    
+    res.json(allCircuits);
   } catch (error) {
     console.error("Error fetching circuits:", error);
     res.status(500).json({ error: "Failed to fetch circuits" });
+  }
+});
+
+app.get("/api/circuits/search", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const query = req.query.q as string;
+    
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: "Search query is required" });
+    }
+    
+    // Create a regex pattern that matches beginning of words (prefix match)
+    // This will match strings that start with the query (case insensitive)
+    const searchPattern = new RegExp(`^${query}`, 'i');
+    
+    // Find circuits that match the search criteria
+    const matchingCircuits = await Circuit.find({
+      $or: [
+        { name: searchPattern },
+        { description: searchPattern }
+        // Removed tag matching as it's not prefix-friendly
+      ],
+      $and: [
+        {
+          $or: [
+            // User's own circuits
+            { userId: req.user?.id },
+            // Circuits shared with the user
+            { sharedWith: req.user?.id },
+            // Public circuits
+            { isPublic: true }
+          ]
+        }
+      ]
+    })
+    .populate("userId", "name email")
+    .sort({ createdAt: -1 });
+    
+    res.json(matchingCircuits);
+  } catch (error) {
+    console.error("Error searching circuits:", error);
+    res.status(500).json({ error: "Failed to search circuits" });
+  }
+});
+
+app.put("/api/circuits/:id/toggle-public", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const circuitId = req.params.id;
+    
+    // Find the circuit and make sure it belongs to the current user
+    const circuit = await Circuit.findOne({
+      _id: circuitId,
+      userId: req.user?.id
+    });
+    
+    if (!circuit) {
+      return res.status(404).json({ error: "Circuit not found or you don't have permission" });
+    }
+    
+    // Toggle the isPublic status
+    circuit.isPublic = !circuit.isPublic;
+    await circuit.save();
+    
+    res.json({ 
+      message: "Circuit visibility updated successfully",
+      isPublic: circuit.isPublic
+    });
+  } catch (error) {
+    console.error("Error toggling circuit public status:", error);
+    res.status(500).json({ error: "Failed to update circuit visibility" });
   }
 });
 
@@ -153,19 +255,37 @@ app.get("/api/auth/me", async (req, res) => {
     res.status(401).json({ error: "Invalid token" });
   }
 });
-
 app.get("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    const circuit = await Circuit.findOne({
+    // First try to find circuit owned by current user
+    let circuit = await Circuit.findOne({
       _id: req.params.id,
-      userId: req.user?.id,
+      userId: req.user?.id
     });
 
+    // If not found, check if it's a public circuit
     if (!circuit) {
-      return res.status(404).json({ error: "Circuit not found" });
+      circuit = await Circuit.findOne({
+        _id: req.params.id,
+        isPublic: true
+      });
     }
+
+    // If still not found, check if it's shared with this user
+    if (!circuit) {
+      circuit = await Circuit.findOne({
+        _id: req.params.id,
+        sharedWith: req.user?.id
+      });
+    }
+
+    if (!circuit) {
+      return res.status(404).json({ error: "Circuit not found or you don't have permission" });
+    }
+    
     res.json(circuit);
   } catch (error) {
+    console.error("Error fetching circuit:", error);
     res.status(500).json({ error: "Failed to fetch circuit" });
   }
 });
@@ -416,6 +536,47 @@ app.get("/api/circuits/:id/download", authMiddleware, async (req: AuthRequest, r
     res.status(500).json({ error: "Failed to download circuit" });
   }
 });
+// Add this endpoint
+app.post("/api/circuits/:id/share", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+    
+    // Find the user to share with
+    const userToShareWith = await User.findOne({ name: username });
+    if (!userToShareWith) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    // Find the circuit and ensure it belongs to current user
+    const circuit = await Circuit.findOne({
+      _id: req.params.id,
+      userId: req.user?.id
+    });
+    
+    if (!circuit) {
+      return res.status(404).json({ error: "Circuit not found or you don't have permission" });
+    }
+    
+    // Check if already shared
+    if (circuit.sharedWith && circuit.sharedWith.some(id => id.toString() === userToShareWith._id.toString())) {
+      return res.status(400).json({ error: "Circuit already shared with this user" });
+    }
+    
+    // Add user to sharedWith array
+    circuit.sharedWith = circuit.sharedWith || [];
+    circuit.sharedWith.push(userToShareWith._id);
+    await circuit.save();
+    
+    res.json({ message: "Circuit shared successfully" });
+  } catch (error) {
+    console.error("Error sharing circuit:", error);
+    res.status(500).json({ error: "Failed to share circuit" });
+  }
+});
+
 
 app.post("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
   try {
