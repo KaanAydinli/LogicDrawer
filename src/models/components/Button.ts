@@ -32,7 +32,6 @@ export class Button extends Component {
     this.evaluate();
   }
   
-  
   onMouseUp(): void {
     this.state = false;
     this.evaluate();

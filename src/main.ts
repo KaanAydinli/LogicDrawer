@@ -42,7 +42,7 @@ import { Led } from "./models/components/Led";
 import { GoogleGenAI } from "@google/genai";
 import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
 import { apiBaseUrl } from "./services/apiConfig";
-
+import { MultiBit } from "./models/components/MultiBit";
 
 class Queue {
   public items: string[] = [];
@@ -121,7 +121,6 @@ const sidebar = document.querySelector(".sidebar") as HTMLElement;
 const sidebarClose = document.querySelector(".closeSide") as HTMLElement;
 var minimap: HTMLCanvasElement;
 
-
 function initApp() {
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
   minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
@@ -130,21 +129,14 @@ function initApp() {
   window.circuitBoard = circuitBoard;
   converter = new VerilogCircuitConverter(circuitBoard);
 
-
-
   document.querySelector(".screenshot")?.addEventListener("click", () => {
     circuitBoard.takeScreenshot();
   });
 
-  const repository = new CircuitRepositoryController(
-    repositoryService,
-    converter,
-    document.body );
+  const repository = new CircuitRepositoryController(repositoryService, converter, document.body);
   storage.addEventListener("click", () => {
     repository.open();
   });
-
-  
 
   roboflow = new RoboflowService(apiKey, workflowId);
   imageUploader = new ImageUploader(roboflow, circuitBoard);
@@ -157,7 +149,6 @@ function initApp() {
   setupSettings();
   setTheme();
 
-  
   sidebarClose.classList.add("close");
 
   window.addEventListener("resize", handleResize);
@@ -182,9 +173,6 @@ function initApp() {
   setFile();
 
   // Extend Window interface to include circuitBoard property
-
-  
-
 
   //Open it when needed to test api
   // const testApiBtn = document.createElement("button");
@@ -219,45 +207,45 @@ function initApp() {
   // document.body.appendChild(testApiBtn);
 
   // Add this function to verify token on app start
-async function verifyAuthToken() {
-  const token = localStorage.getItem("auth_token");
-  if (!token) return false;
-  
-  try {
-    const response = await fetch(`${apiBaseUrl}/api/auth/check`, {
-      headers: {
-        "Authorization": `Bearer ${token}`
+  async function verifyAuthToken() {
+    const token = localStorage.getItem("auth_token");
+    if (!token) return false;
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/check`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const userInfo = localStorage.getItem("user_info");
+        const user = userInfo ? JSON.parse(userInfo) : null;
+
+        return true;
+      } else {
+        // Token invalid - clear it
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user_info");
+
+        return false;
       }
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      const userInfo = localStorage.getItem("user_info");
-      const user = userInfo ? JSON.parse(userInfo) : null;
-      
-      return true;
-    } else {
-      // Token invalid - clear it
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("user_info");
-     
+    } catch (error) {
+      console.error("Error verifying token:", error);
       return false;
     }
-  } catch (error) {
-    console.error("Error verifying token:", error);
-    return false;
   }
-}
 
-// Call this at the end of initApp()
-verifyAuthToken().then(valid => {
-  if (valid) {
-    console.log("Authentication verified");
-    loadSavedCircuits();
-  } else {
-    console.log("User not authenticated");
-  }
-});
+  // Call this at the end of initApp()
+  verifyAuthToken().then(valid => {
+    if (valid) {
+      console.log("Authentication verified");
+      loadSavedCircuits();
+    } else {
+      console.log("User not authenticated");
+    }
+  });
 }
 
 function syncCanvasWithAnimation() {
@@ -513,6 +501,9 @@ function addComponentByType(type: string, position: Point) {
     case "led":
       component = new Led(position);
       break;
+    case "multibit":
+      component = new MultiBit(position, 4); // Varsayılan olarak 4 bit
+      break;
     default:
       return;
   }
@@ -522,19 +513,17 @@ function addComponentByType(type: string, position: Point) {
 
 function setupKeyboardShortcuts() {
   document.addEventListener("keydown", event => {
-
     const activeElement = document.activeElement;
     const tagName = activeElement?.tagName.toLowerCase();
-    
+
     // Eğer aktif eleman bir metin giriş alanıysa, kısayolları işleme
-    const isTextInput = 
-      tagName === 'input' || 
-      tagName === 'textarea' || 
-      
-      (activeElement?.getAttribute && activeElement?.getAttribute('role') === 'textbox') ||
-      activeElement?.id === 'ai-chat-input' || // AI chat alanı
-      activeElement?.id === 'verilog-editor'; // Verilog editörü
-    
+    const isTextInput =
+      tagName === "input" ||
+      tagName === "textarea" ||
+      (activeElement?.getAttribute && activeElement?.getAttribute("role") === "textbox") ||
+      activeElement?.id === "ai-chat-input" || // AI chat alanı
+      activeElement?.id === "verilog-editor"; // Verilog editörü
+
     // Eğer metin giriş alanında ise, kısayolları devre dışı bırak
     if (isTextInput) {
       return; // Metin girişi sırasında kısayolları çalıştırma
@@ -1053,13 +1042,13 @@ function setUpLoginAndSignup() {
       authButton.className = "storage";
       authButton.textContent = "Sign In";
       authButton.id = "auth-button";
-      
+
       // Mevcut elementlerin önüne ekle
       rightContainer.append(authButton);
-      
+
       // Event listener ekle
       authButton.addEventListener("click", showAuthModal);
-      
+
       // Kullanıcı zaten giriş yapmışsa güncelle
       const token = localStorage.getItem("auth_token");
       if (token) {
@@ -1067,9 +1056,9 @@ function setUpLoginAndSignup() {
       }
     }
   };
-  
+
   addAuthButton();
-  
+
   // Authentication modal göster
   function showAuthModal() {
     if (authModal) {
@@ -1099,58 +1088,58 @@ function setUpLoginAndSignup() {
   }
   function updateUserInterface(isLoggedIn: boolean, userName?: string) {
     const authButton = document.getElementById("auth-button");
-    
+
     if (!authButton) return;
-    
+
     // Remove any existing profile dropdown
     const existingDropdown = document.getElementById("profile-dropdown");
     if (existingDropdown) {
       existingDropdown.remove();
     }
-    
+
     // Create a new button to clear event listeners
     const newAuthButton = authButton.cloneNode(true) as HTMLElement;
     authButton.parentNode?.replaceChild(newAuthButton, authButton);
-    
+
     if (isLoggedIn) {
       // Change button appearance for logged in users
       newAuthButton.textContent = userName || "My Account";
       newAuthButton.classList.add("logged-in");
-      
+
       // Set up click handler for profile menu
       newAuthButton.addEventListener("click", toggleProfileDropdown);
     } else {
       // Reset to default for logged out users
       newAuthButton.textContent = "Sign In";
       newAuthButton.classList.remove("logged-in");
-      
+
       // Add event listener to show auth modal
       newAuthButton.addEventListener("click", showAuthModal);
     }
   }
-  
+
   // Separate function to toggle the profile dropdown
   function toggleProfileDropdown(event: MouseEvent) {
     event.stopPropagation();
-    
+
     // Check if dropdown already exists
     let profileDropdown = document.getElementById("profile-dropdown");
-    
+
     // If exists, just remove it
     if (profileDropdown) {
       profileDropdown.remove();
       return;
     }
-    
+
     // Get user info from localStorage
     const userInfo = localStorage.getItem("user_info");
     const user = userInfo ? JSON.parse(userInfo) : { name: "User", email: "" };
-    
+
     // Create dropdown
     profileDropdown = document.createElement("div");
     profileDropdown.id = "profile-dropdown";
     profileDropdown.className = "profile-dropdown";
-    
+
     profileDropdown.innerHTML = `
       <div class="profile-header">
         <div class="profile-name">${user.name}</div>
@@ -1164,12 +1153,11 @@ function setUpLoginAndSignup() {
       const rect = authButton.getBoundingClientRect();
       profileDropdown.style.position = "absolute";
       profileDropdown.style.top = rect.bottom + "px";
-      profileDropdown.style.right = (window.innerWidth - rect.right) + "px";
+      profileDropdown.style.right = window.innerWidth - rect.right + "px";
     }
     profileDropdown.style.cursor = "pointer";
-  
+
     document.body.appendChild(profileDropdown);
-    
 
     document.getElementById("logout-option")?.addEventListener("click", handleLogout);
 
@@ -1185,7 +1173,7 @@ function setUpLoginAndSignup() {
     try {
       const emailInput = document.getElementById("login-email") as HTMLInputElement;
       const passwordInput = document.getElementById("login-password") as HTMLInputElement;
-      
+
       const email = emailInput.value;
       const password = passwordInput.value;
 
@@ -1194,7 +1182,6 @@ function setUpLoginAndSignup() {
         return;
       }
 
-
       const loginBtn = document.getElementById("login-button") as HTMLButtonElement;
       loginBtn.disabled = true;
       loginBtn.textContent = "Giriş yapılıyor...";
@@ -1202,11 +1189,10 @@ function setUpLoginAndSignup() {
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       });
-
 
       loginBtn.disabled = false;
       loginBtn.textContent = "Sign In";
@@ -1214,25 +1200,27 @@ function setUpLoginAndSignup() {
         const errorData = await response.json();
         throw new Error(errorData.error || "Login failed");
       }
-  
+
       const data = await response.json();
-      
+
       // Debugging to make sure token is received
-      console.log("Login successful, received data:", 
-        { token: data.token ? "Token received" : "No token!", user: data.user ? "User data received" : "No user data!" });
-      
+      console.log("Login successful, received data:", {
+        token: data.token ? "Token received" : "No token!",
+        user: data.user ? "User data received" : "No user data!",
+      });
+
       // Store token & user info
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("user_info", JSON.stringify(data.user));
-      
+
       // Update UI
       updateUserInterface(true, data.user.name);
       hideAuthModal();
-      
+
       // Test token was saved
       const savedToken = localStorage.getItem("auth_token");
       console.log("Token saved to localStorage:", savedToken ? "Yes" : "No");
-      
+
       // Success message
       alert("Login successful!");
     } catch (error) {
@@ -1247,8 +1235,10 @@ function setUpLoginAndSignup() {
       const nameInput = document.getElementById("signup-name") as HTMLInputElement;
       const emailInput = document.getElementById("signup-email") as HTMLInputElement;
       const passwordInput = document.getElementById("signup-password") as HTMLInputElement;
-      const confirmPasswordInput = document.getElementById("signup-confirm-password") as HTMLInputElement;
-      
+      const confirmPasswordInput = document.getElementById(
+        "signup-confirm-password"
+      ) as HTMLInputElement;
+
       const name = nameInput.value;
       const email = emailInput.value;
       const password = passwordInput.value;
@@ -1273,9 +1263,9 @@ function setUpLoginAndSignup() {
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password }),
       });
 
       // Butonu tekrar etkinleştir
@@ -1291,10 +1281,10 @@ function setUpLoginAndSignup() {
 
       // Kayıt başarılı, login formunu göster
       showLoginView();
-      
+
       // E-posta adresini login formuna doldur
       (document.getElementById("login-email") as HTMLInputElement).value = email;
-      
+
       // Başarılı mesajı göster
       alert("Hesap başarıyla oluşturuldu! Lütfen giriş yapın.");
     } catch (error) {
@@ -1309,16 +1299,16 @@ function setUpLoginAndSignup() {
     // Remove token and user info
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_info");
-    
+
     // Remove the dropdown
     const profileDropdown = document.getElementById("profile-dropdown");
     if (profileDropdown) {
       profileDropdown.remove();
     }
-    
+
     // Update the UI immediately
     updateUserInterface(false);
-    
+
     // Show success message
     alert("Successfully logged out!");
   }
@@ -1351,20 +1341,20 @@ function setUpLoginAndSignup() {
     // Form gönderileri
     loginButton?.addEventListener("click", handleLogin);
     signupButton?.addEventListener("click", handleSignup);
-    
+
     // Giriş yapıldığında logout seçeneği ekle
     document.addEventListener("DOMContentLoaded", () => {
       const userInfo = localStorage.getItem("user_info");
       if (userInfo) {
         const user = JSON.parse(userInfo);
         updateUserInterface(true, user.name);
-        
+
         // Çıkış yapma fonksiyonalitesi ekle
         const authButton = document.getElementById("auth-button");
         if (authButton) {
-          authButton.addEventListener("click", (e) => {
+          authButton.addEventListener("click", e => {
             if (localStorage.getItem("auth_token")) {
-              e.stopPropagation(); 
+              e.stopPropagation();
               if (confirm("Çıkış yapmak istiyor musunuz?")) {
                 handleLogout();
               }
@@ -1374,10 +1364,9 @@ function setUpLoginAndSignup() {
       }
     });
   }
-  
+
   setupAuthListeners();
 }
-
 
 async function saveToMongoDB(name: string, circuitData: any) {
   try {
@@ -1387,14 +1376,14 @@ async function saveToMongoDB(name: string, circuitData: any) {
       alert("You must be logged in to save circuits. Please sign in.");
       return;
     }
-    
+
     // Kullanıcı bilgileri
     const userInfo = localStorage.getItem("user_info");
     const user = userInfo ? JSON.parse(userInfo) : { name: "Unknown" };
-    
+
     // Parse the circuit data if it's a string
     const parsedData = typeof circuitData === "string" ? JSON.parse(circuitData) : circuitData;
-    
+
     const data = {
       name: name,
       authorName: user.name, // Kullanıcının adını ekle
@@ -1424,7 +1413,7 @@ async function saveToMongoDB(name: string, circuitData: any) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -1440,7 +1429,6 @@ async function saveToMongoDB(name: string, circuitData: any) {
   }
 }
 
-
 async function loadSavedCircuits() {
   try {
     // Get auth token
@@ -1452,10 +1440,10 @@ async function loadSavedCircuits() {
 
     const response = await fetch(`${apiBaseUrl}/api/circuits`, {
       headers: {
-        "Authorization": `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
-    
+
     if (response.ok) {
       const circuits = await response.json();
       // Display circuits in the UI
@@ -1490,10 +1478,10 @@ async function loadCircuit(circuitId: string) {
 
     const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
       headers: {
-        "Authorization": `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
-    
+
     if (response.ok) {
       const circuit = await response.json();
       // Clear the current circuit
@@ -1525,10 +1513,10 @@ async function deleteCircuit(circuitId: string) {
       const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       if (response.ok) {
         console.log("Circuit deleted successfully!");
         alert("Circuit deleted successfully!");

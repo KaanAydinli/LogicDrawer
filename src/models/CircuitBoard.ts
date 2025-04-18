@@ -28,7 +28,7 @@ import { FullAdder } from "./gates/FullAdder";
 import { HalfSubtractor } from "./gates/HalfSubtractor";
 import { FullSubtractor } from "./gates/FullSubtractor";
 import { Led } from "./components/Led";
-
+import { MultiBit } from "./components/MultiBit";
 
 export class CircuitBoard {
   components: Component[];
@@ -74,9 +74,7 @@ export class CircuitBoard {
     if (this.minimap) {
       this.minimapCtx = this.minimap.getContext("2d") as CanvasRenderingContext2D;
       this.setupMinimap();
-    }
-    else 
-      this.minimapCtx = null as any;
+    } else this.minimapCtx = null as any;
 
     this.setupCanvas();
     this.setupEvents();
@@ -142,289 +140,292 @@ export class CircuitBoard {
     this.components.push(component);
     this.draw();
   }
-    /**
+  /**
    * Tüm bileşenleri otomatik olarak düzenler ve grid'e hizalar
    */
-    public autoArrangeCircuit(): void {
-      if (this.components.length === 0) {
-        console.log("Düzenlenecek bileşen yok.");
-        return;
-      }
-  
-      console.log("Devre otomatik olarak düzenleniyor...");
-      
-      // 1. Önce her bileşeni en yakın grid çizgisine hizala
-      this.snapAllComponentsToGrid();
-      
-      // 2. Devre yapısını analiz et ve bileşenleri düzenle
-      this.organizeCircuitLayout();
-      
-      // 3. Tüm kabloları yeniden yönlendir
-      this.rerouteAllWires();
-      
-      // 4. Değişiklikleri ekrana yansıt
-      this.simulate();
-      this.draw();
-      
-      console.log("Devre düzenleme tamamlandı.");
-    }
-    
-    /**
-     * Tüm bileşenleri en yakın grid noktasına hizalar
-     */
-    private snapAllComponentsToGrid(): void {
-      const gridSize = 20; // Grid boyutu (piksel)
-      
-      this.components.forEach(component => {
-        // Bileşenin mevcut pozisyonunu al
-        const currentPos = component.position;
-        
-        // En yakın grid noktasını hesapla
-        const newX = Math.round(currentPos.x / gridSize) * gridSize;
-        const newY = Math.round(currentPos.y / gridSize) * gridSize;
-        
-        // Bileşeni yeni pozisyona taşı
-        component.move({ x: newX, y: newY });
-      });
-      
-      console.log("Tüm bileşenler grid'e hizalandı.");
-    }
-    
-    /**
-     * Devre yerleşimini optimize eden fonksiyon
-     */
-    private organizeCircuitLayout(): void {
-      // Bileşenleri türlerine göre grupla
-      const inputComponents: Component[] = [];
-      const logicGateComponents: Component[] = [];
-      const outputComponents: Component[] = [];
-      const otherComponents: Component[] = [];
-      
-      this.components.forEach(component => {
-        if (
-          component.type === "toggle" || 
-          component.type === "button" || 
-          component.type === "constant0" || 
-          component.type === "constant1" ||
-          component.type === "clock"
-        ) {
-          inputComponents.push(component);
-        } else if (
-          component.type === "light-bulb" || 
-          component.type === "hex" ||
-          component.type === "led"
-        ) {
-          outputComponents.push(component);
-        } else if (component.type !== "text" && component.type !== "state") {
-          logicGateComponents.push(component);
-        } else {
-          otherComponents.push(component);
-        }
-      });
-      
-      // Giriş bileşenlerini sol tarafta düzenle
-      this.organizeComponentsInColumn(inputComponents, 100, 100, 80);
-      
-      // Mantık kapılarını ortada düzenle (katmanlar halinde)
-      this.organizeLogicGatesByLayers(logicGateComponents, 300);
-      
-      // Çıkış bileşenlerini sağ tarafta düzenle
-      this.organizeComponentsInColumn(outputComponents, 800, 100, 80);
-      
-      // Diğer bileşenleri ayrı bir alanda düzenle
-      this.organizeComponentsInColumn(otherComponents, 50, 500, 100);
-      
-      console.log("Devre yerleşimi optimize edildi.");
-    }
-    
-    /**
-     * Bileşenleri bir sütun halinde düzenler
-     */
-    private organizeComponentsInColumn(
-      components: Component[], 
-      startX: number, 
-      startY: number, 
-      spacing: number
-    ): void {
-      components.forEach((component, index) => {
-        component.move({ x: startX, y: startY + index * spacing });
-      });
-    }
-    
-    /**
-     * Mantık kapılarını katmanlar halinde düzenler
-     */
-    private organizeLogicGatesByLayers(components: Component[], startX: number): void {
-      // Kapılar arasındaki mantıksal bağlantıları analiz et
-      const gateLayers = this.analyzeGateLayers(components);
-      
-      // Her katmandaki kapıları düzenle
-      Object.keys(gateLayers).forEach((layerIndex) => {
-        const layerComponents = gateLayers[parseInt(layerIndex)];
-        const layerX = startX + parseInt(layerIndex) * 150;
-        
-        layerComponents.forEach((component, index) => {
-          component.move({ x: layerX, y: 150 + index * 100 });
-        });
-      });
-    }
-    
-    /**
-     * Mantık kapıları arasındaki bağlantıları analiz ederek katmanlar oluşturur
-     */
-    private analyzeGateLayers(gates: Component[]): { [layer: number]: Component[] } {
-      const layeredGates: { [layer: number]: Component[] } = { 0: [] };
-      const assignedGates = new Set<string>();
-      
-      // İlk katmana giriş bağlantısı olmayan veya sadece giriş bileşenlerinden bağlantı alan kapıları yerleştir
-      gates.forEach(gate => {
-        const hasInputOnly = this.hasInputsOnlyFromInputComponents(gate);
-        if (hasInputOnly) {
-          layeredGates[0].push(gate);
-          assignedGates.add(gate.id);
-        }
-      });
-      
-      // Geri kalan kapıları katmanlara yerleştir
-      let currentLayer = 0;
-      let allAssigned = false;
-      
-      while (!allAssigned) {
-        let somethingChanged = false;
-        const nextLayer = currentLayer + 1;
-        
-        if (!layeredGates[nextLayer]) {
-          layeredGates[nextLayer] = [];
-        }
-        
-        gates.forEach(gate => {
-          if (assignedGates.has(gate.id)) return;
-          
-          const allInputsAssigned = this.areAllInputsAssigned(gate, assignedGates, currentLayer, layeredGates);
-          
-          if (allInputsAssigned) {
-            layeredGates[nextLayer].push(gate);
-            assignedGates.add(gate.id);
-            somethingChanged = true;
-          }
-        });
-        
-        if (!somethingChanged) {
-          // Eğer hiçbir kapı atanmadıysa, kalan tüm kapıları son katmana ekle
-          gates.forEach(gate => {
-            if (!assignedGates.has(gate.id)) {
-              layeredGates[nextLayer].push(gate);
-              assignedGates.add(gate.id);
-            }
-          });
-          allAssigned = true;
-        }
-        
-        currentLayer = nextLayer;
-      }
-      
-      return layeredGates;
-    }
-    
-    /**
-     * Bir kapının tüm girişlerinin belirli bir katmana kadar atanmış olup olmadığını kontrol eder
-     */
-    private areAllInputsAssigned(
-      gate: Component, 
-      assignedGates: Set<string>, 
-      currentLayer: number,
-      layeredGates: { [layer: number]: Component[] }
-    ): boolean {
-      // Kapının girişlerini kontrol et
-      const inputConnections = this.getInputConnections(gate);
-      
-      if (inputConnections.length === 0) return true;
-      
-      for (const sourceGate of inputConnections) {
-        if (!assignedGates.has(sourceGate.id)) {
-          return false;
-        }
-        
-        // Girişin hangi katmanda olduğunu kontrol et
-        let foundInPreviousLayers = false;
-        for (let layer = 0; layer <= currentLayer; layer++) {
-          if (layeredGates[layer] && layeredGates[layer].some(g => g.id === sourceGate.id)) {
-            foundInPreviousLayers = true;
-            break;
-          }
-        }
-        
-        if (!foundInPreviousLayers) {
-          return false;
-        }
-      }
-      
-      return true;
-    }
-    
-    /**
-     * Bir kapının sadece giriş bileşenlerinden bağlantı alıp almadığını kontrol eder
-     */
-    private hasInputsOnlyFromInputComponents(gate: Component): boolean {
-      const inputConnections = this.getInputConnections(gate);
-      
-      if (inputConnections.length === 0) return true;
-      
-      for (const sourceGate of inputConnections) {
-        const isInputComponent = 
-          sourceGate.type === "toggle" || 
-          sourceGate.type === "button" || 
-          sourceGate.type === "constant0" || 
-          sourceGate.type === "constant1" ||
-          sourceGate.type === "clock";
-        
-        if (!isInputComponent) {
-          return false;
-        }
-      }
-      
-      return true;
-    }
-    
-    /**
-     * Bir kapının girişlerine bağlı olan bileşenleri bulur
-     */
-    private getInputConnections(gate: Component): Component[] {
-      const connectedComponents: Component[] = [];
-      
-      gate.inputs.forEach(input => {
-        this.wires.forEach(wire => {
-          if (wire.to === input && wire.from) {
-            connectedComponents.push(wire.from.component);
-          }
-        });
-      });
-      
-      return connectedComponents;
-    }
-    
-    /**
-     * Tüm kabloları yeniden yönlendirir
-     */
-    private rerouteAllWires(): void {
-      this.wires.forEach(wire => {
-        wire.autoRoute();
-      });
-      
-      console.log("Tüm kablolar yeniden yönlendirildi.");
+  public autoArrangeCircuit(): void {
+    if (this.components.length === 0) {
+      console.log("Düzenlenecek bileşen yok.");
+      return;
     }
 
+    console.log("Devre otomatik olarak düzenleniyor...");
+
+    // 1. Önce her bileşeni en yakın grid çizgisine hizala
+    this.snapAllComponentsToGrid();
+
+    // 2. Devre yapısını analiz et ve bileşenleri düzenle
+    this.organizeCircuitLayout();
+
+    // 3. Tüm kabloları yeniden yönlendir
+    this.rerouteAllWires();
+
+    // 4. Değişiklikleri ekrana yansıt
+    this.simulate();
+    this.draw();
+
+    console.log("Devre düzenleme tamamlandı.");
+  }
+
+  /**
+   * Tüm bileşenleri en yakın grid noktasına hizalar
+   */
+  private snapAllComponentsToGrid(): void {
+    const gridSize = 20; // Grid boyutu (piksel)
+
+    this.components.forEach(component => {
+      // Bileşenin mevcut pozisyonunu al
+      const currentPos = component.position;
+
+      // En yakın grid noktasını hesapla
+      const newX = Math.round(currentPos.x / gridSize) * gridSize;
+      const newY = Math.round(currentPos.y / gridSize) * gridSize;
+
+      // Bileşeni yeni pozisyona taşı
+      component.move({ x: newX, y: newY });
+    });
+
+    console.log("Tüm bileşenler grid'e hizalandı.");
+  }
+
+  /**
+   * Devre yerleşimini optimize eden fonksiyon
+   */
+  private organizeCircuitLayout(): void {
+    // Bileşenleri türlerine göre grupla
+    const inputComponents: Component[] = [];
+    const logicGateComponents: Component[] = [];
+    const outputComponents: Component[] = [];
+    const otherComponents: Component[] = [];
+
+    this.components.forEach(component => {
+      if (
+        component.type === "toggle" ||
+        component.type === "button" ||
+        component.type === "constant0" ||
+        component.type === "constant1" ||
+        component.type === "clock"
+      ) {
+        inputComponents.push(component);
+      } else if (
+        component.type === "light-bulb" ||
+        component.type === "hex" ||
+        component.type === "led"
+      ) {
+        outputComponents.push(component);
+      } else if (component.type !== "text" && component.type !== "state") {
+        logicGateComponents.push(component);
+      } else {
+        otherComponents.push(component);
+      }
+    });
+
+    // Giriş bileşenlerini sol tarafta düzenle
+    this.organizeComponentsInColumn(inputComponents, 100, 100, 80);
+
+    // Mantık kapılarını ortada düzenle (katmanlar halinde)
+    this.organizeLogicGatesByLayers(logicGateComponents, 300);
+
+    // Çıkış bileşenlerini sağ tarafta düzenle
+    this.organizeComponentsInColumn(outputComponents, 800, 100, 80);
+
+    // Diğer bileşenleri ayrı bir alanda düzenle
+    this.organizeComponentsInColumn(otherComponents, 50, 500, 100);
+
+    console.log("Devre yerleşimi optimize edildi.");
+  }
+
+  /**
+   * Bileşenleri bir sütun halinde düzenler
+   */
+  private organizeComponentsInColumn(
+    components: Component[],
+    startX: number,
+    startY: number,
+    spacing: number
+  ): void {
+    components.forEach((component, index) => {
+      component.move({ x: startX, y: startY + index * spacing });
+    });
+  }
+
+  /**
+   * Mantık kapılarını katmanlar halinde düzenler
+   */
+  private organizeLogicGatesByLayers(components: Component[], startX: number): void {
+    // Kapılar arasındaki mantıksal bağlantıları analiz et
+    const gateLayers = this.analyzeGateLayers(components);
+
+    // Her katmandaki kapıları düzenle
+    Object.keys(gateLayers).forEach(layerIndex => {
+      const layerComponents = gateLayers[parseInt(layerIndex)];
+      const layerX = startX + parseInt(layerIndex) * 150;
+
+      layerComponents.forEach((component, index) => {
+        component.move({ x: layerX, y: 150 + index * 100 });
+      });
+    });
+  }
+
+  /**
+   * Mantık kapıları arasındaki bağlantıları analiz ederek katmanlar oluşturur
+   */
+  private analyzeGateLayers(gates: Component[]): { [layer: number]: Component[] } {
+    const layeredGates: { [layer: number]: Component[] } = { 0: [] };
+    const assignedGates = new Set<string>();
+
+    // İlk katmana giriş bağlantısı olmayan veya sadece giriş bileşenlerinden bağlantı alan kapıları yerleştir
+    gates.forEach(gate => {
+      const hasInputOnly = this.hasInputsOnlyFromInputComponents(gate);
+      if (hasInputOnly) {
+        layeredGates[0].push(gate);
+        assignedGates.add(gate.id);
+      }
+    });
+
+    // Geri kalan kapıları katmanlara yerleştir
+    let currentLayer = 0;
+    let allAssigned = false;
+
+    while (!allAssigned) {
+      let somethingChanged = false;
+      const nextLayer = currentLayer + 1;
+
+      if (!layeredGates[nextLayer]) {
+        layeredGates[nextLayer] = [];
+      }
+
+      gates.forEach(gate => {
+        if (assignedGates.has(gate.id)) return;
+
+        const allInputsAssigned = this.areAllInputsAssigned(
+          gate,
+          assignedGates,
+          currentLayer,
+          layeredGates
+        );
+
+        if (allInputsAssigned) {
+          layeredGates[nextLayer].push(gate);
+          assignedGates.add(gate.id);
+          somethingChanged = true;
+        }
+      });
+
+      if (!somethingChanged) {
+        // Eğer hiçbir kapı atanmadıysa, kalan tüm kapıları son katmana ekle
+        gates.forEach(gate => {
+          if (!assignedGates.has(gate.id)) {
+            layeredGates[nextLayer].push(gate);
+            assignedGates.add(gate.id);
+          }
+        });
+        allAssigned = true;
+      }
+
+      currentLayer = nextLayer;
+    }
+
+    return layeredGates;
+  }
+
+  /**
+   * Bir kapının tüm girişlerinin belirli bir katmana kadar atanmış olup olmadığını kontrol eder
+   */
+  private areAllInputsAssigned(
+    gate: Component,
+    assignedGates: Set<string>,
+    currentLayer: number,
+    layeredGates: { [layer: number]: Component[] }
+  ): boolean {
+    // Kapının girişlerini kontrol et
+    const inputConnections = this.getInputConnections(gate);
+
+    if (inputConnections.length === 0) return true;
+
+    for (const sourceGate of inputConnections) {
+      if (!assignedGates.has(sourceGate.id)) {
+        return false;
+      }
+
+      // Girişin hangi katmanda olduğunu kontrol et
+      let foundInPreviousLayers = false;
+      for (let layer = 0; layer <= currentLayer; layer++) {
+        if (layeredGates[layer] && layeredGates[layer].some(g => g.id === sourceGate.id)) {
+          foundInPreviousLayers = true;
+          break;
+        }
+      }
+
+      if (!foundInPreviousLayers) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Bir kapının sadece giriş bileşenlerinden bağlantı alıp almadığını kontrol eder
+   */
+  private hasInputsOnlyFromInputComponents(gate: Component): boolean {
+    const inputConnections = this.getInputConnections(gate);
+
+    if (inputConnections.length === 0) return true;
+
+    for (const sourceGate of inputConnections) {
+      const isInputComponent =
+        sourceGate.type === "toggle" ||
+        sourceGate.type === "button" ||
+        sourceGate.type === "constant0" ||
+        sourceGate.type === "constant1" ||
+        sourceGate.type === "clock";
+
+      if (!isInputComponent) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Bir kapının girişlerine bağlı olan bileşenleri bulur
+   */
+  private getInputConnections(gate: Component): Component[] {
+    const connectedComponents: Component[] = [];
+
+    gate.inputs.forEach(input => {
+      this.wires.forEach(wire => {
+        if (wire.to === input && wire.from) {
+          connectedComponents.push(wire.from.component);
+        }
+      });
+    });
+
+    return connectedComponents;
+  }
+
+  /**
+   * Tüm kabloları yeniden yönlendirir
+   */
+  private rerouteAllWires(): void {
+    this.wires.forEach(wire => {
+      wire.autoRoute();
+    });
+
+    console.log("Tüm kablolar yeniden yönlendirildi.");
+  }
+
   public extractVerilog(): string {
- 
     if (this.components.length === 0) {
       return "// Boş devre";
     }
 
-
     const inputs: Component[] = [];
     const outputs: Component[] = [];
     const gates: Component[] = [];
-    const wires: Map<string, string> = new Map(); 
+    const wires: Map<string, string> = new Map();
     const wireConnections: Map<string, string[]> = new Map();
     let internalWireCount = 0;
 
@@ -454,7 +455,6 @@ export class CircuitBoard {
     for (const wire of this.wires) {
       if (!wire.from || !wire.to) continue;
 
-   
       if (
         (wire.to.component.type === "light-bulb" || wire.to.component.type === "hex") &&
         wire.from.component.type !== "toggle" &&
@@ -463,20 +463,16 @@ export class CircuitBoard {
         wire.from.component.type !== "constant1" &&
         wire.from.component.type !== "clock"
       ) {
-
         directOutputConnections.set(wire.from.id, this.getWireNameForComponent(wire.to.component));
       }
     }
 
-
     for (const wire of this.wires) {
       if (!wire.from || !wire.to) continue;
-
 
       let sourceWireName = wires.get(wire.from.id);
 
       if (!sourceWireName) {
- 
         if (directOutputConnections.has(wire.from.id)) {
           sourceWireName = directOutputConnections.get(wire.from.id)!;
         } else if (
@@ -492,19 +488,16 @@ export class CircuitBoard {
         wires.set(wire.from.id, sourceWireName);
       }
 
-
       if (wire.to.component.type === "light-bulb" || wire.to.component.type === "hex") {
         const outputName = this.getWireNameForComponent(wire.to.component);
         wires.set(wire.to.id, outputName);
 
-  
         if (!wireConnections.has(outputName)) {
           wireConnections.set(outputName, [sourceWireName]);
         } else {
           wireConnections.get(outputName)!.push(sourceWireName);
         }
       } else {
-   
         if (!wireConnections.has(wire.to.id)) {
           wireConnections.set(wire.to.id, [sourceWireName]);
         } else {
@@ -515,35 +508,30 @@ export class CircuitBoard {
 
     let moduleCode = "";
 
-    
     const moduleName = `circuit_${new Date().getTime().toString(36)}`;
-
 
     const portNames: string[] = [];
 
     for (const input of inputs) {
       const portName = this.getWireNameForComponent(input);
-    
+
       if (portName !== "1'b0" && portName !== "1'b1") {
         portNames.push(portName);
       }
     }
-
 
     for (const output of outputs) {
       const portName = this.getWireNameForComponent(output);
       portNames.push(portName);
     }
 
-
     moduleCode += `module ${moduleName}(\n  ${portNames.join(", ")}\n);\n\n`;
-
 
     if (inputs.length > 0) {
       moduleCode += "// Input ports\n";
       for (const input of inputs) {
         const portName = this.getWireNameForComponent(input);
-      
+
         if (portName !== "1'b0" && portName !== "1'b1") {
           moduleCode += `input ${portName};\n`;
         }
@@ -567,7 +555,6 @@ export class CircuitBoard {
       moduleCode += "\n";
     }
 
-
     if (gates.length > 0) {
       moduleCode += "// Gate instantiations\n";
       let instanceCount: Map<string, number> = new Map();
@@ -584,12 +571,9 @@ export class CircuitBoard {
         if (gate.outputs.length > 0) {
           const outputPortId = gate.outputs[0].id;
 
-
           if (directOutputConnections.has(outputPortId)) {
             outputSignal = directOutputConnections.get(outputPortId)!;
-          }
-
-          else {
+          } else {
             outputSignal = wires.get(outputPortId) || `w${internalWireCount++}`;
             if (!wires.has(outputPortId)) {
               wires.set(outputPortId, outputSignal);
@@ -597,15 +581,12 @@ export class CircuitBoard {
           }
         }
 
-     
         const inputs: string[] = [];
         for (const input of gate.inputs) {
-         
           const connections = wireConnections.get(input.id);
           if (connections && connections.length > 0) {
-            inputs.push(connections[0]); 
+            inputs.push(connections[0]);
           } else {
-          
             inputs.push("1'b0");
           }
         }
@@ -614,7 +595,6 @@ export class CircuitBoard {
       }
     }
 
-   
     moduleCode += "\nendmodule\n";
 
     return moduleCode;
@@ -623,20 +603,17 @@ export class CircuitBoard {
     gateType: string,
     instanceName: string,
     output: string,
-    inputs: string[],
+    inputs: string[]
   ): string {
     if (gateType === "mux") {
-     
       const dataInputs = inputs.slice(0, inputs.length - 1);
       const select = inputs[inputs.length - 1];
       return `${gateType} ${instanceName}(${output}, ${dataInputs.join(", ")}, ${select});\n`;
     } else if (gateType === "dff") {
-      
       const d = inputs[0] || "1'b0";
       const clk = inputs[1] || "1'b0";
       return `${gateType} ${instanceName}(${output}, ${d}, ${clk});\n`;
     } else {
-      
       return `${gateType} ${instanceName}(${output}, ${inputs.join(", ")});\n`;
     }
   }
@@ -697,30 +674,30 @@ export class CircuitBoard {
   }
 
   simulate(): void {
-    this.components.forEach((component) => {
+    this.components.forEach(component => {
       if (typeof component.resetInputs === "function") {
         component.resetInputs();
       }
     });
 
-    this.wires.forEach((wire) => {
+    this.wires.forEach(wire => {
       if (wire.to && wire.from) {
         wire.to.value = wire.from.value;
       }
     });
 
-    this.components.forEach((component) => {
+    this.components.forEach(component => {
       component.evaluate();
     });
 
     for (let i = 0; i < 10; i++) {
-      this.wires.forEach((wire) => {
+      this.wires.forEach(wire => {
         if (wire.to && wire.from) {
           wire.to.value = wire.from.value;
         }
       });
 
-      this.components.forEach((component) => {
+      this.components.forEach(component => {
         component.evaluate();
       });
     }
@@ -728,46 +705,41 @@ export class CircuitBoard {
     this.draw();
   }
 
-public zoomIn(clientX?: number, clientY?: number): void {
-  const oldScale = this.scale;
-  this.scale *= 1.1;
-  this.scale = Math.min(this.scale, 5);
-  
-  this.adjustZoomOffset(clientX, clientY, oldScale);
-}
+  public zoomIn(clientX?: number, clientY?: number): void {
+    const oldScale = this.scale;
+    this.scale *= 1.1;
+    this.scale = Math.min(this.scale, 5);
 
-public zoomOut(clientX?: number, clientY?: number): void {
-  const oldScale = this.scale;
-  this.scale /= 1.1;
-  this.scale = Math.max(this.scale, 0.1);
-  
-  this.adjustZoomOffset(clientX, clientY, oldScale);
-}
-
-
-private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number): void {
-  if (clientX === undefined || clientY === undefined || oldScale === undefined) {
- 
-    this.draw();
-    return;
+    this.adjustZoomOffset(clientX, clientY, oldScale);
   }
-  
-  const rect = this.canvas.getBoundingClientRect();
-  
 
-  const canvasX = clientX - rect.left;
-  const canvasY = clientY - rect.top;
-  
- 
-  const worldX = (canvasX - this.offsetX) / oldScale;
-  const worldY = (canvasY - this.offsetY) / oldScale;
-  
-  
-  this.offsetX = canvasX - worldX * this.scale;
-  this.offsetY = canvasY - worldY * this.scale;
-  
-  this.draw();
-}
+  public zoomOut(clientX?: number, clientY?: number): void {
+    const oldScale = this.scale;
+    this.scale /= 1.1;
+    this.scale = Math.max(this.scale, 0.1);
+
+    this.adjustZoomOffset(clientX, clientY, oldScale);
+  }
+
+  private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number): void {
+    if (clientX === undefined || clientY === undefined || oldScale === undefined) {
+      this.draw();
+      return;
+    }
+
+    const rect = this.canvas.getBoundingClientRect();
+
+    const canvasX = clientX - rect.left;
+    const canvasY = clientY - rect.top;
+
+    const worldX = (canvasX - this.offsetX) / oldScale;
+    const worldY = (canvasY - this.offsetY) / oldScale;
+
+    this.offsetX = canvasX - worldX * this.scale;
+    this.offsetY = canvasY - worldY * this.scale;
+
+    this.draw();
+  }
 
   public resetZoom() {
     this.scale = 1;
@@ -789,13 +761,10 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     return { x, y };
   }
 
-
   private setupMinimap(): void {
-
     this.minimap.width = this.minimapWidth;
     this.minimap.height = this.minimapHeight;
 
- 
     this.minimap.addEventListener("mousedown", this.handleMinimapClick.bind(this));
     this.minimap.addEventListener("mousemove", this.handleMinimapMove.bind(this));
     this.minimap.addEventListener("mouseup", this.handleMinimapUp.bind(this));
@@ -809,7 +778,6 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     this.handleMinimapMove(event);
   }
   public resizeCanvas(): void {
-    
     const container = this.canvas.parentElement;
     if (container) {
       this.canvas.width = container.clientWidth;
@@ -851,7 +819,6 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
   }
 
   private centerViewOn(worldX: number, worldY: number): void {
-    
     const centerX = this.canvas.width / 2;
     const centerY = this.canvas.height / 2;
 
@@ -861,8 +828,6 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     this.draw();
   }
 
-
-
   private getMinimapScale(): number {
     const { bounds, width, height } = this.calculateCircuitBounds();
 
@@ -870,12 +835,10 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       return 1;
     }
 
-   
     const scaleX = this.minimap.width / width;
     const scaleY = this.minimap.height / height;
 
-  
-    return Math.min(scaleX, scaleY) * 0.9; 
+    return Math.min(scaleX, scaleY) * 0.9;
   }
 
   private calculateCircuitBounds(): {
@@ -883,13 +846,12 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     width: number;
     height: number;
   } {
-   
     let left = Infinity;
     let top = Infinity;
     let right = -Infinity;
     let bottom = -Infinity;
 
-    this.components.forEach((component) => {
+    this.components.forEach(component => {
       const box = component.getBoundingBox();
       left = Math.min(left, box.x);
       top = Math.min(top, box.y);
@@ -897,10 +859,9 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       bottom = Math.max(bottom, box.y + box.height);
     });
 
-  
-    this.wires.forEach((wire) => {
+    this.wires.forEach(wire => {
       const points = wire.getAllPoints();
-      points.forEach((point) => {
+      points.forEach(point => {
         left = Math.min(left, point.x);
         top = Math.min(top, point.y);
         right = Math.max(right, point.x);
@@ -908,7 +869,6 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       });
     });
 
-  
     if (left === Infinity) {
       left = 0;
       top = 0;
@@ -929,30 +889,26 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
   private drawMinimap(): void {
     if (!this.minimap || !this.minimapCtx) return;
 
- 
     this.minimapCtx.fillStyle = this.minimap.style.backgroundColor || "#151515";
     this.minimapCtx.fillRect(0, 0, this.minimap.width, this.minimap.height);
 
     const { bounds } = this.calculateCircuitBounds();
     const minimapScale = this.getMinimapScale();
 
-
     this.minimapCtx.strokeStyle = "#3a3a3a";
     this.minimapCtx.lineWidth = 2;
     this.minimapCtx.strokeRect(0, 0, this.minimap.width, this.minimap.height);
 
- 
     this.minimapCtx.save();
     this.minimapCtx.translate(
       (this.minimap.width - (bounds.right - bounds.left) * minimapScale) / 2 -
         bounds.left * minimapScale,
       (this.minimap.height - (bounds.bottom - bounds.top) * minimapScale) / 2 -
-        bounds.top * minimapScale,
+        bounds.top * minimapScale
     );
     this.minimapCtx.scale(minimapScale, minimapScale);
 
-
-    this.wires.forEach((wire) => {
+    this.wires.forEach(wire => {
       this.minimapCtx.strokeStyle = wire.selected ? "#0B6E4F" : "#cdcfd0";
       this.minimapCtx.lineWidth = 1 / minimapScale;
 
@@ -969,7 +925,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       }
     });
 
-    this.components.forEach((component) => {
+    this.components.forEach(component => {
       component.draw(this.minimapCtx);
     });
 
@@ -979,17 +935,14 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
   }
 
   private drawViewport(): void {
-
     const viewLeft = -this.offsetX / this.scale;
     const viewTop = -this.offsetY / this.scale;
     const viewWidth = this.canvas.width / this.scale;
     const viewHeight = this.canvas.height / this.scale;
 
-
     this.minimapCtx.strokeStyle = "#ff5533";
     this.minimapCtx.lineWidth = 2 / this.getMinimapScale();
     this.minimapCtx.strokeRect(viewLeft, viewTop, viewWidth, viewHeight);
-
 
     this.minimapCtx.fillStyle = "rgba(255, 255, 255, 0.1)";
     this.minimapCtx.fillRect(viewLeft, viewTop, viewWidth, viewHeight);
@@ -1004,11 +957,11 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       this.drawGrid();
     }
 
-    this.wires.forEach((wire) => {
+    this.wires.forEach(wire => {
       wire.draw(this.ctx);
     });
 
-    this.components.forEach((component) => {
+    this.components.forEach(component => {
       component.draw(this.ctx);
     });
 
@@ -1097,7 +1050,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     let maxX = -Infinity;
     let maxY = -Infinity;
 
-    this.components.forEach((component) => {
+    this.components.forEach(component => {
       const box = component.getBoundingBox();
       minX = Math.min(minX, box.x);
       minY = Math.min(minY, box.y);
@@ -1105,9 +1058,9 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       maxY = Math.max(maxY, box.y + box.height);
     });
 
-    this.wires.forEach((wire) => {
+    this.wires.forEach(wire => {
       const points = wire.getAllPoints();
-      points.forEach((point) => {
+      points.forEach(point => {
         minX = Math.min(minX, point.x);
         minY = Math.min(minY, point.y);
         maxX = Math.max(maxX, point.x);
@@ -1136,14 +1089,14 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       this.drawGridForScreenshot(screenshotCtx, minX, minY, width, height);
     }
 
-    this.wires.forEach((wire) => {
+    this.wires.forEach(wire => {
       screenshotCtx.save();
       screenshotCtx.translate(-minX, -minY);
       wire.draw(screenshotCtx);
       screenshotCtx.restore();
     });
 
-    this.components.forEach((component) => {
+    this.components.forEach(component => {
       screenshotCtx.save();
       screenshotCtx.translate(-minX, -minY);
       component.draw(screenshotCtx);
@@ -1165,7 +1118,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     offsetX: number,
     offsetY: number,
     width: number,
-    height: number,
+    height: number
   ): void {
     const gridSize = 20;
 
@@ -1195,16 +1148,25 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
 
     console.log("Mouse down at:", mousePos);
 
-    this.components.forEach((component) => {
+    this.components.forEach(component => {
       component.selected = false;
     });
-    this.wires.forEach((wire) => {
+    this.wires.forEach(wire => {
       wire.selected = false;
     });
     this.selectedComponent = null;
     this.selectedWire = null;
 
     for (const component of this.components) {
+
+      if (component.type === "multibit" && component.containsPoint(mousePos)) {
+        const multibitComponent = component as MultiBit;
+        if (typeof multibitComponent.onMouseDown === "function") {
+          multibitComponent.onMouseDown(mousePos);
+          this.draw();
+          return;
+        }
+      }
       if (component.type === "button") {
         if (component.containsPoint(mousePos)) {
           (component as any).onMouseDown();
@@ -1216,7 +1178,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
         const isPartOfSelection = this.selectedComponents.includes(component);
 
         if (!isPartOfSelection) {
-          this.selectedComponents.forEach((c) => (c.selected = false));
+          this.selectedComponents.forEach(c => (c.selected = false));
           this.selectedComponents = [];
 
           this.selectedComponent = component;
@@ -1238,24 +1200,22 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       if (port) {
         console.log("Port clicked:", port);
 
-        
-          if (this.currentWire) {
-            this.currentWire = null;
-          }
+        if (this.currentWire) {
+          this.currentWire = null;
+        }
 
-          this.currentWire = new Wire(port,true);
-          port.isConnected = true;
-          this.currentWire.updateTempEndPoint(mousePos);
-          
-          this.draw();
-          return;
-        
+        this.currentWire = new Wire(port, true);
+        port.isConnected = true;
+        this.currentWire.updateTempEndPoint(mousePos);
+
+        this.draw();
+        return;
       }
       if (component.containsPoint(mousePos)) {
         const isPartOfSelection = this.selectedComponents.includes(component);
 
         if (!isPartOfSelection) {
-          this.selectedComponents.forEach((c) => (c.selected = false));
+          this.selectedComponents.forEach(c => (c.selected = false));
           this.selectedComponents = [];
 
           this.selectedComponent = component;
@@ -1290,7 +1250,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     this.draw();
   }
   public clearSelection(): void {
-    this.selectedComponents.forEach((component) => (component.selected = false));
+    this.selectedComponents.forEach(component => (component.selected = false));
     this.selectedComponents = [];
     this.draw();
   }
@@ -1302,7 +1262,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     return this.canvas.height;
   }
   public getComponentById(id: string): any {
-    return this.components.find((component) => component.id === id) || null;
+    return this.components.find(component => component.id === id) || null;
   }
 
   public createWire(fromPort: any, toPort: any): void {
@@ -1310,7 +1270,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       return;
     }
 
-    const wire = new Wire(fromPort,true);
+    const wire = new Wire(fromPort, true);
     wire.connect(toPort);
 
     fromPort.isConnected = true;
@@ -1340,7 +1300,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
 
     if (this.draggedComponent) {
       this.updateConnectedWires(
-        this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent],
+        this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent]
       );
     }
 
@@ -1348,7 +1308,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       const deltaX = mousePos.x - this.dragOffset.x;
       const deltaY = mousePos.y - this.dragOffset.y;
 
-      this.selectedComponents.forEach((component) => {
+      this.selectedComponents.forEach(component => {
         const newPos = {
           x: component.position.x + deltaX,
           y: component.position.y + deltaY,
@@ -1386,7 +1346,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       bottom: Math.max(this.selectionRect.start.y, this.selectionRect.end.y),
     };
 
-    this.selectedComponents = this.components.filter((component) => {
+    this.selectedComponents = this.components.filter(component => {
       const componentRect = component.getBoundingBox();
       return (
         componentRect.x < rect.right &&
@@ -1396,14 +1356,14 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       );
     });
 
-    this.selectedComponents.forEach((component) => (component.selected = true));
+    this.selectedComponents.forEach(component => (component.selected = true));
   }
 
   private handleMouseUp(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
-    
+
     console.log("Mouse up at:", mousePos);
-    
+
     if (this.isSelecting && this.selectionRect) {
       this.selectionRect.end = mousePos;
       this.selectComponentsInRect();
@@ -1412,28 +1372,28 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       this.draw();
       return;
     }
-    
+
     if (this.draggedComponent) {
       this.updateConnectedWires(
-        this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent],
+        this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent]
       );
     }
-    
+
     if (!this.draggedComponent || !this.currentWire) {
       this.clearSelection();
     }
-    
+
     this.draggedComponent = null;
-    
+
     if (this.currentWire) {
       console.log("Has active wire, checking for port connection");
-      
+
       for (const component of this.components) {
         const port = component.getPortAtPosition(mousePos);
-        
+
         if (port) {
           console.log("Found port for connection:", port);
-          
+
           // Prevent connecting to the same component
           if (this.currentWire.from?.component === port.component) {
             console.log("Cannot connect to the same component");
@@ -1441,25 +1401,27 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
             this.draw();
             return;
           }
-          
+
           // Prevent connecting to an already connected input port
-          if (port.type === 'input' && port.isConnected ) {
+          if (port.type === "input" && port.isConnected) {
             console.log("Cannot connect to an already connected input port");
             this.currentWire = null;
             this.draw();
             return;
           }
-          
+
           // Prevent connecting input-to-input
-          if (port.type === 'input' && this.currentWire.from && this.currentWire.from.type === 'input') {
+          if (
+            port.type === "input" &&
+            this.currentWire.from &&
+            this.currentWire.from.type === "input"
+          ) {
             console.log("Cannot connect input port to another input port");
             this.currentWire = null;
             this.draw();
             return;
           }
 
-
-          
           const success = this.currentWire.connect(port);
           if (success) {
             console.log("Connection successful! Adding wire to list.");
@@ -1475,12 +1437,12 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
           return;
         }
       }
-      
+
       console.log("No port found at mouse up, clearing wire");
       this.currentWire = null;
       this.draw();
     }
-    
+
     // Rest of the method remains unchanged
     for (const component of this.components) {
       if (component.type === "button") {
@@ -1494,7 +1456,6 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     }
   }
 
-  
   public createComponentByType(type: string, position: Point): Component | null {
     switch (type) {
       case "and":
@@ -1551,6 +1512,8 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
         return new FullSubtractor(position);
       case "led":
         return new Led(position);
+      case "multibit":
+        return new MultiBit(position);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;
@@ -1574,7 +1537,8 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     for (const component of components) {
       for (const wire of this.wires) {
         if (
-          (wire.from && wire.from.component === component || (wire.to && wire.to.component === component)) &&
+          ((wire.from && wire.from.component === component) ||
+            (wire.to && wire.to.component === component)) &&
           !updatedWires.includes(wire)
         ) {
           wire.autoRoute();
@@ -1594,7 +1558,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       if (this.selectedComponent.type === "state") {
         State.idCounter--;
       }
-      this.wires = this.wires.filter((wire) => {
+      this.wires = this.wires.filter(wire => {
         const isConnectedToSelected =
           wire.from?.component === this.selectedComponent ||
           (wire.to && wire.to.component === this.selectedComponent);
@@ -1606,7 +1570,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
         return !isConnectedToSelected;
       });
 
-      this.components = this.components.filter((component) => component !== this.selectedComponent);
+      this.components = this.components.filter(component => component !== this.selectedComponent);
 
       this.selectedComponent = null;
       this.draw();
@@ -1630,7 +1594,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     }
     if (this.selectedComponents.length > 0) {
       for (const component of this.selectedComponents) {
-        this.wires = this.wires.filter((wire) => {
+        this.wires = this.wires.filter(wire => {
           const isConnectedToSelected =
             wire.from?.component === component || (wire.to && wire.to.component === component);
 
@@ -1641,7 +1605,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
           return !isConnectedToSelected;
         });
 
-        this.components = this.components.filter((c) => c !== component);
+        this.components = this.components.filter(c => c !== component);
 
         this.selectedComponent = null;
         this.draw();
@@ -1665,14 +1629,14 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
   }
   exportCircuit(): string {
     const circuitData = {
-      components: this.components.map((component) => {
+      components: this.components.map(component => {
         return {
           id: component.id,
           type: component.type,
           state: component.getState(),
         };
       }),
-      wires: this.wires.map((wire) => {
+      wires: this.wires.map(wire => {
         return {
           id: Math.random().toString(36).substring(2, 15),
           fromComponentId: wire.from?.component.id,
@@ -1702,8 +1666,8 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
           component.setState(compData.state);
 
           componentMap.set(component.id, component);
-          component.inputs.forEach((port) => portMap.set(port.id, port));
-          component.outputs.forEach((port) => portMap.set(port.id, port));
+          component.inputs.forEach(port => portMap.set(port.id, port));
+          component.outputs.forEach(port => portMap.set(port.id, port));
 
           this.components.push(component);
         }
@@ -1714,7 +1678,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
         const toPort = portMap.get(wireData.toPortId);
 
         if (fromPort && toPort) {
-          const wire = new Wire(fromPort,true);
+          const wire = new Wire(fromPort, true);
           wire.connect(toPort);
 
           fromPort.isConnected = true;
@@ -1749,11 +1713,9 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     URL.revokeObjectURL(url);
   }
   public saveVerilogToFile(verilogCode: string, filename: string = "circuit.v"): void {
-    
     const blob = new Blob([verilogCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
 
-    
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
@@ -1761,12 +1723,11 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
     a.click();
     document.body.removeChild(a);
 
-   
     URL.revokeObjectURL(url);
   }
 
   public loadFromFile(file: File): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       if (!file.name.endsWith(".json")) {
         alert("Geçersiz dosya uzantısı. Lütfen .json uzantılı bir dosya seçin.");
         resolve(false);
@@ -1774,7 +1735,7 @@ private adjustZoomOffset(clientX?: number, clientY?: number, oldScale?: number):
       }
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         if (e.target && e.target.result) {
           const result = this.importCircuit(e.target.result as string);
           resolve(result);

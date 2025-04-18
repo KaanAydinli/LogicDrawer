@@ -29,14 +29,14 @@
           <input type="text" class = "docName" placeholder="Untitled" ></input>
           <div class = "rightContainer">
             <div class = "storage" >Circuits</div>
-            <button id="open-verilog-editor" class="verilog-button">
+            <div id="open-verilog-editor" class="verilog-button">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 6L6 18M18 18L6 6"></path>
                 <path d="M18 2h-3v4h3v3h4V2h-4z"></path>
                 <path d="M6 13H2v9h9v-4H6v-5z"></path>
               </svg>
               IDE
-            </button>
+            </div>
             <div class="fileContainer">
               <div  class = "file">File</div>
               <div class="file-dropdown">
@@ -112,6 +112,21 @@
               </div>
               <div class="component-label">High Constant</div>
             </div>
+
+            <div class="component" data-type="multibit">
+              <div class="component-icon multibit">
+                <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="14" height="16" rx="2"/>
+                  <text x="5" y="10" font-size="5" fill="currentColor" stroke="none">01</text>
+                  <text x="5" y="15" font-size="5" fill="currentColor" stroke="none">10</text>
+                  <line x1="16" y1="8" x2="22" y2="8"/>
+                  <line x1="16" y1="12" x2="22" y2="12"/>
+                  <line x1="16" y1="16" x2="22" y2="16"/>
+                </svg>
+              </div>
+              <div class="component-label">MultiBit</div>
+            </div>
+
             <div class="component" data-type="toggle">
               <div class="component-icon toggle">
 
