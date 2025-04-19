@@ -139,7 +139,7 @@ function initApp() {
   });
 
   roboflow = new RoboflowService(apiKey, workflowId);
-  imageUploader = new ImageUploader(roboflow, circuitBoard);
+  imageUploader = new ImageUploader(circuitBoard);
 
   setupComponentAddListeners();
   setupKeyboardShortcuts();

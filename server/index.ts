@@ -12,6 +12,8 @@ import { User } from "./models/User";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { authMiddleware, AuthRequest } from "./middlewares/auth";
+import { spawn } from 'child_process'; // Import spawn
+import path from 'path';  
 
 dotenv.config();
 
@@ -310,68 +312,91 @@ app.get("/api/analyze/roboflow", (req, res) => {
 
 app.post("/api/analyze/roboflow", async (req, res) => {
   try {
-    console.log("Received image analysis request");
+    console.log("Received image analysis request (using local Python script via stdin)");
 
     const { base64Image } = req.body;
     if (!base64Image) {
       return res.status(400).json({ error: "No image provided" });
     }
 
+    // Extract base64 data (remove data URI prefix if present)
+    // IMPORTANT: Ensure the prefix is removed, Python expects only the data part
     const base64Data = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
 
-    if (!process.env.ROBOFLOW_API_KEY || !process.env.ROBOFLOW_WORKFLOW_ID) {
-      console.error("Roboflow API key or workflow ID not configured in .env file");
-      return res.status(500).json({
-        error: "Roboflow configuration missing",
-        details: "API key or workflow ID not set",
+    // --- 1. Spawn Python Script ---
+    const pythonScriptPath = path.join(__dirname, 'detectCircuit.py'); // Ensure correct script name
+    console.log(`Spawning Python script: ${pythonScriptPath}`);
+
+    const pythonExecutable = 'python'; // Or 'python3'
+
+    // Spawn the process WITHOUT the base64 data as an argument
+    const pythonProcess = spawn(pythonExecutable, [pythonScriptPath]);
+
+    let scriptOutput = '';
+    let scriptError = '';
+
+    // --- 2. Write base64 data to Python's stdin ---
+    pythonProcess.stdin.write(base64Data);
+    pythonProcess.stdin.end(); // Signal end of input
+    console.log("Sent base64 data to Python script via stdin.");
+
+    // --- 3. Capture stdout and stderr (same as before) ---
+    pythonProcess.stdout.on('data', (data) => {
+      scriptOutput += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      scriptError += data.toString();
+      console.error(`Python stderr: ${data}`);
+    });
+
+    // --- 4. Handle Python Script Completion (same as before) ---
+    return new Promise((resolve, reject) => {
+      pythonProcess.on('close', (code) => {
+        console.log(`Python script exited with code ${code}`);
+
+        if (code === 0) {
+          try {
+            const trimmedOutput = scriptOutput.trim();
+            if (!trimmedOutput) {
+                throw new Error("Python script produced empty output.");
+            }
+            const resultJson = JSON.parse(trimmedOutput);
+            console.log("Successfully parsed output from Python script.");
+            res.json(resultJson);
+            resolve(undefined);
+          } catch (parseError) {
+            console.error("Error parsing JSON output from Python:", parseError);
+            console.error("Python stdout was:", scriptOutput);
+            res.status(500).json({
+              error: "Failed to parse analysis result from Python script",
+              details: scriptError || "Parsing error",
+              rawOutput: scriptOutput
+            });
+            reject(parseError);
+          }
+        } else {
+          console.error(`Python script failed with code ${code}.`);
+          res.status(500).json({
+            error: "Circuit analysis script failed",
+            details: scriptError || `Script exited with code ${code}`,
+            rawOutput: scriptOutput
+          });
+          reject(new Error(`Python script failed: ${scriptError}`));
+        }
       });
-    }
 
-    console.log(`Calling Roboflow Workflow API (workflow: ${process.env.ROBOFLOW_WORKFLOW_ID})...`);
-
-    try {
-      const apiResponse = await axios({
-        method: "post",
-        url: `https://detect.roboflow.com/infer/workflows/${process.env.ROBOFLOW_WORKFLOW_ID}`,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        data: JSON.stringify({
-          api_key: process.env.ROBOFLOW_API_KEY,
-          inputs: {
-            image: {
-              type: "base64",
-              value: base64Data,
-            },
-          },
-        }),
+      pythonProcess.on('error', (err) => {
+        console.error('Failed to start Python subprocess:', err);
+        res.status(500).json({ error: "Failed to start analysis script", details: err.message });
+        reject(err);
       });
+    });
 
-      console.log("Roboflow response received successfully");
-      res.json(apiResponse.data);
-    } catch (apiError) {
-      if (axios.isAxiosError(apiError) && apiError.response) {
-        console.error("Roboflow API error:", {
-          status: apiError.response.status,
-          data: apiError.response.data,
-        });
-
-        return res.status(apiError.response.status).json({
-          error: "Roboflow API error",
-          details: apiError.response.data,
-        });
-      } else {
-        console.error("Error calling Roboflow API:", apiError);
-        return res.status(500).json({
-          error: "Failed to process with Roboflow",
-          details: apiError instanceof Error ? apiError.message : String(apiError),
-        });
-      }
-    }
   } catch (error) {
-    console.error("Error in /api/analyze/roboflow endpoint:", error);
+    console.error("Error in /api/analyze/roboflow (stdin) endpoint:", error);
     res.status(500).json({
-      error: "Failed to analyze image with Roboflow",
+      error: "Failed to analyze image using local script",
       details: error instanceof Error ? error.message : String(error),
     });
   }
