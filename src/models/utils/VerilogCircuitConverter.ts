@@ -1012,6 +1012,65 @@ export class VerilogCircuitConverter {
   }
 
   private connectGateInputs(gate: VerilogGate, component: Component): void {
+    if (gate.type === 'dflipflop') {
+      // DFF has D input and CLK input, handled specially
+      if (gate.inputs.length >= 2) {
+        // D input (gate.inputs[0])
+        const dInputName = gate.inputs[0];
+        let dSourcePort = this.outputPorts[dInputName];
+        
+        if (dSourcePort) {
+          const dWire = new Wire(dSourcePort);
+          dWire.connect(component.inputs[0]); // D input (input[0])
+          this.circuitBoard.addWire(dWire);
+        } else {
+          console.warn(`Source for D input '${dInputName}' not found, creating auto-toggle`);
+          const position = this.findUnusedPosition();
+          const toggle = new ToggleSwitch(position);
+          this.components[`auto_${dInputName}`] = toggle;
+          this.outputPorts[dInputName] = toggle.outputs[0];
+          this.circuitBoard.addComponent(toggle);
+          
+          const wire = new Wire(toggle.outputs[0]);
+          wire.connect(component.inputs[0]); // D input
+          this.circuitBoard.addWire(wire);
+          
+          const labelPosition = { x: position.x - 80, y: position.y + 20 };
+          const label = new Text(labelPosition, dInputName, 20);
+          this.circuitBoard.addComponent(label);
+        }
+        
+        // CLK input (gate.inputs[1])
+        const clkInputName = gate.inputs[1];
+        let clkSourcePort = this.outputPorts[clkInputName];
+        
+        if (clkSourcePort) {
+          const clkWire = new Wire(clkSourcePort);
+          clkWire.connect(component.inputs[1]); // CLK input (input[1])
+          this.circuitBoard.addWire(clkWire);
+        } else {
+          console.warn(`Clock signal '${clkInputName}' not found, creating clock component`);
+          const position = this.findUnusedPosition();
+          const clock = new Clock(position, this.circuitBoard);
+          this.components[`auto_${clkInputName}`] = clock;
+          this.outputPorts[clkInputName] = clock.outputs[0];
+          this.circuitBoard.addComponent(clock);
+          
+          const wire = new Wire(clock.outputs[0]);
+          wire.connect(component.inputs[1]); // CLK input
+          this.circuitBoard.addWire(wire);
+          
+          const labelPosition = { x: position.x - 80, y: position.y + 20 };
+          const label = new Text(labelPosition, clkInputName, 20);
+          this.circuitBoard.addComponent(label);
+        }
+      } else {
+        console.error(`DFlipFlop gate '${gate.name || gate.output}' has insufficient inputs.`);
+      }
+      
+      return; // Özel işleme tamamlandı, normal işleme geçme
+    }
+    
     for (let j = 0; j < gate.inputs.length; j++) {
       if (j >= component.inputs.length) {
         console.error(

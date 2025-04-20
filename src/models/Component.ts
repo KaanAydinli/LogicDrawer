@@ -53,6 +53,7 @@ export abstract class Component {
       port.position.y += dy;
     });
   }
+  
 
   containsPoint(point: Point): boolean {
     return (

@@ -277,41 +277,128 @@ export class VerilogParser {
     
     return [...basicGates, ...assignGates, ...controlStructureGates];
   }
-  
   private extractControlStructures(body: string): VerilogGate[] {
     console.log("Control structures extraction from body:", body);
     const gates: VerilogGate[] = [];
     let gateCounter = 0;
-
-    
+  
+    // always bloklarını bul
     const alwaysRegex = /always\s*@\s*\(([^)]*?)\)\s*begin([\s\S]*?)end(?=\s*(?:always|assign|endmodule|$))/g;
     let alwaysMatch;
-    alwaysRegex.lastIndex = 0; 
-
+    alwaysRegex.lastIndex = 0;
+  
     while ((alwaysMatch = alwaysRegex.exec(body)) !== null) {
       const sensitivity = alwaysMatch[1].trim();
-      const alwaysBody = alwaysMatch[2].trim(); 
-
+      const alwaysBody = alwaysMatch[2].trim();
+  
       console.log("Found always block with sensitivity:", sensitivity);
       console.log("Always body:", alwaysBody);
+  
+      // Sequential logic kontrolü - posedge/negedge algılama
+      const isSequential = /(pos|neg)edge\s+(\w+)/.test(sensitivity);
+      const clockMatch = sensitivity.match(/(pos|neg)edge\s+(\w+)/);
+      const clockSignal = clockMatch ? clockMatch[2] : null;
       
-
+      if (isSequential) {
+        console.log(`Sequential logic detected with clock signal: ${clockSignal}`);
+        // Sequential logic için ayrı işleme
+        const sequentialGates = this.extractSequentialLogic(alwaysBody, clockSignal, gateCounter);
+        gates.push(...sequentialGates);
+      } else {
+        // Kombinasyonel logic için mevcut işleme
+        const currentBlockGates: VerilogGate[] = [];
+        this.extractIfStatementsManually(alwaysBody, currentBlockGates, gateCounter);
+        this.extractCaseStatements(alwaysBody, currentBlockGates, gateCounter + 100);
+        gates.push(...currentBlockGates);
+      }
       
-      
-      const currentBlockGates: VerilogGate[] = []; 
-
-      
-      this.extractIfStatementsManually(alwaysBody, currentBlockGates, gateCounter);
-      
-      this.extractCaseStatements(alwaysBody, currentBlockGates, gateCounter + 100); 
-
-      gates.push(...currentBlockGates); 
-      gateCounter += 200; 
+      gateCounter += 200;
     }
-
+  
     console.log("Extracted gates from control structures:", gates);
     return gates;
   }
+  private extractSequentialLogic(alwaysBody: string, clockSignal: string | null, gateCounter: number): VerilogGate[] {
+    const gates: VerilogGate[] = [];
+    
+    if (!clockSignal) {
+      console.error("Clock signal not properly identified for sequential logic");
+      return gates;
+    }
+    
+    // Eğer if-else yapısı varsa önce onu işle
+    if (alwaysBody.includes("if") && alwaysBody.includes("else")) {
+      return this.extractSequentialIfElse(alwaysBody, clockSignal, gateCounter);
+    }
+    
+    // Non-blocking atama (<= operator) ifadelerini bul
+    const assignmentRegex = /(\w+(?:\[\d+\])?)\s*<=\s*([^;]+);/g;
+    let assignmentMatch;
+    
+    while ((assignmentMatch = assignmentRegex.exec(alwaysBody)) !== null) {
+      const [fullMatch, target, expression] = assignmentMatch;
+      const cleanTarget = this.cleanSignalName(target);
+      const cleanExpression = expression.trim();
+      
+      console.log(`Found sequential assignment: ${cleanTarget} <= ${cleanExpression}`);
+      
+      // D flip-flop kapısı oluştur
+      const dffGate: VerilogGate = {
+        type: 'dflipflop',
+        name: `dff_${cleanTarget}_${gateCounter++}`,
+        output: cleanTarget,
+        inputs: [cleanExpression, clockSignal], // [D, CLK]
+      };
+      
+      gates.push(dffGate);
+    }
+    
+    return gates;
+  }
+  
+  // Yeni fonksiyon - sequential if-else yapıları için
+  private extractSequentialIfElse(alwaysBody: string, clockSignal: string | null, gateCounter: number): VerilogGate[] {
+    const gates: VerilogGate[] = [];
+    
+    // if-else yapısını bul
+    const ifRegex = /if\s*\(([^)]+)\)\s*([^;]+?)\s*<=\s*([^;]+);\s*else\s*([^;]+?)\s*<=\s*([^;]+);/;
+    const match = alwaysBody.match(ifRegex);
+    
+    if (match) {
+      const [, condition, targetIf, valueIf, targetElse, valueElse] = match;
+      
+      // Hedeflerin aynı olduğunu doğrula (genelde böyle olur)
+      if (this.cleanSignalName(targetIf) === this.cleanSignalName(targetElse)) {
+        const target = this.cleanSignalName(targetIf);
+        
+        // Önce bir MUX2 oluştur
+        const muxGate: VerilogGate = {
+          type: 'mux2',
+          name: `mux_${target}_${gateCounter}`,
+          output: `_mux_${target}_${gateCounter}`,
+          inputs: [valueElse, valueIf], // [0, 1] girişleri 
+          controlSignal: condition // Select sinyali
+        };
+        
+        // Sonra DFF'i MUX çıkışına bağla
+        const dffGate: VerilogGate = {
+          type: 'dflipflop',
+          name: `dff_${target}_${gateCounter + 1}`,
+          output: target,
+          inputs: [muxGate.output, clockSignal!], // [D, CLK] (non-null assertion since we checked at beginning)
+        };
+        
+        gates.push(muxGate);
+        gates.push(dffGate);
+        
+        return gates;
+      }
+    }
+    
+    // Genel yapıya uymayan düzensiz if-else için normal işleme dön
+    return this.extractSequentialLogic(alwaysBody, clockSignal, gateCounter);
+  }
+  
   private extractIfStatementsManually(alwaysBody: string, gates: VerilogGate[], gateCounter: number): void {
     console.log("Manually extracting if statements from alwaysBody:", alwaysBody);
 
