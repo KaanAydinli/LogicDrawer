@@ -682,7 +682,8 @@ export class CircuitBoard {
 
     this.wires.forEach(wire => {
       if (wire.to && wire.from) {
-        wire.to.value = wire.from.value;
+        // Transfer value considering bit width
+        wire.transferValue();
       }
     });
 
@@ -693,7 +694,7 @@ export class CircuitBoard {
     for (let i = 0; i < 10; i++) {
       this.wires.forEach(wire => {
         if (wire.to && wire.from) {
-          wire.to.value = wire.from.value;
+          wire.transferValue();
         }
       });
 
@@ -1142,6 +1143,17 @@ export class CircuitBoard {
       ctx.stroke();
     }
   }
+  private handleBitWidthNegotiation(wire: Wire): void {
+    if (!wire.from || !wire.to) return;
+    
+    const fromBitWidth = wire.from.bitWidth || 1;
+    const toBitWidth = wire.to.bitWidth || 1;
+    
+    // Update wire bit width
+    wire.bitWidth = Math.max(fromBitWidth, toBitWidth);
+    
+    console.log(`Wire connected: ${fromBitWidth}b -> ${toBitWidth}b`);
+  }
 
   private handleMouseDown(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
@@ -1159,14 +1171,6 @@ export class CircuitBoard {
 
     for (const component of this.components) {
 
-      if (component.type === "multibit" && component.containsPoint(mousePos)) {
-        const multibitComponent = component as MultiBit;
-        if (typeof multibitComponent.onMouseDown === "function") {
-          multibitComponent.onMouseDown(mousePos);
-          this.draw();
-          return;
-        }
-      }
       if (component.type === "button") {
         if (component.containsPoint(mousePos)) {
           (component as any).onMouseDown();
@@ -1513,7 +1517,7 @@ export class CircuitBoard {
       case "led":
         return new Led(position);
       case "multibit":
-        return new MultiBit(position);
+        return new MultiBit(position,4);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;
@@ -1521,6 +1525,7 @@ export class CircuitBoard {
   }
   public addWire(wire: Wire): void {
     this.wires.push(wire);
+    this.handleBitWidthNegotiation(wire);
     this.draw();
   }
 

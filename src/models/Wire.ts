@@ -1,4 +1,5 @@
 import { Point, Port } from './Component';
+import { BitArray } from './MultibitTypes';
 
 export class Wire {
   from: Port | null;
@@ -7,15 +8,22 @@ export class Wire {
   selected: boolean;
   controlPoints: Point[];
   selectedPointIndex: number | null;
+  bitWidth: number = 1;
 
   constructor(fromPort: Port, which: boolean = true) {
     if(which){
       this.from = fromPort;
       this.to = null;
+      if (fromPort.bitWidth) {
+        this.bitWidth = fromPort.bitWidth;
+      }
     }
     else{
       this.to = fromPort;
       this.from = null;
+      if (fromPort.bitWidth) {
+        this.bitWidth = fromPort.bitWidth;
+      }
     }
     console.log("Wire created from port: ", this.from?.type);
     this.tempEndPoint = null;
@@ -28,6 +36,11 @@ export class Wire {
     if (this.from && this.from.component === toPort.component) {
       console.log("Cannot connect to the same component");
       return false;
+    }
+
+    if (this.from && this.from.bitWidth !== toPort.bitWidth) {
+      console.log(`Bit width mismatch: ${this.from.bitWidth} vs ${toPort.bitWidth}`);
+      // Optionally handle bit width adaptation here
     }
 
     const isOutputToInput = this.from && this.from.type === 'output' && toPort.type === 'input';
@@ -47,6 +60,7 @@ export class Wire {
         this.from.value = this.to.value;
       
       console.log("Connected from output to input");
+      this.transferValue();
       return true;
     }
     
@@ -60,7 +74,7 @@ export class Wire {
         this.to.isConnected = true;
       }
       this.tempEndPoint = null;
-      
+      this.transferValue();
       this.autoRoute();
       
       if (this.to) {
@@ -73,6 +87,43 @@ export class Wire {
 
     console.log("Invalid connection type");
     return false;
+  }
+  transferValue(): void {
+    if (!this.from || !this.to) return;
+
+    // Get source value
+    const sourceValue = this.from.value;
+
+    // Handle multi-bit transfer with potential width adaptation
+    if (Array.isArray(sourceValue)) {
+      if (this.to.bitWidth === 1) {
+        // Multi-bit to single-bit: use MSB
+        this.to.value = sourceValue.length > 0 ? sourceValue[0] : false;
+      } else {
+        // Multi-bit to multi-bit
+        const targetArray: BitArray = [];
+        
+        // Copy bits with width adjustment
+        for (let i = 0; i < this.to.bitWidth; i++) {
+          if (i < sourceValue.length) {
+            targetArray.push(sourceValue[i]);
+          } else {
+            targetArray.push(false); // Pad with false
+          }
+        }
+        
+        this.to.value = targetArray;
+      }
+    } else {
+      // Single-bit to any width
+      if (this.to.bitWidth === 1) {
+        // Single-bit to single-bit
+        this.to.value = sourceValue;
+      } else {
+        // Single-bit to multi-bit: fill all bits with source value
+        this.to.value = Array(this.to.bitWidth).fill(sourceValue);
+      }
+    }
   }
 
   disconnect(): void {
@@ -124,12 +175,10 @@ export class Wire {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-   
     if (!this.from) return;
     const startX = this.from.position.x;
     const startY = this.from.position.y;
     
-   
     let endX, endY;
     if (this.to) {
       endX = this.to.position.x;
@@ -138,16 +187,37 @@ export class Wire {
       endX = this.tempEndPoint.x;
       endY = this.tempEndPoint.y;
     } else {
-      return; 
+      return;
     }
   
-    ctx.strokeStyle = this.selected ? '#4CAF50' : (this.from.value ? '#4CAF50' : '#cdcfd0');
-    ctx.lineWidth = this.selected ? 3 : 2;
+    // Determine wire color based on value and bit width
+    let wireColor = '#cdcfd0'; // Default color
+
+    if (this.from.value) {
+      if (Array.isArray(this.from.value)) {
+        // Multi-bit wire: different color or visual indicator
+        const hasActiveBit = (this.from.value as BitArray).some(bit => bit);
+        wireColor = hasActiveBit ? '#4CAF50' : '#cdcfd0';
+      } else {
+        // Single-bit wire
+        wireColor = this.from.value ? '#4CAF50' : '#cdcfd0';
+      }
+    }
+
+    ctx.strokeStyle = this.selected ? '#0B6E4F' : wireColor;
     
-  
+    // Make multi-bit wires visually distinct
+    if (this.bitWidth > 1) {
+      ctx.lineWidth = this.selected ? 4 : 3;
+      // Optional: Add a dash pattern for multi-bit
+      ctx.setLineDash([5, 3]);
+    } else {
+      ctx.lineWidth = this.selected ? 3 : 2;
+      ctx.setLineDash([]);
+    }
+    
     ctx.beginPath();
     ctx.moveTo(startX, startY);
-    
     
     if (this.controlPoints.length > 0) {
       for (const point of this.controlPoints) {
@@ -155,9 +225,7 @@ export class Wire {
       }
     }
     
- 
     ctx.lineTo(endX, endY);
-    
     
     if (!this.selected) {
       ctx.lineCap = 'round';
@@ -165,6 +233,28 @@ export class Wire {
     }
     
     ctx.stroke();
+    ctx.setLineDash([]); // Reset dash pattern
+
+    // Draw bit width indicator for multi-bit wires
+    if (this.bitWidth > 1) {
+      // Find midpoint of wire
+      const points = this.getAllPoints();
+      if (points.length >= 2) {
+        const midIndex = Math.floor(points.length / 2);
+        const p1 = points[midIndex - 1];
+        const p2 = points[midIndex];
+        
+        const midX = (p1.x + p2.x) / 2;
+        const midY = (p1.y + p2.y) / 2;
+        
+        // Draw bit width indicator
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${this.bitWidth}b`, midX, midY - 8);
+      }
+    }
 
     if (this.selected) {
       this.drawControlPoints(ctx);

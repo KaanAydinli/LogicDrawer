@@ -1,3 +1,4 @@
+import { BitArray } from './MultibitTypes';
 
 
 export interface Point {
@@ -9,7 +10,8 @@ export interface Port {
   id: string;
   type: "input" | "output";
   position: Point;
-  value: boolean;
+  value: boolean | BitArray;
+  bitWidth: number;
   isConnected: boolean;
   component: Component;
 }
@@ -22,6 +24,7 @@ export abstract class Component {
   inputs: Port[];
   outputs: Port[];
   selected: boolean;
+  isMultiBit: boolean = false;
 
   constructor(type: string, position: Point, size?: { width: number; height: number }) {
     this.size = size || { width: 60, height: 60 };
@@ -32,6 +35,54 @@ export abstract class Component {
     this.inputs = [];
     this.outputs = [];
     this.selected = false;
+  }
+
+  getInputBitWidth(index: number): number {
+    if (index >= 0 && index < this.inputs.length) {
+      return this.inputs[index].bitWidth || 1;
+    }
+    return 1;
+  }
+
+  // Get the bit width for an output port
+  getOutputBitWidth(index: number): number {
+    if (index >= 0 && index < this.outputs.length) {
+      return this.outputs[index].bitWidth || 1;
+    }
+    return 1;
+  }
+
+  // Convert port value to BitArray regardless of original type
+  getPortValueAsBits(port: Port): BitArray {
+    if (Array.isArray(port.value)) {
+      return port.value as BitArray;
+    } else {
+      return [port.value as boolean];
+    }
+  }
+
+  // Helper to set multi-bit port values
+  setPortValue(port: Port, value: boolean | BitArray): void {
+    if (port.bitWidth === 1) {
+      // Single-bit port
+      if (Array.isArray(value)) {
+        port.value = value.length > 0 ? value[0] : false;
+      } else {
+        port.value = value;
+      }
+    } else {
+      // Multi-bit port
+      if (Array.isArray(value)) {
+        port.value = value.slice(0, port.bitWidth);
+        // Pad with false if needed
+        while ((port.value as BitArray).length < port.bitWidth) {
+          (port.value as BitArray).push(false);
+        }
+      } else {
+        // Convert single boolean to BitArray
+        port.value = Array(port.bitWidth).fill(value);
+      }
+    }
   }
 
   abstract evaluate(): void;

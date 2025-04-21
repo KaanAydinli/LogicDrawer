@@ -26,6 +26,7 @@ export abstract class LogicGate extends Component {
         type: 'input',
         position: portPosition,
         value: false,
+        bitWidth: 1,
         isConnected: false,
         component: this
       });
@@ -40,6 +41,7 @@ export abstract class LogicGate extends Component {
         type: 'output',
         position: portPosition,
         value: false,
+        bitWidth: 1,
         isConnected: false,
         component: this
       });
@@ -286,6 +288,7 @@ export abstract class LogicGate extends Component {
       type: 'input',
       position: portPosition,
       value: false,
+      bitWidth: 1,
       isConnected: false,
       component: this
     });
