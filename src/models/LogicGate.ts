@@ -3,6 +3,7 @@ import { Component, Point } from './Component';
 export abstract class LogicGate extends Component {
   
   protected rotation: number = 0;
+  defaultBitWidth: number = 1;
   
   constructor(type: string, position: Point, inputCount: number = 2,outputs: number = 1,size: { width: number; height: number } = { width: 60, height: 60 }) {
     super(type, position,size);
@@ -26,7 +27,7 @@ export abstract class LogicGate extends Component {
         type: 'input',
         position: portPosition,
         value: false,
-        bitWidth: 1,
+        bitWidth: this.defaultBitWidth,
         isConnected: false,
         component: this
       });
@@ -41,11 +42,113 @@ export abstract class LogicGate extends Component {
         type: 'output',
         position: portPosition,
         value: false,
-        bitWidth: 1,
+        bitWidth: this.defaultBitWidth,
         isConnected: false,
         component: this
       });
     }
+  }
+  setBitWidth(width: number): void {
+    if (width < 1) {
+      console.warn("Bit genişliği 1'den küçük olamaz. 1 kullanılacak.");
+      width = 1;
+    }
+    
+    if (width > 64) {
+      console.warn("Bit genişliği 64'ten büyük olamaz. 64 kullanılacak.");
+      width = 64;
+    }
+    
+    // Tüm giriş portlarını güncelle
+    for (const input of this.inputs) {
+      // Eski değer çoklu bit mi kontrol et
+      const oldValue = input.value;
+      let newValue: boolean | boolean[] = false;
+      
+      // Değerleri yeni bit genişliğine dönüştür
+      if (Array.isArray(oldValue)) {
+        if (width === 1) {
+          // Çoklu bitten tek bite
+          newValue = oldValue.length > 0 ? oldValue[0] : false;
+        } else {
+          // Çoklu bitten çoklu bite
+          newValue = Array(width).fill(false);
+          for (let i = 0; i < Math.min(width, oldValue.length); i++) {
+            newValue[i] = oldValue[i];
+          }
+        }
+      } else {
+        // Tek bitten
+        if (width === 1) {
+          // Tek bitten tek bite
+          newValue = oldValue;
+        } else {
+          // Tek bitten çoklu bite
+          newValue = Array(width).fill(false);
+          if (oldValue) {
+            newValue[0] = true;
+          }
+        }
+      }
+      
+      // Bit genişliğini ve değeri güncelle
+      input.bitWidth = width;
+      input.value = newValue;
+    }
+    
+    // Tüm çıkış portlarını güncelle
+    for (const output of this.outputs) {
+      // Eski değer çoklu bit mi kontrol et
+      const oldValue = output.value;
+      let newValue: boolean | boolean[] = false;
+      
+      // Değerleri yeni bit genişliğine dönüştür (giriş portlarıyla aynı mantık)
+      if (Array.isArray(oldValue)) {
+        if (width === 1) {
+          newValue = oldValue.length > 0 ? oldValue[0] : false;
+        } else {
+          newValue = Array(width).fill(false);
+          for (let i = 0; i < Math.min(width, oldValue.length); i++) {
+            newValue[i] = oldValue[i];
+          }
+        }
+      } else {
+        if (width === 1) {
+          newValue = oldValue;
+        } else {
+          newValue = Array(width).fill(false);
+          if (oldValue) {
+            newValue[0] = true;
+          }
+        }
+      }
+      
+
+      output.bitWidth = width;
+      output.value = newValue;
+    }
+    
+
+    this.defaultBitWidth = width;
+    
+    // Komponent durumunu güncelle
+    this.evaluate();
+  }
+  
+  // Mevcut bit genişliğini döndür
+  getBitWidth(): number {
+    return this.defaultBitWidth;
+  }
+
+  increaseBitWidth(): void {
+    const newWidth = Math.min(64, this.defaultBitWidth * 2);
+    this.setBitWidth(newWidth);
+  }
+  
+  // Bit genişliğini azaltma
+  decreaseBitWidth(): void {
+    const newWidth = Math.max(1, Math.floor(this.defaultBitWidth / 2));
+    this.setBitWidth(newWidth);
   }
   
   

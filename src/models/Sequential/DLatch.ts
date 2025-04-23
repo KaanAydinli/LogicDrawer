@@ -1,7 +1,8 @@
 import { Component, Point } from '../Component';
+import { BitArray } from '../MultibitTypes';
 
 export class DLatch extends Component {
-  private qValue: boolean = false;
+  private qValue: BitArray | boolean = false;
 
   
   constructor(position: Point) {
@@ -16,6 +17,7 @@ export class DLatch extends Component {
         x: this.position.x - 10,
         y: this.position.y + 20
       },
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this
@@ -29,6 +31,7 @@ export class DLatch extends Component {
         x: this.position.x - 10,
         y: this.position.y + 50
       },
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this
@@ -42,6 +45,7 @@ export class DLatch extends Component {
         x: this.position.x + this.size.width + 10,
         y: this.position.y + 20
       },
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this
@@ -55,6 +59,7 @@ export class DLatch extends Component {
         x: this.position.x + this.size.width + 10,
         y: this.position.y + 50
       },
+      bitWidth: 1,
       value: true,
       isConnected: false,
       component: this

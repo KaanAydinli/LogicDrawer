@@ -20,6 +20,7 @@ export class HexDigit extends Component {
           type: 'input',
           position: portPosition,
           value: false,
+          bitWidth: 1,
           isConnected: false,
           component: this
         });

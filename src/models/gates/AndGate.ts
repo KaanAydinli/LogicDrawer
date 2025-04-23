@@ -29,8 +29,17 @@ export class AndGate extends LogicGate {
       // Set output
       this.outputs[0].value = result;
     } else {
-      // Single-bit operation
-      this.outputs[0].value = Boolean(input1.value && input2.value);
+      let result = true; // AND işlemi için başlangıç değeri
+      
+      // Tüm girişleri kontrol et - herhangi biri false ise sonuç false olur
+      for (const input of this.inputs) {
+        if (!input.value) {
+          result = false;
+          break;
+        }
+      }
+      
+      this.outputs[0].value = result;
     }
   }
 

@@ -1,8 +1,9 @@
 import { Component, Point } from '../Component';
+import { BitArray } from '../MultibitTypes';
 
 export class DFlipFlop extends Component {
-  private qValue: boolean = false;
-  private lastClk: boolean = false;
+  private qValue: BitArray | boolean = false;
+  private lastClk: BitArray | boolean = false;
   
   constructor(position: Point) {
     super('dflipflop', position);
@@ -16,6 +17,7 @@ export class DFlipFlop extends Component {
         x: this.position.x - 10,
         y: this.position.y + 20
       },
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this
@@ -29,6 +31,7 @@ export class DFlipFlop extends Component {
         x: this.position.x - 10,
         y: this.position.y + 50
       },
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this
@@ -42,6 +45,7 @@ export class DFlipFlop extends Component {
         x: this.position.x + this.size.width + 10,
         y: this.position.y + 20
       },
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this
@@ -55,6 +59,7 @@ export class DFlipFlop extends Component {
         x: this.position.x + this.size.width + 10,
         y: this.position.y + 50
       },
+      bitWidth: 1,
       value: true,
       isConnected: false,
       component: this

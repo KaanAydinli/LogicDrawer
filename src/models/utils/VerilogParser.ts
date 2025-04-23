@@ -1158,11 +1158,14 @@ private extractBasicGates(body: string): VerilogGate[] {
 
     this.validateGateInputCount(gateType, gateName, argList.length);
 
+    
+
     gates.push({
       type: gateType.toLowerCase(),
       name: gateName,
       output,
       inputs: argList,
+
     });
   }
 
