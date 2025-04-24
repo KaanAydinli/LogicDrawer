@@ -26,54 +26,56 @@ MIN_SEGMENT_AREA = 1
 # --- Helper Functions ---
 
 def create_wire_mask(gray_img, gate_boxes):
-    # İyileştirilmiş wire mask oluşturma
-    # CLAHE ile kontrast artırma
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    # Apply adaptive histogram equalization to enhance contrast
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     enhanced = clahe.apply(gray_img)
     
-    # Bilateral filtreleme
+    # Multi-scale edge detection approach
+    blurred1 = cv2.GaussianBlur(enhanced, (3, 3), 0)
+    blurred2 = cv2.GaussianBlur(enhanced, (5, 5), 0)
+    
+    # Apply bilateral filter to preserve edges while reducing noise
     filtered = cv2.bilateralFilter(enhanced, BILATERAL_D, BILATERAL_SIGMA, BILATERAL_SIGMA)
     
-    # Canny kenar tespiti
-    edges = cv2.Canny(filtered, 30, 150)  # Alt eşik değeri daha düşük (50->30)
+    # Apply Canny edge detection with multiple parameter sets for robustness
+    edges1 = cv2.Canny(filtered, 30, 100)
+    edges2 = cv2.Canny(filtered, 50, 150)
+    edges3 = cv2.Canny(blurred1, 40, 120)
+    edges4 = cv2.Canny(blurred2, 40, 120)
     
-    # Düz çizgileri algılamak için Hough Line Transform
-    lines = cv2.HoughLinesP(
-        edges, 1, np.pi/180, 30,  # Düşük threshold (daha fazla çizgi tespit eder)
-        minLineLength=20,         # Kısa çizgileri görmezden gel
-        maxLineGap=15             # Bu kadar piksel uzaklıktaki çizgileri birleştir
-    )
+    # Combine edge detection results
+    edges_combined = cv2.bitwise_or(cv2.bitwise_or(edges1, edges2), 
+                                    cv2.bitwise_or(edges3, edges4))
     
-    # Hough çizgilerini çiz
-    line_mask = np.zeros_like(edges)
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(line_mask, (x1, y1), (x2, y2), 255, 3)  # Kalın çizgiler
-    
-    # Canny kenarları ve Hough çizgilerini birleştir
-    combined = cv2.bitwise_or(edges, line_mask)
-    
-    # Dilate ile genişlet - kopuk parçaları birleştir
+    # Dilate edges to connect broken wire segments
     kernel_dilate = np.ones(DILATE_KERNEL_SIZE, np.uint8)
-    dilated = cv2.dilate(combined, kernel_dilate, iterations=DILATE_ITERATIONS)
+    dilated = cv2.dilate(edges_combined, kernel_dilate, iterations=DILATE_ITERATIONS)
     
-    # Opening ile küçük gürültüleri temizle
+    # Apply morphological closing to further connect broken lines
+    kernel_close = np.ones((3, 3), np.uint8)
+    closed = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel_close)
+    
+    # Apply opening to remove small noise
     kernel_open = np.ones(OPEN_KERNEL_SIZE, np.uint8)
-    opened = cv2.morphologyEx(dilated, cv2.MORPH_OPEN, kernel_open)
+    opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open)
     
-    # Kapı maskesi oluştur
+    # Create the gate mask as before but with increased padding for better gate removal
     gate_mask = np.zeros_like(gray_img)
     for box in gate_boxes:
-        x1, y1, x2, y2 = map(int, box); p = GATE_MASK_PADDING
+        x1, y1, x2, y2 = map(int, box)
+        p = GATE_MASK_PADDING + 2  # Increased padding
         cv2.rectangle(gate_mask, (x1 - p, y1 - p), (x2 + p, y2 + p), 255, -1)
     
     wire_mask_no_gates = opened.copy()
     wire_mask_no_gates[gate_mask == 255] = 0
     
+    if SAVE_DEBUG_IMAGES:
+        cv2.imwrite("debug_wire_mask.png", wire_mask_no_gates)
+        
     return wire_mask_no_gates
 
 def get_gate_info(yolo_results):
+   
     gates = []
     gate_boxes = yolo_results.boxes.xyxy.cpu().numpy()
     gate_classes = yolo_results.boxes.cls.cpu().numpy()
@@ -87,159 +89,47 @@ def get_gate_info(yolo_results):
     return gates, gate_boxes
 
 def skeletonize_mask(wire_mask):
+    # ... (Your existing skeletonize_mask function) ...
     _, binary = cv2.threshold(wire_mask, 127, 255, cv2.THRESH_BINARY)
     binary = binary // 255
     skeleton = skeletonize(binary).astype(np.uint8) * 255
     return skeleton
 
-def enhance_wire_connections(skeleton):
-    """İskelet görüntüsünü iyileştir - kopuk bağlantıları birleştir"""
-    enhanced = skeleton.copy()
-    
-    # 1. Hough Lines ile düz çizgileri tespit edip kopuk bölgeleri birleştir
-    lines = cv2.HoughLinesP(
-        skeleton, 1, np.pi/180, 20,  # Düşük threshold
-        minLineLength=15,           # Minimum çizgi uzunluğu
-        maxLineGap=20               # Maksimum boşluk toleransı
-    )
-    
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(enhanced, (x1, y1), (x2, y2), 255, 1)
-    
-    # 2. Morfolojik kapama (closing) - küçük boşlukları kapat
-    kernel = np.ones((3, 3), np.uint8)
-    enhanced = cv2.morphologyEx(enhanced, cv2.MORPH_CLOSE, kernel)
-    
-    return enhanced
-
 def get_terminal_regions(gate):
-    """Terminal bölgelerini kapıya göre hesapla - GENİŞLETİLMİŞ"""
+
     x1, y1, x2, y2 = gate['bbox']
     w = x2 - x1
     h = y2 - y1
     cx = (x1 + x2) // 2
     cy = (y1 + y2) // 2
     gate_type = gate['type'].upper()
-    
-    # Daha geniş terminal bölgeleri için padding
-    p = max(w, h) // 6  # Dinamik padding - kapı boyutuna göre
-    
+    input_region = (x1, y1, cx + w // 8, y2)
+    output_region = (cx + w // 4, cy - h // 4, x2, cy + h // 4)
     if 'NOT' in gate_type:
-        if w > h:  # Yatay NOT kapısı
-            input_region = (x1 - p, y1, cx, y2)  # Sol genişletildi
-            output_region = (cx, y1, x2 + p, y2)  # Sağ genişletildi
-        else:  # Dikey NOT kapısı
-            input_region = (x1, y1 - p, x2, cy)  # Üst genişletildi
-            output_region = (x1, cy, x2, y2 + p)  # Alt genişletildi
-    else:
-        input_region = (x1 - p, y1, cx + w // 8, y2)  # Sol genişletildi
-        output_region = (cx + w // 4, cy - h // 4, x2 + p, cy + h // 4)  # Sağ genişletildi
-        
+        if w > h:
+             input_region = (x1, y1, cx, y2)
+             output_region = (cx, y1, x2, y2)
+        else:
+             input_region = (x1, y1, x2, cy)
+             output_region = (x1, cy, x2, y2)
     return {'input': input_region, 'output': output_region}
 
 def is_point_near_region(point_xy, region_xywh, threshold):
+    
     px, py = point_xy
     rx, ry, rx2, ry2 = region_xywh
     region_poly = np.array([[rx,ry],[rx2,ry],[rx2,ry2],[rx,ry2]], dtype=np.float32)
     dist = cv2.pointPolygonTest(region_poly, (float(px), float(py)), True)
     return abs(dist) <= threshold
 
-def connect_close_terminals(gates, threshold_distance=150):
-    """Terminal noktaları arasında olabilecek doğrudan bağlantıları tespit et"""
-    direct_connections = []
-    gates_dict = {gate["id"]: gate for gate in gates}
-    
-    # Tüm terminal çiftlerini kontrol et
-    for gate_id1, gate1 in gates_dict.items():
-        gate1_terminals = get_terminal_regions(gate1)
-        for term_type1, region1 in gate1_terminals.items():
-            # Terminalin merkez noktasını hesapla
-            x1 = (region1[0] + region1[2]) // 2
-            y1 = (region1[1] + region1[3]) // 2
-            
-            # Diğer tüm terminaller ile karşılaştır
-            for gate_id2, gate2 in gates_dict.items():
-                if gate_id1 == gate_id2:  # Aynı kapıyı atla
-                    continue
-                    
-                gate2_terminals = get_terminal_regions(gate2)
-                for term_type2, region2 in gate2_terminals.items():
-                    # Çıkış -> Giriş bağlantısı olmalı
-                    if not ((term_type1 == 'output' and term_type2 == 'input') or 
-                            (term_type1 == 'input' and term_type2 == 'output')):
-                        continue
-                    
-                    # Terminalin merkez noktasını hesapla
-                    x2 = (region2[0] + region2[2]) // 2
-                    y2 = (region2[1] + region2[3]) // 2
-                    
-                    # Manhattan mesafesi hesapla (L1 norm)
-                    distance = abs(x2-x1) + abs(y2-y1)
-                    
-                    # Eğer mesafe yeterince kısaysa, doğrudan bağlantı öner
-                    if distance <= threshold_distance:
-                        # Çıkışı from, girişi to olarak ayarla
-                        if term_type1 == 'output':
-                            from_gate_id, from_term = gate_id1, term_type1
-                            to_gate_id, to_term = gate_id2, term_type2
-                        else:
-                            from_gate_id, from_term = gate_id2, term_type2
-                            to_gate_id, to_term = gate_id1, term_type1
-                            
-                        direct_connections.append({
-                            "from": {"id": from_gate_id, "terminal": from_term},
-                            "to": {"id": to_gate_id, "terminal": to_term},
-                            "confidence": 1.0 - (distance / threshold_distance)  # Güven değeri
-                        })
-    
-    # Güvene göre sırala
-    direct_connections.sort(key=lambda x: x["confidence"], reverse=True)
-    return direct_connections
-
 def find_connections(skeleton, gates):
-    """İyileştirilmiş bağlantı bulma fonksiyonu"""
-    # İskelet görüntüsünü iyileştir
-    enhanced_skeleton = enhance_wire_connections(skeleton)
-    
-    # İskelet bölgelerini etiketle
-    labeled_skeleton = label(enhanced_skeleton)
+
+    labeled_skeleton = label(skeleton)
     regions = regionprops(labeled_skeleton)
     gates_dict = {gate["id"]: gate for gate in gates}
-    
-    # Terminal bölgelerini hesapla
     for gate_id in gates_dict:
         gates_dict[gate_id]['terminals'] = get_terminal_regions(gates_dict[gate_id])
-    
-    # YENİ: Hough çizgileri kullanarak düz çizgileri tespit et
-    straight_lines = []
-    lines = cv2.HoughLinesP(enhanced_skeleton, 1, np.pi/180, 25, 
-                           minLineLength=20, maxLineGap=20)
-    
-    if lines is not None:
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            # Çizginin her iki ucunun terminal bölgelerine yakınlığını kontrol et
-            start_terminals = []
-            end_terminals = []
-            
-            for gate_id, gate in gates_dict.items():
-                for term_type, term_region in gate['terminals'].items():
-                    # Çizginin uçları
-                    if is_point_near_region((x1, y1), term_region, CONNECTION_THRESHOLD*2):
-                        start_terminals.append((gate_id, term_type))
-                    if is_point_near_region((x2, y2), term_region, CONNECTION_THRESHOLD*2):
-                        end_terminals.append((gate_id, term_type))
-            
-            # Her iki uç da terminallere yakınsa
-            if start_terminals and end_terminals:
-                straight_lines.append((start_terminals, end_terminals, (x1,y1,x2,y2)))
 
-    # YENİ: Doğrudan terminal bağlantılarını hesapla
-    direct_connections = connect_close_terminals(gates, 150)
-
-    # İskelet bölgelerinin terminallere yakınlığını kontrol et
     potential_connections = []
     for region in regions:
         if region.area < MIN_SEGMENT_AREA: continue
@@ -263,162 +153,50 @@ def find_connections(skeleton, gates):
                              if not found: touched_terminals.append((gate_id, term_type, point_xy))
         if touched_terminals: potential_connections.append((region, touched_terminals))
 
-    # YENİ: Tüm potansiyel kapı-kapı bağlantılarını toplama
-    all_potential_connections = []
-    
-    # 1. İskelet bölgelerinden kapı-kapı bağlantılarını ekle
-    for region, terminals in potential_connections:
-        outputs = [(gid, term, pt) for gid, term, pt in terminals if term == 'output']
-        inputs = [(gid, term, pt) for gid, term, pt in terminals if term == 'input']
-        
-        for output in outputs:
-            out_gid, out_term, _ = output
-            for input in inputs:
-                in_gid, in_term, _ = input
-                if out_gid != in_gid:  # Kendine bağlantı olmasın
-                    all_potential_connections.append({
-                        "from": {"id": out_gid, "terminal": "output"},
-                        "to": {"id": in_gid, "terminal": "input"},
-                        "confidence": 0.9,  # İskelet bölgeleri yüksek güvenilirlik
-                        "from_key": (out_gid, "output"),
-                        "to_key": (in_gid, "input")
-                    })
-    
-    # 2. Düz çizgi bağlantılarını ekle
-    for start_terms, end_terms, _ in straight_lines:
-        for start_gate_id, start_term_type in start_terms:
-            for end_gate_id, end_term_type in end_terms:
-                if start_gate_id != end_gate_id:  # Aynı kapı olmasın
-                    if start_term_type == 'output' and end_term_type == 'input':
-                        all_potential_connections.append({
-                            "from": {"id": start_gate_id, "terminal": "output"},
-                            "to": {"id": end_gate_id, "terminal": "input"},
-                            "confidence": 0.85,  # Düz çizgiler yüksek güvenilirlik
-                            "from_key": (start_gate_id, "output"),
-                            "to_key": (end_gate_id, "input")
-                        })
-                    elif start_term_type == 'input' and end_term_type == 'output':
-                        all_potential_connections.append({
-                            "from": {"id": end_gate_id, "terminal": "output"},
-                            "to": {"id": start_gate_id, "terminal": "input"},
-                            "confidence": 0.85,
-                            "from_key": (end_gate_id, "output"),
-                            "to_key": (start_gate_id, "input")
-                        })
-    
-    # 3. Doğrudan terminal bağlantılarını ekle
-    for connection in direct_connections:
-        all_potential_connections.append({
-            "from": connection["from"],
-            "to": connection["to"],
-            "confidence": connection["confidence"] * 0.7,  # Daha düşük güven
-            "from_key": (connection["from"]["id"], connection["from"]["terminal"]),
-            "to_key": (connection["to"]["id"], connection["to"]["terminal"])
-        })
-    
-    # Güvene göre sırala - önce en güvenilir bağlantıları işle
-    all_potential_connections.sort(key=lambda x: x["confidence"], reverse=True)
-    
-    # Öncelikle tüm kapı-kapı bağlantılarını uygula
     wires = []
+    processed_regions = set()
     connected_terminals = set()
-    
-    # Kapı-kapı bağlantılarını uygula
-    for connection in all_potential_connections:
-        from_key = connection["from_key"]
-        to_key = connection["to_key"]
-        
-        # Terminal henüz bağlanmamışsa bağlantıyı ekle
-        if from_key not in connected_terminals and to_key not in connected_terminals:
-            wires.append({
-                "from": connection["from"],
-                "to": connection["to"]
-            })
-            connected_terminals.add(from_key)
-            connected_terminals.add(to_key)
-    
-    # Bağlanmamış terminalleri tespiti et
     input_counter = 1
     output_counter = 1
-    
-    # Bağlanmamış çıkışları bağlanmamış girişlerle eşleştirmeye çalış
-    unbounded_outputs = []
-    unbounded_inputs = []
-    
-    for gate_id, gate in gates_dict.items():
-        # Önce çıkışları kontrol et
-        output_key = (gate_id, "output")
-        if output_key not in connected_terminals:
-            unbounded_outputs.append(gate_id)
-        
-        # Sonra girişleri kontrol et
-        input_key = (gate_id, "input")
-        if input_key not in connected_terminals:
-            unbounded_inputs.append(gate_id)
-    
-    # Bağlanmamış çıkışları bağlanmamış girişlerle eşleştir
-    for out_id in unbounded_outputs:
-        best_match = None
-        min_distance = float('inf')
-        
-        # Bu çıkışa en yakın bağlanmamış girişi bul
-        out_gate = gates_dict[out_id]
-        out_pos = out_gate["position"]
-        
-        for in_id in unbounded_inputs:
-            if out_id == in_id:  # Kendine bağlantı olmasın
-                continue
-                
-            in_gate = gates_dict[in_id]
-            in_pos = in_gate["position"]
-            
-            # Manhattan mesafesi
-            distance = abs(out_pos[0] - in_pos[0]) + abs(out_pos[1] - in_pos[1])
-            
-            if distance < min_distance:
-                min_distance = distance
-                best_match = in_id
-        
-        # Eğer yakın bir giriş bulunduysa ve mesafe makul ise, bağlantı ekle
-        if best_match is not None and min_distance < 300:  # 300 piksel mesafe sınırı
-            from_key = (out_id, "output")
-            to_key = (best_match, "input")
-            
-            wires.append({
-                "from": {"id": out_id, "terminal": "output"},
-                "to": {"id": best_match, "terminal": "input"}
-            })
-            
-            connected_terminals.add(from_key)
-            connected_terminals.add(to_key)
-            
-            # Eşleşen girişi listeden kaldır
-            unbounded_inputs.remove(best_match)
-    
-    # Hala bağlanmamış terminaller varsa, harici bağlantılar ekle
-    for gate_id, gate in gates_dict.items():
-        # Çıkış kontrolü
-        output_key = (gate_id, "output")
-        if output_key not in connected_terminals:
-            output_id = f"output{output_counter}"
-            wires.append({
-                "from": {"id": gate_id, "terminal": "output"},
-                "to": {"id": output_id, "terminal": "external"}
-            })
-            connected_terminals.add(output_key)
-            output_counter += 1
-        
-        # Giriş kontrolü
-        input_key = (gate_id, "input")
-        if input_key not in connected_terminals:
-            input_id = f"input{input_counter}"
-            wires.append({
-                "from": {"id": input_id, "terminal": "external"},
-                "to": {"id": gate_id, "terminal": "input"}
-            })
-            connected_terminals.add(input_key)
-            input_counter += 1
-    
+
+    # 1. Gate Output -> Gate Input
+    for region, terminals in potential_connections:
+        if region.label in processed_regions: continue
+        outputs = [(gid, term, pt) for gid, term, pt in terminals if term == 'output']
+        inputs = [(gid, term, pt) for gid, term, pt in terminals if term == 'input']
+        if len(outputs) == 1 and len(inputs) == 1 and outputs[0][0] != inputs[0][0]:
+            from_gate_id, to_gate_id = outputs[0][0], inputs[0][0]
+            conn_key_from, conn_key_to = (from_gate_id, 'output'), (to_gate_id, 'input')
+            if conn_key_from not in connected_terminals and conn_key_to not in connected_terminals:
+                wires.append({"from": {"id": from_gate_id, "terminal": "output"}, "to": {"id": to_gate_id, "terminal": "input"}})
+                connected_terminals.add(conn_key_from); connected_terminals.add(conn_key_to)
+                processed_regions.add(region.label)
+
+    # 2. External Inputs
+    for region, terminals in potential_connections:
+        if region.label in processed_regions: continue
+        if len(terminals) == 1:
+            gate_id, term_type, _ = terminals[0]
+            if term_type == 'input':
+                conn_key = (gate_id, 'input')
+                if conn_key not in connected_terminals:
+                    input_id = f"input{input_counter}"
+                    wires.append({"from": {"id": input_id, "terminal": "external"}, "to": {"id": gate_id, "terminal": "input"}})
+                    connected_terminals.add(conn_key); input_counter += 1
+                    processed_regions.add(region.label)
+
+    # 3. External Outputs
+    for region, terminals in potential_connections:
+        if region.label in processed_regions: continue
+        if len(terminals) == 1:
+            gate_id, term_type, _ = terminals[0]
+            if term_type == 'output':
+                conn_key = (gate_id, 'output')
+                if conn_key not in connected_terminals:
+                    output_id = f"output{output_counter}"
+                    wires.append({"from": {"id": gate_id, "terminal": "output"}, "to": {"id": output_id, "terminal": "external"}})
+                    connected_terminals.add(conn_key); output_counter += 1
+                    processed_regions.add(region.label)
     return wires
 
 # --- Main Execution ---
@@ -442,6 +220,7 @@ if __name__ == "__main__":
         print(f"Error loading image from base64 stdin: {e}", file=sys.stderr)
         sys.exit(1) # Exit with error code
 
+    # --- Steps 2-5 remain the same (Load Model, Detect, Mask, Skeletonize, Find Connections) ---
     # 2. Load Model and Detect Gates
     try:
         model = YOLO(MODEL_PATH)
