@@ -170,6 +170,7 @@ const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
 const sidebar = document.querySelector(".sidebar") as HTMLElement;
 const sidebarClose = document.querySelector(".closeSide") as HTMLElement;
+var repository: CircuitRepositoryController;
 var minimap: HTMLCanvasElement;
 
 function initApp() {
@@ -184,7 +185,7 @@ function initApp() {
     circuitBoard.takeScreenshot();
   });
 
-  const repository = new CircuitRepositoryController(repositoryService, converter, document.body);
+  repository = new CircuitRepositoryController(repositoryService, converter, document.body);
   storage.addEventListener("click", () => {
     repository.open();
   });
@@ -1235,6 +1236,7 @@ function setUpLoginAndSignup() {
       const loginBtn = document.getElementById("login-button") as HTMLButtonElement;
       loginBtn.disabled = true;
       loginBtn.textContent = "Giriş yapılıyor...";
+      
 
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: "POST",
@@ -1266,7 +1268,8 @@ function setUpLoginAndSignup() {
       // Update UI
       updateUserInterface(true, data.user.name);
       hideAuthModal();
-
+      
+      repository.refresh();
       // Test token was saved
       const savedToken = localStorage.getItem("auth_token");
       console.log("Token saved to localStorage:", savedToken ? "Yes" : "No");
@@ -1436,7 +1439,7 @@ async function saveToMongoDB(name: string, circuitData: any) {
 
     const data = {
       name: name,
-      authorName: user.name, // Kullanıcının adını ekle
+      username: user.name, // Kullanıcının adını ekle
       components: parsedData.components.map((comp: any) => ({
         id: comp.id,
         type: comp.type,

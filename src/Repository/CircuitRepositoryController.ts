@@ -19,7 +19,7 @@ export interface CircuitEntry {
   title?: string;
   description: string;
   userId: string | { _id: string };
-  authorName: string;
+  username: string;
   dateCreated: Date;
   dateModified: Date;
   tags: string[];
@@ -856,8 +856,34 @@ export class CircuitRepositoryController {
       backBtn.addEventListener("click", () => this.showCircuitGrid());
     }
   }
-
-  private async loadCircuits(): Promise<void> {
+  public refresh(): void {
+    // Kullanıcı ID'sini localStorage'dan güncelle
+    const userInfo = localStorage.getItem("user_info");
+    const user = userInfo ? JSON.parse(userInfo) : { id: "unknown-user" };
+    this.currentUserId = user.id || user._id;
+    
+    console.log("Circuit repository refreshed for user:", this.currentUserId);
+    
+    // Mevcut sekmeyi sıfırla ve yeniden yükle
+    this.currentTab = "browse";
+    
+    // Sekme UI'ını güncelle
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach(t => {
+      if (t.getAttribute("data-tab") === "browse") {
+        t.classList.add("active");
+      } else {
+        t.classList.remove("active");
+      }
+    });
+    
+    // Devreleri yeniden yükle
+    this.loadCircuits();
+    
+    // Grid görünümüne dön
+    this.showCircuitGrid();
+  }
+  public async loadCircuits(): Promise<void> {
     if (!this.circuitGridElement) return;
 
     this.circuitGridElement.innerHTML = `<div class="loading-indicator">Loading circuits...</div>`;
@@ -983,6 +1009,7 @@ export class CircuitRepositoryController {
 
     this.circuitGridElement.innerHTML = "";
 
+    console.log("Rendering circuits:", this.currentCircuits);
     this.currentCircuits.forEach(circuit => {
       const card = this.createCircuitCard(circuit);
       this.circuitGridElement?.appendChild(card);
@@ -1020,7 +1047,7 @@ export class CircuitRepositoryController {
         <h3>${circuit.name || circuit.title || "Untitled Circuit"}</h3>
         <p>${this.truncateText(circuit.description || "", 100)}</p>
         <div class="circuit-meta">
-          <span>by ${circuit.authorName || "Unknown"}</span>
+          <span>by ${circuit.username || "Unknown"}</span>
           <span>❤️ ${circuit.likes || 0}</span>
           <span>⬇️ ${circuit.downloads || 0}</span>
         </div>
@@ -1142,7 +1169,7 @@ export class CircuitRepositoryController {
       </div>
       
       <div class="detail-info">
-        <p><strong>Author:</strong> ${circuit.authorName || "Unknown"}</p>
+        <p><strong>Author:</strong> ${circuit.username || "Unknown"}</p>
         <p><strong>Created:</strong> ${new Date(circuit.dateCreated).toLocaleDateString()} | <strong>Updated:</strong> ${new Date(circuit.dateModified).toLocaleDateString()}</p>
         <p><strong>Downloads:</strong> ${circuit.downloads || 0} | <strong>Likes:</strong> ${circuit.likes || 0}</p>
         
@@ -1392,7 +1419,7 @@ private async handleUploadSubmit(e: Event): Promise<void> {
       name: title,
       description,
       userId: this.currentUserId,
-      authorName: "Current User",
+      username: "Current User",
       tags,
       verilogCode,
       thumbnailUrl: undefined,

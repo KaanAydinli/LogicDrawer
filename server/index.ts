@@ -675,6 +675,7 @@ app.post("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
     const circuitData = {
       ...req.body,
       userId: req.user.id,
+    
     };
 
     console.log("Saving circuit with data:", JSON.stringify(circuitData, null, 2));
