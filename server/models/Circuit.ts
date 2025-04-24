@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const circuitSchema = new mongoose.Schema({
   name: {
@@ -7,7 +7,7 @@ const circuitSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    default: '',
+    default: "",
   },
   components: {
     type: Array,
@@ -19,14 +19,11 @@ const circuitSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',  
+    ref: "User",
     required: true,
   },
   // Add sharedWith array to store usernames/IDs of users this circuit is shared with
-  sharedWith: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-  }],
+  sharedWith: { type: [String], default: [] },
   isShared: {
     type: Boolean,
     required: false,
@@ -45,4 +42,4 @@ const circuitSchema = new mongoose.Schema({
   },
 });
 
-export const Circuit = mongoose.model('Circuit', circuitSchema);
+export const Circuit = mongoose.model("Circuit", circuitSchema);

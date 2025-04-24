@@ -31,6 +31,7 @@ export interface CircuitEntry {
   components: any[];
   wires: any[];
   isShared?: boolean;
+  sharedWith: string[];
 }
 
 export interface CircuitRepositoryService {
@@ -47,6 +48,9 @@ export interface CircuitRepositoryService {
   downloadCircuit(id: string): Promise<string>;
   addComment(circuitId: string, comment: Omit<Comment, "id" | "date" | "likes">): Promise<Comment>;
   deleteCircuit(id: string): Promise<void>;
+  getSharedCircuits(): Promise<CircuitEntry[]>; // Paylaşılan devreleri getir
+  updateCircuitVisibility(id: string, isPublic: boolean): Promise<void>; // Görünürlüğü güncelle
+  shareCircuitWithUser(id: string, username: string): Promise<void>; 
 }
 export function createRepositoryUI(): HTMLElement {
   const container = document.createElement("div");
@@ -64,6 +68,7 @@ export function createRepositoryUI(): HTMLElement {
       <div class="repository-tabs">
         <div class="tab active" data-tab="browse">Browse Circuits</div>
         <div class="tab" data-tab="my-circuits">My Circuits</div>
+        <div class="tab" data-tab="shared-me">Shared with Me</div>
       </div>
       
       <div class="search-container">
@@ -746,7 +751,7 @@ export class CircuitRepositoryController {
   private currentUserId: string = "unknown-user";
 
   private currentCircuits: CircuitEntry[] = [];
-  private currentTab: "browse" | "my-circuits" = "browse";
+  private currentTab: "browse" | "my-circuits" | "shared-me" = "browse";
   public selectedCircuitId: string | null = null;
 
   constructor(
@@ -806,7 +811,7 @@ export class CircuitRepositoryController {
     tabs.forEach(tab => {
       tab.addEventListener("click", e => {
         const tabName = (e.currentTarget as HTMLElement).getAttribute("data-tab");
-        if (tabName === "browse" || tabName === "my-circuits") {
+        if (tabName === "shared-me" || tabName === "browse" || tabName === "my-circuits" ) {
           this.switchTab(tabName);
         }
       });
@@ -861,23 +866,22 @@ export class CircuitRepositoryController {
       const allCircuits = await this.repositoryService.getCircuits();
 
       if (this.currentTab === "browse") {
-        
+        // Public devreleri getir
+        const allCircuits = await this.repositoryService.getCircuits();
+        // Sadece public ve kullanıcının sahip olmadığı devreleri filtrele
         this.currentCircuits = allCircuits.filter(c => {
-          
           const isPublic = c.isPublic === true;
-
-          
           let isNotOwned = false;
           if (typeof c.userId === "object" && c.userId !== null) {
             isNotOwned = c.userId._id !== this.currentUserId;
           } else {
             isNotOwned = c.userId !== this.currentUserId;
           }
-
           return isPublic && isNotOwned;
         });
-      } else {
-        
+      } else if (this.currentTab === "my-circuits") {
+        // Kullanıcının kendi devrelerini filtrele
+        const allCircuits = await this.repositoryService.getCircuits();
         this.currentCircuits = allCircuits.filter(c => {
           if (typeof c.userId === "object" && c.userId !== null) {
             return c.userId._id === this.currentUserId;
@@ -885,8 +889,10 @@ export class CircuitRepositoryController {
             return c.userId === this.currentUserId;
           }
         });
+      } else if (this.currentTab === "shared-me") {
+        // Kullanıcı ile paylaşılan devreleri getir
+        this.currentCircuits = await this.repositoryService.getSharedCircuits();
       }
-
       this.renderCircuitGrid();
     } catch (error) {
       console.error("Failed to load circuits:", error);
@@ -1082,29 +1088,22 @@ export class CircuitRepositoryController {
       alert("Error loading circuit details. Please try again.");
     }
   }
-  private async toggleCircuitPublicStatus(circuitId: string): Promise<void> {
+  private async toggleCircuitPublicStatus(circuit: CircuitEntry): Promise<void> {
     try {
-      const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}/toggle-public`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Görünürlüğü tersine çevir
+      const newVisibility = !circuit.isPublic;
       
-      if (!response.ok) {
-        throw new Error('Failed to update circuit visibility');
-      }
+      await this.repositoryService.updateCircuitVisibility(circuit.id, newVisibility);
       
-      const result = await response.json();
+      // Devre objesini güncelle
+      circuit.isPublic = newVisibility;
       
+      // Detay sayfasını yeniden render et
+      this.renderCircuitDetail(circuit);
       
-      this.viewCircuitDetails(circuitId);
-      
-      
-      alert(`Circuit is now ${result.isPublic ? 'public' : 'private'}`);
+      alert(`Circuit is now ${newVisibility ? 'public' : 'private'}`);
     } catch (error) {
-      console.error('Error toggling circuit public status:', error);
+      console.error('Error toggling circuit visibility:', error);
       alert('Failed to update circuit visibility. Please try again.');
     }
   }
@@ -1223,7 +1222,7 @@ export class CircuitRepositoryController {
 
     const publicToggleBtn = document.getElementById("public-toggle-btn");
     if (publicToggleBtn) {
-      publicToggleBtn.addEventListener("click", () => this.toggleCircuitPublicStatus(circuit.id));
+      publicToggleBtn.addEventListener("click", () => this.toggleCircuitPublicStatus(circuit));
     }
 
     const shareBtn = document.getElementById("share-circuit-btn");
@@ -1269,7 +1268,7 @@ export class CircuitRepositoryController {
     }
   }
 
-  private switchTab(tab: "browse" | "my-circuits"): void {
+  private switchTab(tab: "browse" | "my-circuits" | "shared-me"): void {
     this.currentTab = tab;
 
     const tabs = document.querySelectorAll(".tab");
@@ -1399,6 +1398,7 @@ private async handleUploadSubmit(e: Event): Promise<void> {
       thumbnailUrl: undefined,
       components: [],
       wires: [],
+      sharedWith: [],
       isPublic: isPublic, 
     });
 

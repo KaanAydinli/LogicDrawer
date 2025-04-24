@@ -158,7 +158,83 @@ private async refreshAuthToken(): Promise<boolean> {
       throw error;
     }
   }
-
+  async getSharedCircuits(): Promise<CircuitEntry[]> {
+    try {
+      console.log("Fetching shared circuits...");
+      
+      const response = await fetch(`${this.API_BASE_URL}/circuits/shared-with-me`, {
+        headers: this.getAuthHeaders()
+      });
+      
+      console.log("Shared circuits response status:", response.status);
+      
+      let responseData = null;
+      try {
+        // Response'u bir kez oku
+        responseData = await response.json();
+      } catch (parseError) {
+        console.error("Error parsing response:", parseError);
+        throw new Error(`Failed to parse server response: ${response.status}`);
+      }
+      
+      if (!response.ok) {
+        console.error(`Failed to fetch shared circuits: ${response.status}`, responseData);
+        throw new Error(`Failed to fetch shared circuits: ${response.status}`);
+      }
+      
+      console.log("Shared circuits received:", responseData.length);
+      
+      return responseData.map((circuit: any) => ({
+        ...circuit,
+        id: circuit._id || circuit.id,
+        verilogCode: circuit.verilogCode || '',
+        components: circuit.components || [],
+        wires: circuit.wires || [],
+        isPublic: circuit.isPublic || false,
+        sharedWith: circuit.sharedWith || [],
+        isShared: true // Paylaşılan devreleri işaretle
+      }));
+    } catch (error) {
+      console.error('Error fetching shared circuits:', error);
+      return [];
+    }
+  }
+  
+  async updateCircuitVisibility(id: string, isPublic: boolean): Promise<void> {
+    try {
+      const response = await fetch(`${this.API_BASE_URL}/circuits/${id}/visibility`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ isPublic })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update circuit visibility');
+      }
+    } catch (error) {
+      console.error('Error updating circuit visibility:', error);
+      throw error;
+    }
+  }
+  
+  async shareCircuitWithUser(id: string, username: string): Promise<void> {
+    try {
+      const response = await fetch(`${this.API_BASE_URL}/circuits/${id}/share`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ username })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to share circuit with user');
+      }
+    } catch (error) {
+      console.error('Error sharing circuit:', error);
+      throw error;
+    }
+  }
 
 async searchCircuits(query: string): Promise<CircuitEntry[]> {
   try {
@@ -229,6 +305,9 @@ async searchCircuits(query: string): Promise<CircuitEntry[]> {
         dateModified: new Date(),
         likes: 0,
         downloads: 0,
+        sharedWith: [],
+        isPublic: false,
+        isShared: false,
         comments: []
       };
 
