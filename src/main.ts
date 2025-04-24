@@ -1423,7 +1423,7 @@ function setUpLoginAndSignup() {
 
 async function saveToMongoDB(name: string, circuitData: any) {
   try {
-    // Get and verify auth token
+    // Auth token kontrolü
     const token = localStorage.getItem("auth_token");
     if (!token) {
       alert("You must be logged in to save circuits. Please sign in.");
@@ -1434,12 +1434,12 @@ async function saveToMongoDB(name: string, circuitData: any) {
     const userInfo = localStorage.getItem("user_info");
     const user = userInfo ? JSON.parse(userInfo) : { name: "Unknown" };
 
-    // Parse the circuit data if it's a string
+    // Veriyi hazırla
     const parsedData = typeof circuitData === "string" ? JSON.parse(circuitData) : circuitData;
-
+    
     const data = {
       name: name,
-      username: user.name, // Kullanıcının adını ekle
+      username: user.name,
       components: parsedData.components.map((comp: any) => ({
         id: comp.id,
         type: comp.type,
@@ -1459,9 +1459,42 @@ async function saveToMongoDB(name: string, circuitData: any) {
           portId: wire.toPortId || "",
         },
       })),
+      isPublic: false // Varsayılan olarak private
     };
 
-    // Make the request with better error handling
+    // Mevcut devre ID'sini kontrol et
+    const currentCircuitId = localStorage.getItem("currentCircuitId");
+    
+    // ID varsa güncelleme yap, yoksa yeni oluştur
+    if (currentCircuitId) {
+      console.log("Updating existing circuit ID:", currentCircuitId);
+      
+      try {
+        const updateResponse = await fetch(`${apiBaseUrl}/api/circuits/${currentCircuitId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (updateResponse.ok) {
+          console.log("Circuit updated successfully");
+          alert(`Circuit "${name}" updated successfully`);
+          return;
+        } else {
+          // Güncelleme hatası durumunda yeni devreye geç
+          console.log("Failed to update, creating new circuit");
+          localStorage.removeItem("currentCircuitId");
+        }
+      } catch (error) {
+        console.error("Error updating circuit:", error);
+      }
+    }
+
+    // Yeni devre oluştur
+    console.log("Creating new circuit");
     const response = await fetch(`${apiBaseUrl}/api/circuits`, {
       method: "POST",
       headers: {
@@ -1472,13 +1505,17 @@ async function saveToMongoDB(name: string, circuitData: any) {
     });
 
     if (response.ok) {
-      console.log("Circuit saved to MongoDB successfully!");
-      alert("Circuit saved successfully!");
+      const newCircuit = await response.json();
+      console.log("New circuit created:", newCircuit);
+      // Oluşturulan devrenin ID'sini sakla
+      localStorage.setItem("currentCircuitId", newCircuit._id);
+      alert(`Circuit "${name}" saved successfully`);
     } else {
-      // Error handling...
+      alert("Failed to save circuit");
     }
   } catch (error: any) {
-    // Error handling...
+    console.error("Error saving circuit:", error);
+    alert(`Error saving circuit: ${error.message}`);
   }
 }
 
@@ -1497,7 +1534,6 @@ async function loadSavedCircuits() {
       },
     });
 
-    console.log("Response statusasddddddddd:");
 
     if (response.ok) {
       const circuits = await response.json();
@@ -1522,70 +1558,70 @@ async function loadSavedCircuits() {
   }
 }
 
-async function loadCircuit(circuitId: string) {
-  try {
-    // Get auth token
-    const token = localStorage.getItem("auth_token");
-    if (!token) {
-      alert("Please sign in to load circuits");
-      return;
-    }
+// async function loadCircuit(circuitId: string) {
+//   try {
+//     // Get auth token
+//     const token = localStorage.getItem("auth_token");
+//     if (!token) {
+//       alert("Please sign in to load circuits");
+//       return;
+//     }
 
-    const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+//     const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//       },
+//     });
 
-    if (response.ok) {
-      const circuit = await response.json();
-      // Clear the current circuit
-      circuitBoard.clearCircuit();
-      // Import the loaded circuit
-      circuitBoard.importCircuit(JSON.stringify(circuit));
-      console.log("Circuit loaded successfully!");
-      alert("Circuit loaded successfully!");
-    } else {
-      console.error("Failed to load circuit.");
-      alert("Failed to load circuit.");
-    }
-  } catch (error) {
-    console.error("Error loading circuit:", error);
-    alert("Error loading circuit.");
-  }
-}
+//     if (response.ok) {
+//       const circuit = await response.json();
+//       // Clear the current circuit
+//       circuitBoard.clearCircuit();
+//       // Import the loaded circuit
+//       circuitBoard.importCircuit(JSON.stringify(circuit));
+//       console.log("Circuit loaded successfully!");
+//       alert("Circuit loaded successfully!");
+//     } else {
+//       console.error("Failed to load circuit.");
+//       alert("Failed to load circuit.");
+//     }
+//   } catch (error) {
+//     console.error("Error loading circuit:", error);
+//     alert("Error loading circuit.");
+//   }
+// }
 
-async function deleteCircuit(circuitId: string) {
-  if (confirm("Are you sure you want to delete this circuit?")) {
-    try {
-      // Get auth token
-      const token = localStorage.getItem("auth_token");
-      if (!token) {
-        alert("Please sign in to delete circuits");
-        return;
-      }
+// async function deleteCircuit(circuitId: string) {
+//   if (confirm("Are you sure you want to delete this circuit?")) {
+//     try {
+//       // Get auth token
+//       const token = localStorage.getItem("auth_token");
+//       if (!token) {
+//         alert("Please sign in to delete circuits");
+//         return;
+//       }
 
-      const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+//       const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
+//         method: "DELETE",
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       });
 
-      if (response.ok) {
-        console.log("Circuit deleted successfully!");
-        alert("Circuit deleted successfully!");
-        loadSavedCircuits(); // Refresh the list
-      } else {
-        console.error("Failed to delete circuit.");
-        alert("Failed to delete circuit.");
-      }
-    } catch (error) {
-      console.error("Error deleting circuit:", error);
-      alert("Error deleting circuit.");
-    }
-  }
-}
+//       if (response.ok) {
+//         console.log("Circuit deleted successfully!");
+//         alert("Circuit deleted successfully!");
+//         loadSavedCircuits(); // Refresh the list
+//       } else {
+//         console.error("Failed to delete circuit.");
+//         alert("Failed to delete circuit.");
+//       }
+//     } catch (error) {
+//       console.error("Error deleting circuit:", error);
+//       alert("Error deleting circuit.");
+//     }
+//   }
+// }
 
 function setTheme() {
   const themeButton = document.querySelector(".Theme") as HTMLElement;

@@ -920,6 +920,7 @@ export class CircuitRepositoryController {
         this.currentCircuits = await this.repositoryService.getSharedCircuits();
       }
       this.renderCircuitGrid();
+      
     } catch (error) {
       console.error("Failed to load circuits:", error);
       this.circuitGridElement.innerHTML = `
@@ -1441,6 +1442,14 @@ private async handleUploadSubmit(e: Event): Promise<void> {
 
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
+
+      localStorage.setItem("currentCircuitId", circuit.id);
+      console.log("Saved current circuit ID to localStorage:", circuit.id);
+  
+      const inputText = document.querySelector(".docName") as HTMLInputElement;
+      if (inputText && circuit.name) {
+        inputText.value = circuit.name;
+      }
       
       const token = localStorage.getItem("auth_token");
       if (!token) {

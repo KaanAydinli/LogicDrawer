@@ -425,40 +425,6 @@ app.post("/api/analyze/roboflow", async (req, res) => {
 interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
-app.get("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
-  try {
-    // First try to find circuit owned by current user
-    let circuit = await Circuit.findOne({
-      _id: req.params.id,
-      userId: req.user?.id
-    });
-
-    // If not found, check if it's a public circuit
-    if (!circuit) {
-      circuit = await Circuit.findOne({
-        _id: req.params.id,
-        isPublic: true
-      });
-    }
-
-    // If still not found, check if it's shared with this user
-    if (!circuit) {
-      circuit = await Circuit.findOne({
-        _id: req.params.id,
-        sharedWith: req.user?.id
-      });
-    }
-
-    if (!circuit) {
-      return res.status(404).json({ error: "Circuit not found or you don't have permission" });
-    }
-    
-    res.json(circuit);
-  } catch (error) {
-    console.error("Error fetching circuit:", error);
-    res.status(500).json({ error: "Failed to fetch circuit" });
-  }
-});
 app.post(
   "/api/analyze/gemini",
   upload.single("image"),
@@ -712,22 +678,109 @@ app.get("/api/auth/check", authMiddleware, (req: AuthRequest, res) => {
     },
   });
 });
-
 app.put("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    // Only allow updating if the circuit belongs to the user
-    const circuit = await Circuit.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user?.id },
-      req.body,
+    const circuitId = req.params.id;
+    const updateData = req.body;
+
+    // Önce kullanıcıyı bul (username için gerekli)
+    const user = await User.findById(req.user?.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Devre üzerinde izinleri kontrol et
+    const circuit = await Circuit.findOne({
+      _id: circuitId,
+      $or: [
+        { userId: req.user?.id },                   // Devre sahibi
+        { sharedWith: user.name },                 // Devre paylaşılmış
+        
+      ]
+    });
+
+    if (!circuit) {
+      // Eğer public bir devre ve fork edilmemiş ise, fork oluşturmayı öner
+      const publicCircuit = await Circuit.findOne({
+        _id: circuitId,
+        isPublic: true
+      });
+      
+      if (publicCircuit) {
+        return res.status(403).json({ 
+          error: "This is a public circuit. You need to fork it first.",
+          circuitId: circuitId,
+          isForkable: true
+        });
+      }
+      
+      return res.status(404).json({ error: "Circuit not found or you don't have permission" });
+    }
+
+    // Güncelleme yapılacak alanlar
+    const updates = {
+      name: updateData.name,
+      components: updateData.components,
+      wires: updateData.wires,
+      dateModified: new Date()
+    };
+
+    const updatedCircuit = await Circuit.findByIdAndUpdate(
+      circuitId,
+      updates,
       { new: true }
     );
 
+    res.json(updatedCircuit);
+  } catch (error) {
+    console.error("Error updating circuit:", error);
+    res.status(500).json({ error: "Failed to update circuit" });
+  }
+});
+app.get("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    // Kullanıcı bilgilerini al
+    const user = await User.findById(req.user?.id);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+
+    console.log(`User ${user.name} (${req.user?.id}) is trying to access circuit ${req.params.id}`);
+
+    // Kontrol sırası: Kişisel devre, paylaşılan devre, public devre
+    let circuit = await Circuit.findOne({
+      _id: req.params.id,
+      userId: req.user?.id
+    });
+
+    // Kendi devresi değilse, paylaşılan devre mi kontrol et
     if (!circuit) {
+      console.log(`Circuit is not owned by user, checking if shared with ${user.name}`);
+      circuit = await Circuit.findOne({
+        _id: req.params.id,
+        sharedWith: user.name  // Kullanıcı ID'si değil, kullanıcı adını kullan!
+      });
+    }
+
+    // Paylaşılan devre de değilse, public mi kontrol et
+    if (!circuit) {
+      console.log("Circuit is not shared with user, checking if public");
+      circuit = await Circuit.findOne({
+        _id: req.params.id,
+        isPublic: true
+      });
+    }
+
+    if (!circuit) {
+      console.log("Circuit not found or user doesn't have access");
       return res.status(404).json({ error: "Circuit not found or you don't have permission" });
     }
+    
+    console.log(`Circuit found, returning to user ${user.name}`);
     res.json(circuit);
   } catch (error) {
-    res.status(400).json({ error: "Failed to update circuit" });
+    console.error("Error fetching circuit:", error);
+    res.status(500).json({ error: "Failed to fetch circuit" });
   }
 });
 
