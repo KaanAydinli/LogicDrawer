@@ -743,43 +743,39 @@ export class VerilogParser {
       });
     }
   }
-
   private processParenthesisExpression(
     expr: string,
     output: string,
     gates: VerilogGate[],
     gateCounter: number
   ): void {
-    
+    // Get all top-level parenthesis groups
     const parentheses = this.extractParenthesisGroups(expr);
     let processedExpr = expr;
     const tempWires: string[] = [];
-
     
+    // Process each parenthesis group recursively
     parentheses.forEach((parenthesis, index) => {
       const tempOutput = `_temp_wire_${gateCounter + index}`;
       tempWires.push(tempOutput);
-
       
+      // Extract inner expression (remove outer parentheses)
       const innerExpr = parenthesis.substring(1, parenthesis.length - 1);
-
       
-      if (this.isSimpleExpression(innerExpr)) {
-        this.processSimpleExpression(innerExpr, tempOutput, gates);
-      } else {
-        
-        this.processComplexExpression(innerExpr, tempOutput, gates, gateCounter + index + 10);
-      }
-
+      // Recursively process inner expression
+      this.processNestedExpression(innerExpr, tempOutput, gates, gateCounter + index + 100);
       
+      // Replace parenthesis with temp wire
       processedExpr = processedExpr.replace(parenthesis, tempOutput);
     });
-
     
-    if (this.isSimpleExpression(processedExpr)) {
-      this.processSimpleExpression(processedExpr, output, gates);
-    } else {
-      this.processComplexExpression(processedExpr, output, gates, gateCounter + parentheses.length);
+    // Process remaining expression after all parenthesis are replaced
+    if (processedExpr !== output) {
+      if (this.isSimpleExpression(processedExpr)) {
+        this.processSimpleExpression(processedExpr, output, gates);
+      } else {
+        this.processComplexExpression(processedExpr, output, gates, gateCounter + parentheses.length * 100);
+      }
     }
   }
 
@@ -787,7 +783,8 @@ export class VerilogParser {
     const groups: string[] = [];
     let depth = 0;
     let start = -1;
-
+    
+    // First pass: identify top-level parenthesis groups
     for (let i = 0; i < expr.length; i++) {
       if (expr[i] === "(") {
         if (depth === 0) {
@@ -802,9 +799,54 @@ export class VerilogParser {
         }
       }
     }
-
+    
     return groups;
   }
+  private processNestedExpression(
+    expr: string, 
+    output: string, 
+    gates: VerilogGate[], 
+    gateCounter: number
+  ): void {
+    // Remove outer parentheses if the entire expression is enclosed
+    if (expr.startsWith("(") && expr.endsWith(")")) {
+      const innerExpr = expr.substring(1, expr.length - 1);
+      if (this.isBalancedParentheses(innerExpr)) {
+        expr = innerExpr;
+      }
+    }
+    
+    // Check if there are still parenthesis groups in the expression
+    const parenthesisGroups = this.extractParenthesisGroups(expr);
+    
+    if (parenthesisGroups.length > 0) {
+      // Process expression with parenthesis groups
+      this.processParenthesisExpression(expr, output, gates, gateCounter);
+    } else if (this.isSimpleExpression(expr)) {
+      // Simple expression without parentheses
+      this.processSimpleExpression(expr, output, gates);
+    } else {
+      // Complex expression without parentheses
+      this.processComplexExpression(expr, output, gates, gateCounter);
+    }
+  }
+  
+  // Helper to check if parentheses are balanced in an expression
+  private isBalancedParentheses(expr: string): boolean {
+    let depth = 0;
+    
+    for (let i = 0; i < expr.length; i++) {
+      if (expr[i] === "(") {
+        depth++;
+      } else if (expr[i] === ")") {
+        depth--;
+        if (depth < 0) return false; // Unbalanced
+      }
+    }
+    
+    return depth === 0; // Balanced if depth is 0
+  }
+  
 
   /**
    * Ternary ifadeleri işler (? :)
