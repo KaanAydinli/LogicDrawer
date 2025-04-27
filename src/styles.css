@@ -1018,7 +1018,7 @@ body {
   transition: background-color 0.2s;
   color: var(--text-color);
   font-family: "Pixelify Sans", sans-serif;
-  font-size: 18px;
+  font-size: 14px;
   transition: 0.5s;
 }
 

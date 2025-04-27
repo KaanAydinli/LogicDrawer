@@ -105,7 +105,7 @@ export class VerilogParser {
     
     
     
-    const portListItemRegex = /(input|output|inout)?\s*(?:\[\s*(\d+)\s*:\s*(\d+)\s*\])?\s*(\w+)/g;
+    const portListItemRegex = /(input|output|inout)?\s*(?:reg\s+)?(?:\[\s*(\d+)\s*:\s*(\d+)\s*\])?\s*(\w+)/g;
 
     
     const portListItems = portList.split(',').map(item => item.trim()).filter(Boolean);
@@ -165,16 +165,20 @@ export class VerilogParser {
 
     
     
-    const bodyInputRegex = /input\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?);/g;
-    const bodyOutputRegex = /output\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?);/g;
+    const bodyInputRegex = /input\s+(?:reg\s+)?(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?);/g;
+    const bodyOutputRegex = /output\s+(?:reg\s+)?(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?);/g;
     const wireRegex = /wire\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|$)/g;
+    const regRegex = /reg\s+(?:(\[\s*(\d+)\s*:\s*(\d+)\s*\])\s+)?([\w\s,\[\]:]+?)(?=\s*;|$)/g;
 
     
     
     const bodyInputs = this.collectPortsWithBitWidths(body, bodyInputRegex);
     const bodyOutputs = this.collectPortsWithBitWidths(body, bodyOutputRegex);
     const wires = this.collectPortsWithBitWidths(body, wireRegex);
-
+    const regs = this.collectPortsWithBitWidths(body, regRegex);
+    
+   
+    wires.push(...regs);
     
     inputs.push(...bodyInputs);
     outputs.push(...bodyOutputs);

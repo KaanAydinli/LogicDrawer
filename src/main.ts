@@ -26,7 +26,6 @@ import { Wire } from "./models/Wire";
 import { Clock } from "./models/components/Clock";
 import { DLatch } from "./models/Sequential/DLatch";
 import { DFlipFlop } from "./models/Sequential/DFlipFlop";
-import { RoboflowService } from "./ai/RoboflowService";
 import { ImageUploader } from "./ai/ImageUploader";
 import { Decoder } from "./models/gates/Decoder";
 import { BufferGate } from "./models/gates/BufferGate";
@@ -82,90 +81,7 @@ let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
-const promptAI = `Your name is Logai. You are an AI assistant specialized in digital logic circuits and Verilog HDL.
-
-I will provide Verilog code snippets upon request, adhering to the following constraints:
-
-- Verilog code will be provided without excessive explanations or comments
-- Code will always be syntactically correct
-- Code will always include a module declaration and endmodule
-
-***CRITICAL CIRCUIT DESIGN RULES***:
-1. Multiple gate outputs must NEVER be connected to the same destination
-2. Wire names must be unique throughout the code
-3. Each gate will have at most 2 inputs and 1 output (except for NOT/BUF which have 1 input)
-
-***SUPPORTED VERILOG FEATURES***:
-1. MODULE DECLARATIONS:
-   - module name(port_list);
-   - input a, b, c;
-   - output sum, cout;
-   - input [3:0] data;  // Multi-bit signals
-
-2. WIRE DECLARATIONS:
-   - wire w1, w2, w3;
-   - wire [7:0] bus;  // Multi-bit wires
-
-3. GATE INSTANTIATIONS:
-   - and a1(out, in1, in2);
-   - or o1(out, in1, in2);
-   - xor x1(out, in1, in2);
-   - not n1(out, in);
-   - nand nd1(out, in1, in2);
-   - nor nr1(out, in1, in2);
-   - xnor xn1(out, in1, in2);
-   - buf b1(out, in);
-
-4. BEHAVIORAL CONSTRUCTS:
-   - ASSIGN statements:
-       assign out = a & b;
-       assign result = a | b;
-       assign mux_out = sel ? a : b;  // Ternary operator
-   
-   - ALWAYS blocks:
-       always @(posedge clk) begin
-         q <= d;  // Sequential logic
-       end
-       
-       always @(*) begin
-         // Combinational logic
-       end
-
-   - IF/ELSE statements (in always blocks):
-       if (condition) 
-         out = a;
-       else
-         out = b;
-         
-   - CASE statements (in always blocks):
-       case (sel)
-         2'b00: out = a;
-         2'b01: out = b;
-         default: out = c;
-       endcase
-
-5. OPERATORS in expressions:
-   - Bitwise: & (AND), | (OR), ^ (XOR), ~ (NOT)
-   - You can only use bitwise operation with 2 variables so if you want to do more use wires
-   - Logical: && (AND), || (OR), ! (NOT)
-   - Comparison: ==, !=, <, >, <=, >=
-   - Arithmetic: +, -, *, /
-   - Ternary: condition ? if_true : if_false
-
-6. CONSTANTS:
-   - Binary: 2'b10
-   - Hex: 8'hFF
-   - Decimal: 4'd10
-
-***BEST PRACTICES***:
-1. Gate instance names use prefix indicating gate type: 'a' for AND, 'o' for OR, etc.
-2. Simple circuits should use gate instantiations rather than assign statements
-3. More complex logic can use assign statements or always blocks
-4. For sequential logic, use always @(posedge clk) blocks
-5. For combinational logic in always blocks, use always @(*) and blocking assignments (=)
-
-When asked to implement specific circuits (adders, multiplexers, etc.), I will choose the most appropriate method based on complexity.`;
-
+const promptAI = import.meta.env.VITE_PROMPT;
 const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
 const sidebar = document.querySelector(".sidebar") as HTMLElement;
@@ -315,17 +231,19 @@ function syncCanvasWithAnimation() {
 function handleResize() {
   circuitBoard.resizeCanvas();
 }
-
 function extractVerilogFromPrompt(prompt: string): string | null {
-  const moduleRegex = /\b(module\s+[\w\s\(\),;]*[\s\S]*?endmodule)\b/gi;
-
-  const matches = prompt.match(moduleRegex);
-
-  if (!matches || matches.length === 0) {
+  // First remove all backtick characters from the text
+  const cleanedPrompt = prompt.replace(/`/g, '');
+  
+  // Simple approach to extract module content
+  const moduleStartIndex = cleanedPrompt.indexOf('module');
+  const endModuleIndex = cleanedPrompt.lastIndexOf('endmodule') + 'endmodule'.length;
+  
+  if (moduleStartIndex === -1 || endModuleIndex === -1 + 'endmodule'.length) {
     return null;
   }
-
-  return matches.join("\n\n");
+  
+  return cleanedPrompt.substring(moduleStartIndex, endModuleIndex);
 }
 
 function setupZoomControls() {
@@ -715,31 +633,31 @@ function setUpAI() {
 
     chatInput.value = "";
 
-    const code = extractVerilogFromPrompt(message);
-    if (code) {
-      if (
-        message.toLowerCase().includes("draw") ||
-        message.toLowerCase().includes("create") ||
-        message.toLowerCase().includes("make") ||
-        message.toLowerCase().includes("implement") ||
-        message.toLowerCase().includes("build") ||
-        message.toLowerCase().includes("convert")
-      ) {
-        const converter = new VerilogCircuitConverter(circuitBoard);
-        const success = converter.importVerilogCode(code);
+    // const code = extractVerilogFromPrompt(message);
+    // if (code) {
+    //   if (
+    //     message.toLowerCase().includes("draw") ||
+    //     message.toLowerCase().includes("create") ||
+    //     message.toLowerCase().includes("make") ||
+    //     message.toLowerCase().includes("implement") ||
+    //     message.toLowerCase().includes("build") ||
+    //     message.toLowerCase().includes("convert")
+    //   ) {
+    //     const converter = new VerilogCircuitConverter(circuitBoard);
+    //     const success = converter.importVerilogCode(code);
 
-        if (success) {
-          addAIMessage(
-            "I've created the circuit from your Verilog code! You can see it on the canvas now."
-          );
-        } else {
-          addAIMessage(
-            "I found Verilog code in your message, but I couldn't create a valid circuit from it. Please check for syntax errors or unsupported features."
-          );
-        }
-        return;
-      }
-    }
+    //     if (success) {
+    //       addAIMessage(
+    //         "I've created the circuit from your Verilog code! You can see it on the canvas now."
+    //       );
+    //     } else {
+    //       addAIMessage(
+    //         "I found Verilog code in your message, but I couldn't create a valid circuit from it. Please check for syntax errors or unsupported features."
+    //       );
+    //     }
+    //     return;
+    //   }
+    // }
 
     try {
       const aiResponse = await callMistralAPI(message);
@@ -820,10 +738,12 @@ function setUpAI() {
 
   function addAIMessage(text: string) {
     const messageDiv = document.createElement("div");
+    
+    const code = extractVerilogFromPrompt(text);
     var aiText = escapeHTML(text);
-    const code = extractVerilogFromPrompt(aiText);
 
     if (code) {
+      console.log("Verilog code detected:", code);
       const converter = new VerilogCircuitConverter(circuitBoard);
       const success = converter.importVerilogCode(code);
       if (success) {
@@ -840,7 +760,7 @@ function setUpAI() {
     <div class="ai-avatar">
                 <svg width = 200px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
               
-            <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+            <text x="0" y="18"  font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
             
           </svg>
     </div>

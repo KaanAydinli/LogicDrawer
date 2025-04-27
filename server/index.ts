@@ -525,6 +525,7 @@ app.post("/api/generate/text", async (req, res) => {
 
       console.log("Sending request to Gemini API...");
 
+      
       const result = await model.generateContent(formattedPrompt);
       const response = await result.response;
       const text = response.text();
