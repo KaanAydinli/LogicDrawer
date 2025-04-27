@@ -211,10 +211,10 @@ export class VerilogParser {
     const portNames = new Set<string>();
 
     for (const port of ports) {
-      // Port ve isminin geçerli olduğundan emin ol
+      
       if (port && port.name) {
           if (portNames.has(port.name)) {
-              // Yinelenen isim bulunduğunda hata fırlat
+              
               throw new Error(`Duplicate port name found: ${port.name}`);
           }
           portNames.add(port.name);
@@ -286,7 +286,7 @@ export class VerilogParser {
     const gates: VerilogGate[] = [];
     let gateCounter = 0;
   
-    // always bloklarını bul
+    
     const alwaysRegex = /always\s*@\s*\(([^)]*?)\)\s*begin([\s\S]*?)end(?=\s*(?:always|assign|endmodule|$))/g;
     let alwaysMatch;
     alwaysRegex.lastIndex = 0;
@@ -298,21 +298,26 @@ export class VerilogParser {
       console.log("Found always block with sensitivity:", sensitivity);
       console.log("Always body:", alwaysBody);
   
-      // Sequential logic kontrolü - posedge/negedge algılama
+      
       const isSequential = /(pos|neg)edge\s+(\w+)/.test(sensitivity);
       const clockMatch = sensitivity.match(/(pos|neg)edge\s+(\w+)/);
       const clockSignal = clockMatch ? clockMatch[2] : null;
       
       if (isSequential) {
         console.log(`Sequential logic detected with clock signal: ${clockSignal}`);
-        // Sequential logic için ayrı işleme
+        
         const sequentialGates = this.extractSequentialLogic(alwaysBody, clockSignal, gateCounter);
         gates.push(...sequentialGates);
       } else {
-        // Kombinasyonel logic için mevcut işleme
+        
         const currentBlockGates: VerilogGate[] = [];
-        this.extractIfStatementsManually(alwaysBody, currentBlockGates, gateCounter);
+        
+        
+        this.processNestedIfStatements(alwaysBody, currentBlockGates, gateCounter);
+        
+        
         this.extractCaseStatements(alwaysBody, currentBlockGates, gateCounter + 100);
+        
         gates.push(...currentBlockGates);
       }
       
@@ -322,6 +327,7 @@ export class VerilogParser {
     console.log("Extracted gates from control structures:", gates);
     return gates;
   }
+
   private extractSequentialLogic(alwaysBody: string, clockSignal: string | null, gateCounter: number): VerilogGate[] {
     const gates: VerilogGate[] = [];
     
@@ -330,12 +336,12 @@ export class VerilogParser {
       return gates;
     }
     
-    // Eğer if-else yapısı varsa önce onu işle
+    
     if (alwaysBody.includes("if") && alwaysBody.includes("else")) {
       return this.extractSequentialIfElse(alwaysBody, clockSignal, gateCounter);
     }
     
-    // Non-blocking atama (<= operator) ifadelerini bul
+    
     const assignmentRegex = /(\w+(?:\[\d+\])?)\s*<=\s*([^;]+);/g;
     let assignmentMatch;
     
@@ -346,12 +352,12 @@ export class VerilogParser {
       
       console.log(`Found sequential assignment: ${cleanTarget} <= ${cleanExpression}`);
       
-      // D flip-flop kapısı oluştur
+      
       const dffGate: VerilogGate = {
         type: 'dflipflop',
         name: `dff_${cleanTarget}_${gateCounter++}`,
         output: cleanTarget,
-        inputs: [cleanExpression, clockSignal], // [D, CLK]
+        inputs: [cleanExpression, clockSignal], 
       };
       
       gates.push(dffGate);
@@ -360,36 +366,36 @@ export class VerilogParser {
     return gates;
   }
   
-  // Yeni fonksiyon - sequential if-else yapıları için
+  
   private extractSequentialIfElse(alwaysBody: string, clockSignal: string | null, gateCounter: number): VerilogGate[] {
     const gates: VerilogGate[] = [];
     
-    // if-else yapısını bul
+    
     const ifRegex = /if\s*\(([^)]+)\)\s*([^;]+?)\s*<=\s*([^;]+);\s*else\s*([^;]+?)\s*<=\s*([^;]+);/;
     const match = alwaysBody.match(ifRegex);
     
     if (match) {
       const [, condition, targetIf, valueIf, targetElse, valueElse] = match;
       
-      // Hedeflerin aynı olduğunu doğrula (genelde böyle olur)
+      
       if (this.cleanSignalName(targetIf) === this.cleanSignalName(targetElse)) {
         const target = this.cleanSignalName(targetIf);
         
-        // Önce bir MUX2 oluştur
+        
         const muxGate: VerilogGate = {
           type: 'mux2',
           name: `mux_${target}_${gateCounter}`,
           output: `_mux_${target}_${gateCounter}`,
-          inputs: [valueElse, valueIf], // [0, 1] girişleri 
-          controlSignal: condition // Select sinyali
+          inputs: [valueElse, valueIf], 
+          controlSignal: condition 
         };
         
-        // Sonra DFF'i MUX çıkışına bağla
+        
         const dffGate: VerilogGate = {
           type: 'dflipflop',
           name: `dff_${target}_${gateCounter + 1}`,
           output: target,
-          inputs: [muxGate.output, clockSignal!], // [D, CLK] (non-null assertion since we checked at beginning)
+          inputs: [muxGate.output, clockSignal!], 
         };
         
         gates.push(muxGate);
@@ -399,46 +405,46 @@ export class VerilogParser {
       }
     }
     
-    // Genel yapıya uymayan düzensiz if-else için normal işleme dön
+    
     return this.extractSequentialLogic(alwaysBody, clockSignal, gateCounter);
   }
   
   private extractIfStatementsManually(alwaysBody: string, gates: VerilogGate[], gateCounter: number): void {
     console.log("Manually extracting if statements from alwaysBody:", alwaysBody);
 
-    // Find the first 'if' that is not inside another structure (simplistic approach)
-    const ifRegex = /\bif\s*\(([\s\S]+?)\)/; // Non-greedy condition match
+    
+    const ifRegex = /\bif\s*\(([\s\S]+?)\)/; 
     const ifMatch = alwaysBody.match(ifRegex);
 
     if (!ifMatch || ifMatch.index === undefined) {
-      // No more top-level if statements in this block
+      
       return;
     }
 
     const condition = ifMatch[1].trim();
     const afterIfConditionIndex = ifMatch.index + ifMatch[0].length;
-    let remainingBody = alwaysBody.substring(afterIfConditionIndex).trim(); // Start processing right after if(...)
+    let remainingBody = alwaysBody.substring(afterIfConditionIndex).trim(); 
 
-    // --- Extract 'then' block/statement ---
+    
     const thenResult = this.extractStatementOrBlock(remainingBody);
     if (!thenResult) {
         console.error(`Could not parse 'then' block/statement for condition: ${condition}`);
-        return; // Stop processing this if statement
+        return; 
     }
     const thenContent = thenResult.content;
-    remainingBody = thenResult.remaining; // Update remaining body
+    remainingBody = thenResult.remaining; 
 
-    // --- Extract 'else' block/statement (if exists) ---
+    
     let elseContent: string | null = null;
     if (remainingBody.startsWith('else')) {
-        remainingBody = remainingBody.substring('else'.length).trim(); // Consume 'else' keyword
+        remainingBody = remainingBody.substring('else'.length).trim(); 
         const elseResult = this.extractStatementOrBlock(remainingBody);
         if (!elseResult) {
             console.error(`Could not parse 'else' block/statement for condition: ${condition}`);
-            // Decide whether to continue without else or stop
+            
         } else {
             elseContent = elseResult.content;
-            remainingBody = elseResult.remaining; // Update remaining body after else
+            remainingBody = elseResult.remaining; 
         }
     }
 
@@ -448,45 +454,163 @@ export class VerilogParser {
         console.log(`  Else: '${elseContent}'`);
     }
 
-    // --- Process the blocks/statements to generate gates ---
-    const assignmentRegex = /(\w+)\s*=\s*([^;]+);/; // Simple assignment regex
+    
+    const assignmentRegex = /(\w+)\s*=\s*([^;]+);/; 
 
     const thenAssignMatch = thenContent.match(assignmentRegex);
     const elseAssignMatch = elseContent ? elseContent.match(assignmentRegex) : null;
 
     if (thenAssignMatch && elseAssignMatch && thenAssignMatch[1] === elseAssignMatch[1]) {
-      // Both branches assign to the same variable -> MUX
+      
       const target = thenAssignMatch[1];
       const trueSignal = this.cleanSignalName(thenAssignMatch[2]);
       const falseSignal = this.cleanSignalName(elseAssignMatch[2]);
-      const controlSignal = this.cleanSignalName(condition); // Assuming condition is simple
+      const controlSignal = this.cleanSignalName(condition); 
 
-      // Check if signals are simple identifiers before creating MUX directly
+      
       if (this.isSimpleIdentifier(controlSignal) && this.isSimpleIdentifier(trueSignal) && this.isSimpleIdentifier(falseSignal)) {
           const muxGate: VerilogGate = {
             type: 'mux2',
-            name: `if_mux2_${target}_${gateCounter}`, // Use gateCounter for uniqueness
+            name: `if_mux2_${target}_${gateCounter}`, 
             output: target,
-            inputs: [falseSignal, trueSignal], // [sel=0, sel=1]
+            inputs: [falseSignal, trueSignal], 
             controlSignal: controlSignal,
           };
           console.log("Generated MUX2 for if/else:", JSON.stringify(muxGate));
           gates.push(muxGate);
-          gateCounter++; // Increment counter for next potential gate
+          gateCounter++; 
       } else {
-          // Handle complex expressions (requires temporary wires)
+          
           console.warn(`Complex expressions inside if/else branches not fully implemented for MUX generation yet: ${condition}`);
-          // Placeholder logic...
+          
       }
 
     } else if (thenAssignMatch && elseContent === null) {
-        // Handle 'if' without 'else'
+        
         console.warn(`Handling 'if' without 'else' for target '${thenAssignMatch[1]}' is not fully implemented (potential latch).`);
-        // Placeholder logic...
+        
     } else {
-        // Handle assignments to different targets or no assignments
+        
         console.warn(`Assignments in 'if'/'else' branches do not match or are missing for condition: ${condition}`);
     }
+  }
+
+  private processNestedIfStatements(alwaysBody: string, gates: VerilogGate[], gateCounter: number): string | null {
+    
+    const ifRegex = /\bif\s*\(([\s\S]+?)\)/;
+    const ifMatch = alwaysBody.match(ifRegex);
+    
+    if (!ifMatch || ifMatch.index === undefined) {
+      return null;
+    }
+    
+    const condition = ifMatch[1].trim();
+    const afterIfIndex = ifMatch.index + ifMatch[0].length;
+    let remainingText = alwaysBody.substring(afterIfIndex).trim();
+    
+    
+    const thenResult = this.extractStatementOrBlock(remainingText);
+    if (!thenResult) {
+      return null;
+    }
+    
+    const thenBlock = thenResult.content;
+    remainingText = thenResult.remaining.trim();
+    
+    
+    let elseBlock = null;
+    if (remainingText.startsWith('else')) {
+      remainingText = remainingText.substring(4).trim();
+      const elseResult = this.extractStatementOrBlock(remainingText);
+      if (elseResult) {
+        elseBlock = elseResult.content;
+        remainingText = elseResult.remaining.trim();
+      }
+    }
+    
+    
+    let finalOutputTarget: string | null = null;
+    
+    const thenAssign = thenBlock.match(/(\w+)\s*=\s*([^;]+);/);
+    if (thenAssign) {
+      finalOutputTarget = this.cleanSignalName(thenAssign[1]);
+    } else if (elseBlock) {
+      const elseAssign = elseBlock.match(/(\w+)\s*=\s*([^;]+);/);
+      if (elseAssign) {
+        finalOutputTarget = this.cleanSignalName(elseAssign[1]);
+      }
+    }
+    
+    if (!finalOutputTarget) {
+      return null;
+    }
+    
+    
+    
+    
+    const isOuterMostIf = gateCounter === 0;
+    const outputName = isOuterMostIf ? finalOutputTarget : `temp_if_${gateCounter}`;
+    
+    
+    let thenValue: string;
+    const hasThenNestedIf = thenBlock.includes('if (') || thenBlock.includes('if(');
+    
+    if (hasThenNestedIf) {
+      
+      const nestedOutput = this.processNestedIfStatements(thenBlock, gates, gateCounter + 1);
+      thenValue = nestedOutput || "1'b0";
+      console.log(`Nested if (THEN branch) output: ${thenValue}`);
+    } else {
+      
+      const assignMatch = thenBlock.match(/(\w+)\s*=\s*([^;]+);/);
+      if (assignMatch) {
+        thenValue = this.cleanSignalName(assignMatch[2]);
+      } else {
+        thenValue = "1'b0";
+      }
+    }
+    
+    
+    let elseValue: string;
+    const hasElseNestedIf = elseBlock && (elseBlock.includes('if (') || elseBlock.includes('if('));
+    
+    if (hasElseNestedIf && elseBlock) {
+      
+      const nestedOutput = this.processNestedIfStatements(elseBlock, gates, gateCounter + 100);
+      elseValue = nestedOutput || "1'b0";
+      console.log(`Nested if (ELSE branch) output: ${elseValue}`);
+    } else if (elseBlock) {
+      
+      const assignMatch = elseBlock.match(/(\w+)\s*=\s*([^;]+);/);
+      if (assignMatch) {
+        elseValue = this.cleanSignalName(assignMatch[2]);
+      } else {
+        elseValue = "1'b0";
+      }
+    } else {
+      elseValue = "1'b0";
+    }
+    
+    
+    const muxGate: VerilogGate = {
+      type: "mux2",
+      name: `if_mux_${gateCounter}`,
+      
+      output: outputName,
+      inputs: [elseValue, thenValue], 
+      controlSignal: condition
+    };
+    
+    console.log(`Creating MUX: if_mux_${gateCounter}, output=${outputName}, inputs=[${elseValue},${thenValue}], control=${condition}`);
+    gates.push(muxGate);
+    
+    
+    if (remainingText.includes('if (') || remainingText.includes('if(')) {
+      this.processNestedIfStatements(remainingText, gates, gateCounter + 200);
+    }
+    
+    
+    return outputName;
   }
 
   private extractCaseStatements(body: string, gates: VerilogGate[], gateCounter: number): void {
@@ -749,27 +873,27 @@ export class VerilogParser {
     gates: VerilogGate[],
     gateCounter: number
   ): void {
-    // Get all top-level parenthesis groups
+    
     const parentheses = this.extractParenthesisGroups(expr);
     let processedExpr = expr;
     const tempWires: string[] = [];
     
-    // Process each parenthesis group recursively
+    
     parentheses.forEach((parenthesis, index) => {
       const tempOutput = `_temp_wire_${gateCounter + index}`;
       tempWires.push(tempOutput);
       
-      // Extract inner expression (remove outer parentheses)
+      
       const innerExpr = parenthesis.substring(1, parenthesis.length - 1);
       
-      // Recursively process inner expression
+      
       this.processNestedExpression(innerExpr, tempOutput, gates, gateCounter + index + 100);
       
-      // Replace parenthesis with temp wire
+      
       processedExpr = processedExpr.replace(parenthesis, tempOutput);
     });
     
-    // Process remaining expression after all parenthesis are replaced
+    
     if (processedExpr !== output) {
       if (this.isSimpleExpression(processedExpr)) {
         this.processSimpleExpression(processedExpr, output, gates);
@@ -784,7 +908,7 @@ export class VerilogParser {
     let depth = 0;
     let start = -1;
     
-    // First pass: identify top-level parenthesis groups
+    
     for (let i = 0; i < expr.length; i++) {
       if (expr[i] === "(") {
         if (depth === 0) {
@@ -808,7 +932,7 @@ export class VerilogParser {
     gates: VerilogGate[], 
     gateCounter: number
   ): void {
-    // Remove outer parentheses if the entire expression is enclosed
+    
     if (expr.startsWith("(") && expr.endsWith(")")) {
       const innerExpr = expr.substring(1, expr.length - 1);
       if (this.isBalancedParentheses(innerExpr)) {
@@ -816,22 +940,22 @@ export class VerilogParser {
       }
     }
     
-    // Check if there are still parenthesis groups in the expression
+    
     const parenthesisGroups = this.extractParenthesisGroups(expr);
     
     if (parenthesisGroups.length > 0) {
-      // Process expression with parenthesis groups
+      
       this.processParenthesisExpression(expr, output, gates, gateCounter);
     } else if (this.isSimpleExpression(expr)) {
-      // Simple expression without parentheses
+      
       this.processSimpleExpression(expr, output, gates);
     } else {
-      // Complex expression without parentheses
+      
       this.processComplexExpression(expr, output, gates, gateCounter);
     }
   }
   
-  // Helper to check if parentheses are balanced in an expression
+  
   private isBalancedParentheses(expr: string): boolean {
     let depth = 0;
     
@@ -840,11 +964,11 @@ export class VerilogParser {
         depth++;
       } else if (expr[i] === ")") {
         depth--;
-        if (depth < 0) return false; // Unbalanced
+        if (depth < 0) return false; 
       }
     }
     
-    return depth === 0; // Balanced if depth is 0
+    return depth === 0; 
   }
   
 
@@ -864,7 +988,7 @@ export class VerilogParser {
   const parts = this.splitTernary(expr);
   if (parts.length !== 3) {
       console.error(`Could not properly split ternary expression: ${expr}`);
-      return; // Hatalı ifadeyi işlemeyi durdur
+      return; 
   }
 
   const [condition, trueExpr, falseExpr] = parts;
@@ -873,44 +997,44 @@ export class VerilogParser {
   const cleanTrueExpr = this.cleanSignalName(trueExpr);
   const cleanFalseExpr = this.cleanSignalName(falseExpr);
 
-  // --- BASİT DURUM DÜZELTMESİ ---
+  
   if (this.isSimpleIdentifier(condition) && this.isSimpleIdentifier(trueExpr) && this.isSimpleIdentifier(falseExpr)) {
-    // MUX kapısını oluştur
-    const muxGate: VerilogGate = { // Tip tanımını ekle
+    
+    const muxGate: VerilogGate = { 
       type: "mux2",
-      name: `assign_mux2_${output}_${gateCounter}`, // Daha belirgin isim
+      name: `assign_mux2_${output}_${gateCounter}`, 
       output: output,
-      // MUX2 girişleri: [select=0, select=1]
-      inputs: [cleanTrueExpr, cleanFalseExpr], // Doğru sıra: false, true
-      // Kontrol sinyalini ayrı özelliğe ata
+      
+      inputs: [cleanTrueExpr, cleanFalseExpr], 
+      
       controlSignal: cleanCondition,
     };
-    console.log("Created MUX2 directly (simple):", JSON.stringify(muxGate)); // Log ekle
+    console.log("Created MUX2 directly (simple):", JSON.stringify(muxGate)); 
     gates.push(muxGate);
-    return; // Basit durum işlendi, fonksiyondan çık
+    return; 
   }
-  // --- BASİT DURUM DÜZELTMESİ SONU ---
+  
 
-  // --- Karmaşık İfadeler Durumu (Önceki düzeltme burada geçerli olmalı) ---
+  
   let finalConditionSignal = cleanCondition;
   let finalTrueSignal = cleanTrueExpr;
   let finalFalseSignal = cleanFalseExpr;
-  let tempGateCounter = gateCounter + 1; // Geçici kapılar için sayaç
+  let tempGateCounter = gateCounter + 1; 
 
-  // Koşul ifadesini işle (karmaşıksa)
+  
   if (!this.isSimpleIdentifier(condition)) {
       finalConditionSignal = `_temp_cond_${gateCounter}`;
       console.log(`Processing complex condition: ${condition} -> ${finalConditionSignal}`);
-      // processComplexExpression veya processParenthesisExpression çağrılabilir
+      
       if (condition.includes('(')) {
           this.processParenthesisExpression(condition, finalConditionSignal, gates, tempGateCounter);
       } else {
           this.processComplexExpression(condition, finalConditionSignal, gates, tempGateCounter);
       }
-      tempGateCounter += this.countOperators(condition) + 1; // Sayaç artırımı
+      tempGateCounter += this.countOperators(condition) + 1; 
   }
 
-  // True ifadesini işle (karmaşıksa)
+  
   if (!this.isSimpleIdentifier(trueExpr)) {
       finalTrueSignal = `_temp_true_${gateCounter}`;
       console.log(`Processing complex true expression: ${trueExpr} -> ${finalTrueSignal}`);
@@ -922,7 +1046,7 @@ export class VerilogParser {
       tempGateCounter += this.countOperators(trueExpr) + 1;
   }
 
-  // False ifadesini işle (karmaşıksa)
+  
   if (!this.isSimpleIdentifier(falseExpr)) {
       finalFalseSignal = `_temp_false_${gateCounter}`;
        console.log(`Processing complex false expression: ${falseExpr} -> ${finalFalseSignal}`);
@@ -931,22 +1055,22 @@ export class VerilogParser {
       } else {
           this.processComplexExpression(falseExpr, finalFalseSignal, gates, tempGateCounter);
       }
-      // tempGateCounter += this.countOperators(falseExpr) + 1; // Sonraki adım yoksa artırmaya gerek yok
+      
   }
 
-  // Son MUX kapısını oluştur (geçici veya orijinal sinyallerle)
-  const finalMuxGate: VerilogGate = { // Tip tanımını ekle
+  
+  const finalMuxGate: VerilogGate = { 
     type: "mux2",
-    name: `assign_mux2_${output}_${gateCounter}`, // Ana kapı ismi
+    name: `assign_mux2_${output}_${gateCounter}`, 
     output: output,
-    // MUX2 girişleri: [select=0, select=1]
-    inputs: [finalTrueSignal, finalFalseSignal], // Doğru sıra
-    // Kontrol sinyalini ayrı özelliğe ata
+    
+    inputs: [finalTrueSignal, finalFalseSignal], 
+    
     controlSignal: finalConditionSignal,
   };
-  console.log(`Created final MUX2 for ternary (complex):`, JSON.stringify(finalMuxGate)); // Log ekle
+  console.log(`Created final MUX2 for ternary (complex):`, JSON.stringify(finalMuxGate)); 
   gates.push(finalMuxGate);
-  // --- Karmaşık Durum Sonu ---
+  
 }
 
 /**
@@ -986,63 +1110,63 @@ private isSimpleIdentifier(expr: string): boolean {
     let currentIndex = startIndex;
     const beginKeyword = 'begin';
     const endKeyword = 'end';
-    let inBegin = false; // Track if we are inside the initial 'begin'
+    let inBegin = false; 
 
-    // Find the start of the block content
+    
     while(currentIndex < text.length && /\s/.test(text[currentIndex])) {
         currentIndex++;
     }
     if (text.substring(currentIndex, currentIndex + beginKeyword.length) === beginKeyword) {
         currentIndex += beginKeyword.length;
-        balance = 1; // Start balance at 1 since we are inside the 'begin'
+        balance = 1; 
         inBegin = true;
     } else {
-        // If not starting with begin, we can't find a matching end for it
+        
         return -1;
     }
 
 
     while (currentIndex < text.length) {
-      // Check for nested 'begin'
+      
       if (text.substring(currentIndex, currentIndex + beginKeyword.length) === beginKeyword) {
         balance++;
         currentIndex += beginKeyword.length;
-      // Check for 'end'
+      
       } else if (text.substring(currentIndex, currentIndex + endKeyword.length) === endKeyword) {
         balance--;
-        if (balance === 0 && inBegin) { // Found the matching end for the initial 'begin'
-          return currentIndex + endKeyword.length; // Return position *after* 'end'
+        if (balance === 0 && inBegin) { 
+          return currentIndex + endKeyword.length; 
         }
-        if (balance < 0) return -1; // Mismatched 'end'
+        if (balance < 0) return -1; 
         currentIndex += endKeyword.length;
       } else {
         currentIndex++;
       }
     }
-    return -1; // Matching end not found
+    return -1; 
   }
 
-  // Helper function to extract a block (either begin..end or single statement)
+  
   private extractStatementOrBlock(text: string): { content: string; remaining: string } | null {
       text = text.trim();
       if (!text) return null;
 
       if (text.startsWith('begin')) {
-          const endBlockIndex = this.findMatchingEnd(text, 0); // Start search from beginning
+          const endBlockIndex = this.findMatchingEnd(text, 0); 
           if (endBlockIndex !== -1) {
-              // Extract content between 'begin' and its matching 'end'
+              
               const beginContentStart = text.indexOf('begin') + 'begin'.length;
-              const endContentEnd = endBlockIndex - 'end'.length; // Position before 'end' keyword
+              const endContentEnd = endBlockIndex - 'end'.length; 
               const content = text.substring(beginContentStart, endContentEnd).trim();
               const remaining = text.substring(endBlockIndex).trim();
               return { content, remaining };
           } else {
               console.error("Syntax error: Missing 'end' for 'begin' block starting near:", text.substring(0, 50) + "...");
-              return null; // Error: missing end
+              return null; 
           }
       } else {
-          // Assume single statement ending with semicolon
-          // Need to handle potential nested structures like case inside single statement? (Keep simple for now)
+          
+          
           let semicolonIndex = -1;
           let parenDepth = 0;
           for(let i = 0; i < text.length; i++) {
@@ -1055,12 +1179,12 @@ private isSimpleIdentifier(expr: string): boolean {
           }
 
           if (semicolonIndex !== -1) {
-              const content = text.substring(0, semicolonIndex + 1).trim(); // Include semicolon
+              const content = text.substring(0, semicolonIndex + 1).trim(); 
               const remaining = text.substring(semicolonIndex + 1).trim();
               return { content, remaining };
           } else {
               console.error("Syntax error: Expected single statement ending with ';' near:", text.substring(0, 50) + "...");
-              return null; // Error: missing semicolon or invalid single statement
+              return null; 
           }
       }
   }

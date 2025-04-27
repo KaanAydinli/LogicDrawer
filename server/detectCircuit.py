@@ -8,11 +8,11 @@ import math
 import sys
 import base64
 
-# --- Configuration ---
-MODEL_PATH = "best.pt" # Ensure this is in the server directory
+
+MODEL_PATH = "best.pt" 
 SAVE_DEBUG_IMAGES = False
 
-# --- Parameters ---
+
 
 BILATERAL_D = 9; BILATERAL_SIGMA = 75
 ADAPTIVE_BLOCK_SIZE = 15; ADAPTIVE_C = 12
@@ -23,47 +23,45 @@ CONNECTION_THRESHOLD = 20
 MIN_SEGMENT_AREA = 1
 
 
-# --- Helper Functions ---
-
 def create_wire_mask(gray_img, gate_boxes):
-    # Apply adaptive histogram equalization to enhance contrast
+    
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     enhanced = clahe.apply(gray_img)
     
-    # Multi-scale edge detection approach
+    
     blurred1 = cv2.GaussianBlur(enhanced, (3, 3), 0)
     blurred2 = cv2.GaussianBlur(enhanced, (5, 5), 0)
     
-    # Apply bilateral filter to preserve edges while reducing noise
+    
     filtered = cv2.bilateralFilter(enhanced, BILATERAL_D, BILATERAL_SIGMA, BILATERAL_SIGMA)
     
-    # Apply Canny edge detection with multiple parameter sets for robustness
+    
     edges1 = cv2.Canny(filtered, 30, 100)
     edges2 = cv2.Canny(filtered, 50, 150)
     edges3 = cv2.Canny(blurred1, 40, 120)
     edges4 = cv2.Canny(blurred2, 40, 120)
     
-    # Combine edge detection results
+    
     edges_combined = cv2.bitwise_or(cv2.bitwise_or(edges1, edges2), 
                                     cv2.bitwise_or(edges3, edges4))
     
-    # Dilate edges to connect broken wire segments
+    
     kernel_dilate = np.ones(DILATE_KERNEL_SIZE, np.uint8)
     dilated = cv2.dilate(edges_combined, kernel_dilate, iterations=DILATE_ITERATIONS)
     
-    # Apply morphological closing to further connect broken lines
+    
     kernel_close = np.ones((3, 3), np.uint8)
     closed = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel_close)
     
-    # Apply opening to remove small noise
+    
     kernel_open = np.ones(OPEN_KERNEL_SIZE, np.uint8)
     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open)
     
-    # Create the gate mask as before but with increased padding for better gate removal
+    
     gate_mask = np.zeros_like(gray_img)
     for box in gate_boxes:
         x1, y1, x2, y2 = map(int, box)
-        p = GATE_MASK_PADDING + 2  # Increased padding
+        p = GATE_MASK_PADDING + 2  
         cv2.rectangle(gate_mask, (x1 - p, y1 - p), (x2 + p, y2 + p), 255, -1)
     
     wire_mask_no_gates = opened.copy()
@@ -85,11 +83,11 @@ def get_gate_info(yolo_results):
         gates.append({
             "id": f"g{i+1}", "type": gate_labels[int(cls_id)],
             "position": [(x1 + x2) // 2, (y1 + y2) // 2],
-            "bbox": [x1, y1, x2, y2] }) # Keep bbox for internal use
+            "bbox": [x1, y1, x2, y2] }) 
     return gates, gate_boxes
 
 def skeletonize_mask(wire_mask):
-    # ... (Your existing skeletonize_mask function) ...
+    
     _, binary = cv2.threshold(wire_mask, 127, 255, cv2.THRESH_BINARY)
     binary = binary // 255
     skeleton = skeletonize(binary).astype(np.uint8) * 255
@@ -159,7 +157,7 @@ def find_connections(skeleton, gates):
     input_counter = 1
     output_counter = 1
 
-    # 1. Gate Output -> Gate Input
+    
     for region, terminals in potential_connections:
         if region.label in processed_regions: continue
         outputs = [(gid, term, pt) for gid, term, pt in terminals if term == 'output']
@@ -172,7 +170,7 @@ def find_connections(skeleton, gates):
                 connected_terminals.add(conn_key_from); connected_terminals.add(conn_key_to)
                 processed_regions.add(region.label)
 
-    # 2. External Inputs
+    
     for region, terminals in potential_connections:
         if region.label in processed_regions: continue
         if len(terminals) == 1:
@@ -185,7 +183,7 @@ def find_connections(skeleton, gates):
                     connected_terminals.add(conn_key); input_counter += 1
                     processed_regions.add(region.label)
 
-    # 3. External Outputs
+    
     for region, terminals in potential_connections:
         if region.label in processed_regions: continue
         if len(terminals) == 1:
@@ -199,33 +197,33 @@ def find_connections(skeleton, gates):
                     processed_regions.add(region.label)
     return wires
 
-# --- Main Execution ---
+
 if __name__ == "__main__":
-    # 1. Read Base64 input from standard input (stdin)
+    
     try:
-        # Read all data from stdin
+        
         base64_string = sys.stdin.read()
         if not base64_string:
              raise ValueError("No base64 data received via stdin.")
 
-        # Decode Base64 and load image using OpenCV
+        
         img_bytes = base64.b64decode(base64_string)
         nparr = np.frombuffer(img_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img is None:
             raise ValueError("Could not decode image from base64 string")
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        print("✅ Image loaded from base64 via stdin.", file=sys.stderr) # Log to stderr
+        print("✅ Image loaded from base64 via stdin.", file=sys.stderr) 
     except Exception as e:
         print(f"Error loading image from base64 stdin: {e}", file=sys.stderr)
-        sys.exit(1) # Exit with error code
+        sys.exit(1) 
 
-    # --- Steps 2-5 remain the same (Load Model, Detect, Mask, Skeletonize, Find Connections) ---
-    # 2. Load Model and Detect Gates
+    
+    
     try:
         model = YOLO(MODEL_PATH)
-        # Add verbose=False to suppress YOLO's console output to stdout
-        yolo_results = model(img, verbose=False)[0] # <--- CHANGE HERE
+        
+        yolo_results = model(img, verbose=False)[0] 
         gates, gate_boxes = get_gate_info(yolo_results)
         if not gates:
             print("⚠️ No gates detected.", file=sys.stderr)
@@ -236,7 +234,7 @@ if __name__ == "__main__":
         print(f"Error during YOLO detection: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # 3. Create Wire Mask
+    
     try:
         wire_mask = create_wire_mask(gray, gate_boxes)
         print("✅ Wire mask created.", file=sys.stderr)
@@ -244,7 +242,7 @@ if __name__ == "__main__":
         print(f"Error creating wire mask: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # 4. Skeletonize
+    
     try:
         skeleton = skeletonize_mask(wire_mask)
         close_kernel = np.ones((5,5), np.uint8)
@@ -254,7 +252,7 @@ if __name__ == "__main__":
         print(f"Error during skeletonization: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # 5. Find Connections
+    
     try:
         wires = find_connections(closed_skeleton, gates)
         print(f"✅ Found {len(wires)} connections.", file=sys.stderr)
@@ -262,12 +260,12 @@ if __name__ == "__main__":
         print(f"Error finding connections: {e}", file=sys.stderr)
         sys.exit(1)
 
-    # 6. Prepare and Print JSON Output to stdout (same as before)
+    
     output_data = {"gates": gates, "wires": wires}
     for gate in output_data["gates"]:
         gate.pop("bbox", None)
         gate.pop("terminals", None)
 
-    print(json.dumps(output_data, indent=None)) # Compact JSON to stdout
+    print(json.dumps(output_data, indent=None)) 
 
-    print(f"✅ Analysis complete.", file=sys.stderr) # Log final success to stderr
+    print(f"✅ Analysis complete.", file=sys.stderr) 
