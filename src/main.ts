@@ -463,7 +463,7 @@ function addComponentByType(type: string, position: Point) {
       component = new Led(position);
       break;
     case "multibit":
-      component = new MultiBit(position, 4); // Varsayılan olarak 4 bit
+      component = new MultiBit(position); // Varsayılan olarak 4 bit
       break;
     default:
       return;

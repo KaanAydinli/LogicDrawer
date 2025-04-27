@@ -3,16 +3,32 @@ import { LogicGate } from '../LogicGate';
 
 export class Mux2 extends LogicGate {
   constructor(position: Point) {
-    super('mux2', position, 3); 
+    super('mux2', position, 3);
+     
+  }
+  initializePorts(inputCount: number, outputCount: number = 1): void {
+    super.initializePorts(inputCount, outputCount);
+    
+    // Force select input (index 2) to always be 1-bit
+    if (this.inputs.length >= 3) {
+      this.inputs[2].bitWidth = 1;
+    }
   }
 
   evaluate(): void {
-    const A = this.inputs[0].value;
-    const B = this.inputs[1].value;
-    const S = this.inputs[2].value; 
-
+    const input0 = this.inputs[0]; // Data input 0
+    const input1 = this.inputs[1]; // Data input 1
+    const select = this.inputs[2]; // Select input
     
-    this.outputs[0].value = S ? B : A;
+    if (!input0 || !input1 || !select) return;
+    
+    // Use select to determine which input to pass to output
+    const selectedInput = select.value ? input1 : input0;
+    
+    // Handle multi-bit data
+
+      this.outputs[0].value = selectedInput.value;
+    
   }
 
   
@@ -27,6 +43,11 @@ drawGate(ctx: CanvasRenderingContext2D): void {
     const width = this.size.width;
     const height = this.size.height;
   
+    const maxBitWidth = Math.max(
+      this.getInputBitWidth(0), 
+      this.getInputBitWidth(1),
+      this.getOutputBitWidth(0)
+    );
     
     ctx.beginPath();
     
@@ -40,6 +61,8 @@ drawGate(ctx: CanvasRenderingContext2D): void {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+
+
   
     
     ctx.fillStyle = '#cdcfd0';
@@ -116,7 +139,17 @@ drawGate(ctx: CanvasRenderingContext2D): void {
       ctx.stroke();
     }
   
-    
+    if (maxBitWidth > 1) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(
+        `${maxBitWidth}b`, 
+        this.position.x + this.size.width / 2, 
+        this.position.y + 5
+      );
+    }
    
   }
   protected drawPorts(ctx: CanvasRenderingContext2D): void {

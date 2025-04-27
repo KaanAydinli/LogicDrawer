@@ -5,7 +5,7 @@ export class MultiBit extends Component {
   private bits: BitArray;
   private bitWidth: number;
   
-  constructor(position: Point, bitWidth: number = 4) {
+  constructor(position: Point, bitWidth: number = 2) {
     super('multibit-toggle', position, { width: 80, height: 30 * bitWidth });
     
     this.isMultiBit = true;

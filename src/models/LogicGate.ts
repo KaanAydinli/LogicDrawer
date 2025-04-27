@@ -3,7 +3,7 @@ import { Component, Point } from './Component';
 export abstract class LogicGate extends Component {
   
   protected rotation: number = 0;
-  defaultBitWidth: number = 1;
+  defaultBitWidth: number = 2;
   
   constructor(type: string, position: Point, inputCount: number = 2,outputs: number = 1,size: { width: number; height: number } = { width: 60, height: 60 }) {
     super(type, position,size);
@@ -13,7 +13,7 @@ export abstract class LogicGate extends Component {
   }
   
   
-  private initializePorts(inputCount: number, outputCount: number = 1): void {
+  public initializePorts(inputCount: number, outputCount: number = 1): void {
     
     this.inputs = [];
     this.outputs = [];

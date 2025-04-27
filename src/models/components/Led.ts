@@ -19,7 +19,7 @@ export class Led extends Component {
         type: "input", 
         position: portPosition,
         value: false,
-        bitWidth: 4,
+        bitWidth: 2,
         isConnected: false,
         component: this,
       });

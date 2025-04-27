@@ -1517,7 +1517,7 @@ export class CircuitBoard {
       case "led":
         return new Led(position);
       case "multibit":
-        return new MultiBit(position,4);
+        return new MultiBit(position);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;
