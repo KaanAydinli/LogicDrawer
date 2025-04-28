@@ -43,6 +43,7 @@ import { GoogleGenAI } from "@google/genai";
 import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
 import { apiBaseUrl } from "./services/apiConfig";
 import { MultiBit } from "./models/components/MultiBit";
+import { SmartDisplay } from "./models/components/SmartDisplay";
 
 class Queue {
   public items: string[] = [];
@@ -464,6 +465,9 @@ function addComponentByType(type: string, position: Point) {
       break;
     case "multibit":
       component = new MultiBit(position); // Varsayılan olarak 4 bit
+      break;
+    case "smartdisplay":
+      component = new SmartDisplay(position);
       break;
     default:
       return;

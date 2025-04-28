@@ -802,12 +802,6 @@ export class VerilogParser {
     return groups;
   }
 
-  /**
-   * Ternary ifadeleri işler (? :)
-   */
- /**
- * Ternary ifadeleri işler (? :)
- */
 
  private processTernaryExpression(
   expr: string,
