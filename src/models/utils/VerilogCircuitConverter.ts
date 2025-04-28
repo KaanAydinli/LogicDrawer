@@ -912,84 +912,71 @@ export class VerilogCircuitConverter {
     this.connectControlSignal(expression, component, inputIndex);
   }
 
+
   private connectConstantValue(value: string, component: Component, inputIndex: number): void {
-    const constPosition = this.findUnusedPosition(); // Sabit için pozisyon bul
-
-    // Değeri belirle
-    let boolValue = false; // Varsayılan olarak false (0)
-
-    if (value === "1" || value === "true") {
+    const constPosition = this.findUnusedPosition();
+    let boolValue = false; // Default to 0
+    
+    if (value === "1") {
       boolValue = true;
-    } else if (value === "0" || value === "false") {
+    } else if (value === "0") {
       boolValue = false;
-    } else {
-      // Verilog formatlarını işle (sadece son biti dikkate alalım)
-      const binaryMatch = value.match(/(\d+)'[bB]([01xXzZ]+)$/);
-      const hexMatch = value.match(/(\d+)'[hH]([0-9a-fA-FxXzZ]+)$/);
-      const decimalMatch = value.match(/(\d+)'[dD]([0-9xXzZ]+)$/);
-      const octalMatch = value.match(/(\d+)'[oO]([0-7xXzZ]+)$/);
-
-      let numericValue = 0;
-
-      try {
-        if (binaryMatch) {
-          const binaryString = binaryMatch[2].replace(/[xXzZ]/g, "0"); // X/Z'yi 0 kabul et
-          numericValue = parseInt(binaryString, 2);
-        } else if (hexMatch) {
-          const hexString = hexMatch[2].replace(/[xXzZ]/g, "0");
-          numericValue = parseInt(hexString, 16);
-        } else if (decimalMatch) {
-          const decimalString = decimalMatch[2].replace(/[xXzZ]/g, "0");
-          numericValue = parseInt(decimalString, 10);
-        } else if (octalMatch) {
-          const octalString = octalMatch[2].replace(/[xXzZ]/g, "0");
-          numericValue = parseInt(octalString, 8);
-        }
-      } catch (e) {
-        console.error(`Sabit değer ayrıştırılamadı: ${value}`, e);
-      }
-
-      // En düşük anlamlı bit (LSB) 1 ise true kabul et
-      boolValue = (numericValue & 1) === 1;
+    } else if (value.includes("'b")) {
+      // Binary format (e.g., 1'b1)
+      const bits = value.split("'b")[1].replace(/[_]/g, "").toLowerCase();
+      boolValue = bits.charAt(bits.length - 1) === "1"; // Get LSB
+    } else if (value.includes("'h")) {
+      // Hex format (e.g., 4'hF)
+      const hex = value.split("'h")[1].replace(/[_]/g, "").toLowerCase();
+      const num = parseInt(hex, 16);
+      boolValue = (num & 1) === 1; // Check LSB
+    } else if (value.includes("'d")) {
+      // Decimal format
+      const dec = value.split("'d")[1].replace(/[_]/g, "");
+      const num = parseInt(dec, 10);
+      boolValue = (num & 1) === 1;
+    } else if (value.includes("'o")) {
+      // Octal format
+      const oct = value.split("'o")[1].replace(/[_]/g, "");
+      const num = parseInt(oct, 8);
+      boolValue = (num & 1) === 1;
     }
-
-    // DÜZELTME: ToggleSwitch yerine Constant0 veya Constant1 kullan
-    let constantComponent: Component;
-    if (boolValue) {
-      constantComponent = new Constant1(constPosition);
-    } else {
-      constantComponent = new Constant0(constPosition);
-    }
-
-    // Component'i ekle
-    const constCompName = `const_${component.id}_${inputIndex}_${value.replace(/[^a-zA-Z0-9]/g, "_")}`;
-    this.components[constCompName] = constantComponent;
+    
+    // Create the right constant component
+    const constantComponent = boolValue ? 
+      new Constant1(constPosition) : 
+      new Constant0(constPosition);
+    
+    // Add to circuit with unique name
+    const constName = `constant_${value.replace(/[^a-zA-Z0-9]/g, "_")}`;
+    this.components[constName] = constantComponent;
     this.circuitBoard.addComponent(constantComponent);
-
-    // Bağlantıyı yap
-    // Constant0/1'in tek bir çıkışı var (index 0)
+    
+    // Connect to component input
     const wire = new Wire(constantComponent.outputs[0]);
     wire.connect(component.inputs[inputIndex]);
     this.circuitBoard.addWire(wire);
-
-    console.log(
-      `Connected constant value ${value} (interpreted as ${boolValue}) to ${component.id} input ${inputIndex} using ${constantComponent.type}`
-    );
+    
+    console.log(`Connected ${value} (as ${boolValue ? "1" : "0"}) to ${component.id} input ${inputIndex}`);
   }
 
   // Bir değerin sabit olup olmadığını kontrol eder
   private isConstant(value: string): boolean {
-    // Basit 0 veya 1
+    // Binary constants (1'b0, 1'b1, etc.)
+    if (/^\d+'[bB][01xXzZ_]+$/.test(value)) return true;
+    
+    // Hex constants (4'hF, etc.)
+    if (/^\d+'[hH][0-9a-fA-FxXzZ_]+$/.test(value)) return true;
+    
+    // Decimal constants (10'd42, etc.)
+    if (/^\d+'[dD][0-9_]+$/.test(value)) return true;
+    
+    // Octal constants (3'o7, etc.)
+    if (/^\d+'[oO][0-7xXzZ_]+$/.test(value)) return true;
+    
+    // Simple constants
     if (value === "0" || value === "1") return true;
-    // Verilog formatları: 1'b0, 4'hF, 8'd12 vb.
-    // 'b, 'h, 'd, 'o harflerinden sonra sayısal değerler
-    if (/^\d+'[bB][01xXzZ]+$/.test(value)) return true; // Binary
-    if (/^\d+'[hH][0-9a-fA-FxXzZ]+$/.test(value)) return true; // Hex
-    if (/^\d+'[dD][0-9xXzZ]+$/.test(value)) return true; // Decimal
-    if (/^\d+'[oO][0-7xXzZ]+$/.test(value)) return true; // Octal
-    // true/false
-    if (value === "true" || value === "false") return true;
-
+    
     return false;
   }
 
@@ -1080,6 +1067,12 @@ export class VerilogCircuitConverter {
       }
 
       const inputName = gate.inputs[j];
+
+      if (this.isConstant(inputName)) {
+        console.log(`Detected constant value: ${inputName}, connecting as constant`);
+        this.connectConstantValue(inputName, component, j);
+        continue; // Skip the rest of the processing for this input
+      }
 
       if (this.feedbackWires.some(fw => fw.source === gate.output && fw.target === inputName)) {
         console.log(`Skipping feedback wire from ${gate.output} to ${inputName}`);
