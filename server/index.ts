@@ -491,6 +491,51 @@ app.post(
     }
   }
 );
+// More sophisticated implementation with user tracking
+app.post("/api/circuits/:id/like", authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const circuitId = req.params.id;
+    const userId = req.user?.id;
+    
+    // Find the circuit
+    const circuit = await Circuit.findById(circuitId);
+    
+    if (!circuit) {
+      return res.status(404).json({ error: "Circuit not found" });
+    }
+    
+    // Initialize arrays if they don't exist
+    if (!circuit.likedBy) {
+      circuit.likedBy = [];
+    }
+    
+    // Check if user exists
+    if (!userId) {
+      return res.status(401).json({ error: "User not authenticated" });
+    }
+    
+    // Check if user already liked this circuit
+    const userIdStr = userId.toString();
+    if (circuit.likedBy.some(id => id.toString() === userIdStr)) {
+      return res.status(400).json({ error: "You have already liked this circuit" });
+    }
+    
+    // Add user to likedBy array and increment count
+    circuit.likedBy.push(new mongoose.Types.ObjectId(userId));
+    circuit.likes = circuit.likedBy.length;
+    
+    // Save the updated circuit
+    await circuit.save();
+    
+    res.json({ 
+      message: "Circuit liked successfully", 
+      likes: circuit.likes 
+    });
+  } catch (error) {
+    console.error("Error liking circuit:", error);
+    res.status(500).json({ error: "Failed to like circuit" });
+  }
+});
 
 app.post("/api/generate/text", async (req, res) => {
   try {

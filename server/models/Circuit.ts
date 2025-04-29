@@ -32,6 +32,7 @@ const circuitSchema = new mongoose.Schema({
     type: Boolean,
     required: false,
   },
+  likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   isPublic: {
     type: Boolean,
     required: false,
@@ -39,6 +40,10 @@ const circuitSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  likes:{
+    type: Number,
+    default: 0,
   },
   updatedAt: {
     type: Date,
