@@ -5,9 +5,6 @@ import { CircuitEntry, CircuitRepositoryService, Comment } from './CircuitReposi
 export class MongoDBCircuitRepository implements CircuitRepositoryService {
   private readonly API_BASE_URL = `${apiBaseUrl}/api`;
 
-  
-  
-
 private getAuthHeaders(): Headers {
   const headers = new Headers({
     'Content-Type': 'application/json'
@@ -136,7 +133,6 @@ private async refreshAuthToken(): Promise<boolean> {
 
   async getCircuitById(id: string): Promise<CircuitEntry> {
     try {
-      console.log("Fetching circuit by ID:", id);
       const response = await fetch(`${this.API_BASE_URL}/circuits/${id}`, {
         headers: this.getAuthHeaders()
       });
@@ -170,7 +166,7 @@ private async refreshAuthToken(): Promise<boolean> {
       
       let responseData = null;
       try {
-        // Response'u bir kez oku
+      
         responseData = await response.json();
       } catch (parseError) {
         console.error("Error parsing response:", parseError);

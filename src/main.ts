@@ -3,7 +3,8 @@ declare global {
     circuitBoard: CircuitBoard;
   }
 }
-
+import { AIAgent } from './ai/AIAgent';
+import { MessageQueue } from './ai/Tools';
 import { CircuitBoard } from "./models/CircuitBoard";
 import { AndGate } from "./models/gates/AndGate";
 import { OrGate } from "./models/gates/OrGate";
@@ -43,7 +44,7 @@ import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository"
 import { apiBaseUrl } from "./services/apiConfig";
 import { MultiBit } from "./models/components/MultiBit";
 
-class Queue {
+export class Queue {
   public items: string[] = [];
 
   enqueue(item: string) {
@@ -553,6 +554,11 @@ function setUpAI() {
   const chatInput = document.getElementById("ai-chat-input") as HTMLInputElement;
   const messagesContainer = document.getElementById("ai-chat-messages") as HTMLElement;
 
+  const aiAgent = new AIAgent(circuitBoard, queue as unknown as MessageQueue, promptAI, imageUploader);
+  
+  // Store a reference to the last uploaded image
+  let lastUploadedImage: string | null = null;
+
   aiLogo.addEventListener("click", function () {
     chatContainer.classList.toggle("open");
 
@@ -633,37 +639,16 @@ function setUpAI() {
 
     chatInput.value = "";
 
-    // const code = extractVerilogFromPrompt(message);
-    // if (code) {
-    //   if (
-    //     message.toLowerCase().includes("draw") ||
-    //     message.toLowerCase().includes("create") ||
-    //     message.toLowerCase().includes("make") ||
-    //     message.toLowerCase().includes("implement") ||
-    //     message.toLowerCase().includes("build") ||
-    //     message.toLowerCase().includes("convert")
-    //   ) {
-    //     const converter = new VerilogCircuitConverter(circuitBoard);
-    //     const success = converter.importVerilogCode(code);
-
-    //     if (success) {
-    //       addAIMessage(
-    //         "I've created the circuit from your Verilog code! You can see it on the canvas now."
-    //       );
-    //     } else {
-    //       addAIMessage(
-    //         "I found Verilog code in your message, but I couldn't create a valid circuit from it. Please check for syntax errors or unsupported features."
-    //       );
-    //     }
-    //     return;
-    //   }
-    // }
-
     try {
-      const aiResponse = await callMistralAPI(message);
+      // Process the message with our AI agent
+      const aiResponse = await aiAgent.processUserInput(message);
+
+      
+
       addAIMessage(aiResponse);
     } catch (error) {
       console.error("Error getting AI response:", error);
+   
       addAIMessage("I'm having trouble processing your request right now. Please try again later.");
     }
   }
@@ -690,19 +675,29 @@ function setUpAI() {
       addAIMessage("Sorry, I can only process image files.");
       return;
     }
-
-    imageUploader.handleImageUpload(file);
+    
+    // Also read the image for the chat interface and AI agent
     const reader = new FileReader();
     reader.onload = function (e) {
       if (e.target && e.target.result) {
         if (typeof e.target.result === "string") {
-          addUserImageMessage(e.target.result);
+          const imageSrc = e.target.result;
+          
+          // Save reference to the last uploaded image
+          lastUploadedImage = imageSrc;
+          
+          // Set the image in the AI agent
+          aiAgent.setCurrentImage(imageSrc);
+          
+          // Add the image to chat
+          addUserImageMessage(imageSrc);
+          
+          // Add assistant message about the image
+          setTimeout(() => {
+            addAIMessage("I see you've uploaded an image. Would you like me to analyze it or detect a circuit from it?");
+          }, 1000);
         }
       }
-
-      setTimeout(() => {
-        addAIMessage("Let me draw this circuit for you...");
-      }, 1000);
     };
     reader.readAsDataURL(file);
   });
