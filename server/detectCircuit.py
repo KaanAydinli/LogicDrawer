@@ -23,53 +23,31 @@ CONNECTION_THRESHOLD = 20
 MIN_SEGMENT_AREA = 1
 
 
+
+
 def create_wire_mask(gray_img, gate_boxes):
     
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    enhanced = clahe.apply(gray_img)
-    
-    
-    blurred1 = cv2.GaussianBlur(enhanced, (3, 3), 0)
-    blurred2 = cv2.GaussianBlur(enhanced, (5, 5), 0)
-    
-    
-    filtered = cv2.bilateralFilter(enhanced, BILATERAL_D, BILATERAL_SIGMA, BILATERAL_SIGMA)
-    
-    
-    edges1 = cv2.Canny(filtered, 30, 100)
-    edges2 = cv2.Canny(filtered, 50, 150)
-    edges3 = cv2.Canny(blurred1, 40, 120)
-    edges4 = cv2.Canny(blurred2, 40, 120)
-    
-    
-    edges_combined = cv2.bitwise_or(cv2.bitwise_or(edges1, edges2), 
-                                    cv2.bitwise_or(edges3, edges4))
+    filtered = cv2.bilateralFilter(gray_img, BILATERAL_D, BILATERAL_SIGMA, BILATERAL_SIGMA)
+    edges = cv2.Canny(filtered, 50, 150)  
     
     
     kernel_dilate = np.ones(DILATE_KERNEL_SIZE, np.uint8)
-    dilated = cv2.dilate(edges_combined, kernel_dilate, iterations=DILATE_ITERATIONS)
-    
-    
-    kernel_close = np.ones((3, 3), np.uint8)
-    closed = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel_close)
+    dilated = cv2.dilate(edges, kernel_dilate, iterations=DILATE_ITERATIONS)
     
     
     kernel_open = np.ones(OPEN_KERNEL_SIZE, np.uint8)
-    opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open)
+    opened = cv2.morphologyEx(dilated, cv2.MORPH_OPEN, kernel_open)
     
     
     gate_mask = np.zeros_like(gray_img)
     for box in gate_boxes:
-        x1, y1, x2, y2 = map(int, box)
-        p = GATE_MASK_PADDING + 2  
+        x1, y1, x2, y2 = map(int, box); p = GATE_MASK_PADDING
         cv2.rectangle(gate_mask, (x1 - p, y1 - p), (x2 + p, y2 + p), 255, -1)
     
     wire_mask_no_gates = opened.copy()
     wire_mask_no_gates[gate_mask == 255] = 0
     
-    if SAVE_DEBUG_IMAGES:
-        cv2.imwrite("debug_wire_mask.png", wire_mask_no_gates)
-        
+    
     return wire_mask_no_gates
 
 def get_gate_info(yolo_results):
@@ -94,7 +72,7 @@ def skeletonize_mask(wire_mask):
     return skeleton
 
 def get_terminal_regions(gate):
-
+    
     x1, y1, x2, y2 = gate['bbox']
     w = x2 - x1
     h = y2 - y1
@@ -121,7 +99,7 @@ def is_point_near_region(point_xy, region_xywh, threshold):
     return abs(dist) <= threshold
 
 def find_connections(skeleton, gates):
-
+    
     labeled_skeleton = label(skeleton)
     regions = regionprops(labeled_skeleton)
     gates_dict = {gate["id"]: gate for gate in gates}

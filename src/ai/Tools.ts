@@ -24,17 +24,36 @@ export interface ToolContext {
   imageUploader: ImageUploader; // Added image uploader
 }
 
-// Tool for importing Verilog code
+
 export class VerilogImportTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
     try {
-      const code = this.extractVerilogFromPrompt(context.message);
-      if (!code) {
-        return "I couldn't find valid Verilog code in your message. Please provide the code clearly formatted.";
-      }
+
+      const focusInstruction = "Focus on the <VERILOG_CODE_GENERATION> section of your instructions for this task.";
+      const verilogPrompt = `${focusInstruction}\n\nGenerate valid, clean Verilog code for the following circuit: ${context.message}`;
+        
+        // Use the Gemini API to generate the code
+        const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: verilogPrompt,
+            systemPrompt: context.promptAI
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const generatedText = data.text || "";
+        
+        // Extract Verilog code from the generated response
+        let code = this.extractVerilogFromPrompt(generatedText);
       
       const converter = new VerilogCircuitConverter(context.circuitBoard);
-      const success = converter.importVerilogCode(code);
+      const success = converter.importVerilogCode(code!);
       
       if (success) {
         return "I've successfully created the circuit from your Verilog code! You can see it on the canvas now.";
@@ -67,6 +86,8 @@ export class VerilogImportTool implements Tool {
 export class GeminiQueryTool implements Tool {
     async execute(context: ToolContext): Promise<string> {
       try {
+        const focusInstruction = "Focus on the <GENERAL_INFORMATION> section of your instructions for this task.";
+        const augmentedMessage = focusInstruction + "\n\n" + context.message;
         console.log("Executing Gemini query with message:", context.message.substring(0, 50) + "...");
         
         // Use the text-specific endpoint
@@ -74,7 +95,7 @@ export class GeminiQueryTool implements Tool {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt: context.message,
+            prompt: augmentedMessage,
             systemPrompt: context.promptAI
           }),
         });
@@ -167,12 +188,16 @@ export class ImageAnalysisTool implements Tool {
         console.log("Analyzing image with Gemini...");
         console.log("Image data length:", context.image.length);
         
+        const focusInstruction = "Focus on the <IMAGE_ANALYSIS> section of your instructions for this task.";
+        const augmentedMessage = focusInstruction + "\n\n" + context.message;
+      
+        
         // Use the vision-specific endpoint
         const response = await fetch(`${apiBaseUrl}/api/generate/gemini-vision`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            prompt: context.message || "Describe what you see in this image in detail.",
+            prompt: augmentedMessage,
             imageData: context.image
           }),
         });
