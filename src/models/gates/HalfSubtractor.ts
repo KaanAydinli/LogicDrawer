@@ -92,6 +92,6 @@ export class HalfSubtractor extends LogicGate {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("Half", x + width / 2, y + height / 2);
-    ctx.fillText("Sub", x + width / 2, y + height * 2 / 3);
+    ctx.fillText("Subtractor", x + width / 2, y + height * 2 / 3);
   }
 }

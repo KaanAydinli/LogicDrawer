@@ -19,11 +19,36 @@ export class Led extends Component {
         type: "input", 
         position: portPosition,
         value: false,
-        bitWidth: 4,
+        bitWidth: 1,
         isConnected: false,
         component: this,
       });
     }
+  }
+  public setBitWidth(width: number): void {
+    if (width > 8) {
+      width = 8;  // LED için maksimum 8-bit (255 değer)
+    }
+    
+    if (width < 1) {
+      width = 1;
+    }
+  
+    // LED'in tüm portları için bit genişliğini güncelle
+    this.inputs.forEach(input => {
+      input.bitWidth = width;
+    });
+    
+    this.defaultBitWidth = width;
+  }
+  
+  // LED için özel özellikleri tanımla (ileride eklenecek özellikler için)
+  public getCustomProperties(): Array<{name: string, value: any}> {
+    return [
+      { name: "R Input Width", value: this.inputs[0].bitWidth },
+      { name: "G Input Width", value: this.inputs[1].bitWidth },
+      { name: "B Input Width", value: this.inputs[2].bitWidth }
+    ];
   }
 
   evaluate(): void {
@@ -172,7 +197,7 @@ export class Led extends Component {
       if (inputPort.bitWidth > 1) {
         ctx.fillStyle = "#bbbbbb";
         ctx.font = "9px Arial";
-        ctx.fillText(`${inputPort.bitWidth}b`, inputPort.position.x + 8, inputPort.position.y - 8);
+        ctx.fillText(`${inputPort.bitWidth}b`, inputPort.position.x + 2, inputPort.position.y - 8);
       }
     }
   }

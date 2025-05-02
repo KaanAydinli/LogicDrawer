@@ -84,7 +84,7 @@ export class FullAdder extends LogicGate {
     ctx.font = "12px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("Smart", x + width / 2, y + height / 2);
+    ctx.fillText("Full", x + width / 2, y + height / 2);
     ctx.fillText("Adder", x + width / 2, y + height * 2 / 3);
   }
 }

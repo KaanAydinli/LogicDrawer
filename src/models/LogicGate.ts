@@ -2,8 +2,8 @@ import { Component, Point } from './Component';
 
 export abstract class LogicGate extends Component {
   
-  protected rotation: number = 0;
-  defaultBitWidth: number = 4;
+  rotation: number = 0;
+  defaultBitWidth: number = 1;
   
   constructor(type: string, position: Point, inputCount: number = 2,outputs: number = 1,size: { width: number; height: number } = { width: 60, height: 60 }) {
     super(type, position,size);
@@ -48,7 +48,27 @@ export abstract class LogicGate extends Component {
       });
     }
   }
-  setBitWidth(width: number): void {
+  public getMaxInputCount(): number {
+    return 8; // LogicGate'ler için maksimum 8 giriş
+  }
+  
+  public getMinInputCount(): number {
+    return 2; // LogicGate'ler için minimum 2 giriş
+  }
+  public decreaseInputCount(): void {
+    if (this.inputs.length <= this.getMinInputCount()) return;
+    
+    // Var olan implementasyonu kullan
+    this.initializePorts(this.inputs.length - 1, this.outputs.length);
+  }
+  
+  public increaseInputCount(): void {
+    if (this.inputs.length >= this.getMaxInputCount()) return;
+    
+    // Var olan implementasyonu kullan
+    this.initializePorts(this.inputs.length + 1, this.outputs.length);
+  }
+  public setBitWidth(width: number): void {
     if (width < 1) {
       console.warn("Bit genişliği 1'den küçük olamaz. 1 kullanılacak.");
       width = 1;
@@ -152,71 +172,142 @@ export abstract class LogicGate extends Component {
   }
   
   
-  private getInputPortPosition(index: number, total: number): Point {
-    const spacing = this.size.height / (total + 1);
-    const offset = (index + 1) * spacing;
-    
+  // getInputPortPosition metodunu güncelleyip NOT ve BUFFER için özel durum ekleyelim
+private getInputPortPosition(index: number, total: number): Point {
+  // NOT ve BUFFER kapıları için özel durum
+  const isNotOrBuffer = this.type === "not" || this.type === "buffer";
+  
+  // NOT ve BUFFER kapıları tek girişli oldukları için ortaya konumlandır
+  if (isNotOrBuffer) {
     switch (this.rotation) {
       case 0: 
         return {
           x: this.position.x - 10,
-          y: this.position.y + offset
+          y: this.position.y + this.size.height / 2  // Tam ortaya yerleştir
         };
       case 90: 
         return {
-          x: this.position.x + offset,
-          y: this.position.y - 10
+          x: this.position.x + this.size.width / 2,  // Tam ortaya yerleştir
+          y: this.position.y - 15
         };
       case 180: 
         return {
           x: this.position.x + this.size.width + 10,
-          y: this.position.y + offset
+          y: this.position.y + this.size.height / 2  // Tam ortaya yerleştir
         };
       case 270: 
         return {
-          x: this.position.x + offset,
-          y: this.position.y + this.size.height + 10
+          x: this.position.x + this.size.width / 2,  // Tam ortaya yerleştir
+          y: this.position.y + this.size.height + 15
         };
       default:
         return { x: this.position.x, y: this.position.y };
     }
   }
   
+  // Diğer kapılar için mevcut hesaplamayı kullan
+  const spacing = this.size.height / (total + 1);
+  const offset = (index + 1) * spacing;
   
-  private getOutputPortPosition(index: number = 0, total: number = 1): Point {
-    const spacing = this.size.height / (total + 1);
-    const offset = (index + 1) * spacing;
-    
+  if(this.rotation < 0){
+    this.rotation += 360;
+  }
+  switch (this.rotation) {
+    case 0: 
+      return {
+        x: this.position.x - 10,
+        y: this.position.y + offset
+      };
+    case 90: 
+      return {
+        x: this.position.x + offset,
+        y: this.position.y - 10
+      };
+    case 180: 
+      return {
+        x: this.position.x + this.size.width + 10,
+        y: this.position.y + offset
+      };
+    case 270: 
+      return {
+        x: this.position.x + offset,
+        y: this.position.y + this.size.height + 10
+      };
+    default:
+      return { x: this.position.x, y: this.position.y };
+  }
+}
+
+// Benzer şekilde getOutputPortPosition metodunu da güncelleyelim
+private getOutputPortPosition(index: number = 0, total: number = 1): Point {
+  // NOT ve BUFFER kapıları için özel durum
+  const isNotOrBuffer = this.type === "not" || this.type === "buffer";
+  
+  // NOT ve BUFFER kapıları için çıkışı tam ortaya konumlandır
+  if (isNotOrBuffer) {
     switch (this.rotation) {
       case 0: 
         return {
           x: this.position.x + this.size.width + 10,
-          y: this.position.y + offset
+          y: this.position.y + this.size.height / 2  // Tam ortaya yerleştir
         };
       case 90: 
         return {
-          x: this.position.x + offset,
-          y: this.position.y + this.size.height + 10
+          x: this.position.x + this.size.width / 2,  // Tam ortaya yerleştir
+          y: this.position.y + this.size.height + 15
         };
       case 180: 
         return {
           x: this.position.x - 10,
-          y: this.position.y + offset
+          y: this.position.y + this.size.height / 2  // Tam ortaya yerleştir
         };
       case 270: 
         return {
-          x: this.position.x + offset,
-          y: this.position.y - 10
+          x: this.position.x + this.size.width / 2,  // Tam ortaya yerleştir
+          y: this.position.y - 15
         };
       default:
         return { x: this.position.x, y: this.position.y };
     }
   }
   
+  // Diğer kapılar için mevcut hesaplamayı kullan
+  const spacing = this.size.height / (total + 1);
+  const offset = (index + 1) * spacing;
   
-  public rotate(): void {
+  if(this.rotation < 0){
+    this.rotation += 360;
+  }
+  switch (this.rotation) {
+    case 0: 
+      return {
+        x: this.position.x + this.size.width + 10,
+        y: this.position.y + offset
+      };
+    case 90: 
+      return {
+        x: this.position.x + offset,
+        y: this.position.y + this.size.height + 15
+      };
+    case 180: 
+      return {
+        x: this.position.x - 10,
+        y: this.position.y + offset
+      };
+    case 270: 
+      return {
+        x: this.position.x + offset,
+        y: this.position.y - 15
+      };
+    default:
+      return { x: this.position.x, y: this.position.y };
+  }
+}
+  
+  
+  public rotate(direction: number): void {
     
-    this.rotation = (this.rotation + 90) % 360;
+    this.rotation = (this.rotation + (90 * direction)) % 360;
     
     
     this.updatePortPositions();
@@ -381,32 +472,6 @@ export abstract class LogicGate extends Component {
       ctx.stroke();
     });
   }
-  
-  
-  increaseInputCount(): void {
-    const portPosition = this.getInputPortPosition(this.inputs.length, this.inputs.length + 1);
-    
-    this.inputs.push({
-      id: `${this.id}-input-${this.inputs.length}`,
-      type: 'input',
-      position: portPosition,
-      value: false,
-      bitWidth: 1,
-      isConnected: false,
-      component: this
-    });
-    
-    
-    this.updatePortPositions();
-  }
-  decreaseInputCount(): void {
-
-    if(this.inputs.length <= 2) return;
-    this.inputs.pop();
-
-    this.updatePortPositions();
-  }
-  
   
   override getBoundingBox(): { x: number; y: number; width: number; height: number } {
     

@@ -3,14 +3,13 @@ import { BitArray, numberToBits, bitsToNumber } from '../MultibitTypes';
 
 export class MultiBit extends Component {
   private bits: BitArray;
-  private bitWidth: number;
   
-  constructor(position: Point, bitWidth: number = 4) {
+  constructor(position: Point, bitWidth: number = 2) {
     super('multibit-toggle', position, { width: 80, height: 30 * bitWidth });
     
     this.isMultiBit = true;
-    this.bitWidth = Math.max(1, Math.min(16, bitWidth)); // Limit to 1-16 bits
-    this.bits = Array(this.bitWidth).fill(false);
+    this.defaultBitWidth = Math.max(1, Math.min(16, bitWidth)); // Limit to 1-16 bits
+    this.bits = Array(this.defaultBitWidth).fill(false);
     
     // Create a single multi-bit output port
     this.outputs.push({
@@ -21,7 +20,7 @@ export class MultiBit extends Component {
         y: this.position.y + this.size.height / 2
       },
       value: [...this.bits], // Copy to avoid reference issues
-      bitWidth: this.bitWidth,
+      bitWidth: this.defaultBitWidth,
       isConnected: false,
       component: this
     });
@@ -34,7 +33,7 @@ export class MultiBit extends Component {
   
   // Toggle a specific bit
   toggleBit(index: number): void {
-    if (index >= 0 && index < this.bitWidth) {
+    if (index >= 0 && index < this.defaultBitWidth) {
       this.bits[index] = !this.bits[index];
       this.evaluate();
     }
@@ -42,7 +41,7 @@ export class MultiBit extends Component {
   
   // Set the value directly from a number
   setValue(value: number): void {
-    this.bits = numberToBits(value, this.bitWidth);
+    this.bits = numberToBits(value, this.defaultBitWidth);
     this.evaluate();
   }
   
@@ -57,9 +56,41 @@ export class MultiBit extends Component {
     const localY = point.y - this.position.y;
     const bitIndex = Math.floor(localY / 30);
     
-    if (bitIndex >= 0 && bitIndex < this.bitWidth) {
+    if (bitIndex >= 0 && bitIndex < this.defaultBitWidth) {
       this.toggleBit(bitIndex);
     }
+  }
+  public setBitWidth(width: number): void {
+    // Üst limite kadar sınırla
+    if (width > 64) {
+      width = 64;
+    }
+    
+    if (width < 1) {
+      width = 1;
+    }
+    
+    // Mevcut bit genişliğini güncelle
+    this.defaultBitWidth = width;
+    
+
+    // Bileşenin boyutunu güncelle
+    this.size = {
+      width: this.size.width,
+      height: 30 * this.defaultBitWidth
+    };
+
+    
+    // Port bit genişliklerini güncelle
+    this.inputs.forEach(input => {
+      input.bitWidth = width;
+    });
+    
+    this.outputs.forEach(output => {
+      output.bitWidth = width;
+    });
+
+    
   }
   
   draw(ctx: CanvasRenderingContext2D): void {
@@ -74,7 +105,7 @@ export class MultiBit extends Component {
     ctx.stroke();
     
     // Draw bit labels and values
-    for (let i = 0; i < this.bitWidth; i++) {
+    for (let i = 0; i < this.defaultBitWidth; i++) {
       const bitY = this.position.y + i * 30 + 15;
       
       // Draw bit background
@@ -89,7 +120,7 @@ export class MultiBit extends Component {
       ctx.font = '14px Arial';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`Bit ${this.bitWidth - i}:`, this.position.x + 10, bitY);
+      ctx.fillText(`Bit ${this.defaultBitWidth - i}:`, this.position.x + 10, bitY);
       
       ctx.textAlign = 'right';
       ctx.fillText(this.bits[i] ? '1' : '0', this.position.x + this.size.width - 10, bitY);
@@ -122,7 +153,7 @@ export class MultiBit extends Component {
     ctx.font = '10px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillText(`${this.bitWidth}b`, outputPort.position.x, outputPort.position.y - 8);
+    ctx.fillText(`${this.defaultBitWidth}b`, outputPort.position.x, outputPort.position.y - 8);
     
     // Draw connection line
     ctx.beginPath();
@@ -136,7 +167,7 @@ export class MultiBit extends Component {
     const state = super.getState();
     return {
       ...state,
-      bitWidth: this.bitWidth,
+      bitWidth: this.defaultBitWidth,
       bits: [...this.bits]
     };
   }
@@ -145,21 +176,21 @@ export class MultiBit extends Component {
     super.setState(state);
     
     if (state.bitWidth !== undefined) {
-      this.bitWidth = state.bitWidth;
+      this.defaultBitWidth = state.bitWidth;
     }
     
     if (state.bits && Array.isArray(state.bits)) {
       this.bits = [...state.bits];
-      while (this.bits.length < this.bitWidth) {
+      while (this.bits.length < this.defaultBitWidth) {
         this.bits.push(false);
       }
-      this.bits = this.bits.slice(0, this.bitWidth);
+      this.bits = this.bits.slice(0, this.defaultBitWidth);
     }
     
     // Update output port value and bit width
     if (this.outputs.length > 0) {
       this.outputs[0].value = [...this.bits];
-      this.outputs[0].bitWidth = this.bitWidth;
+      this.outputs[0].bitWidth = this.defaultBitWidth;
     }
   }
 }

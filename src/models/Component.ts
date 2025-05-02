@@ -25,6 +25,8 @@ export abstract class Component {
   outputs: Port[];
   selected: boolean;
   isMultiBit: boolean = false;
+  public defaultBitWidth: number = 1;
+  public rotation: number = 0;
 
   constructor(type: string, position: Point, size?: { width: number; height: number }) {
     this.size = size || { width: 60, height: 60 };
@@ -42,6 +44,71 @@ export abstract class Component {
       return this.inputs[index].bitWidth || 1;
     }
     return 1;
+  }
+  public getBitWidth(): number {
+    return this.defaultBitWidth;
+  }
+  
+  public setBitWidth(width: number): void {
+    if (width > 64) {
+      width = 64;
+    }
+    
+    if (width < 1) {
+      width = 1;
+    }
+  
+    // Varsayılan implementasyon: Tüm giriş ve çıkış portlarının bit genişliklerini güncelle
+    this.inputs.forEach(input => {
+      input.bitWidth = width;
+    });
+    
+    this.outputs.forEach(output => {
+      output.bitWidth = width;
+    });
+  
+    this.defaultBitWidth = width;
+  }
+  
+  public decreaseBitWidth(): void {
+    if (this.defaultBitWidth > 1) {
+      this.setBitWidth(this.defaultBitWidth - 1);
+    }
+  }
+  
+  public increaseBitWidth(): void {
+    if (this.defaultBitWidth < 64) {
+      this.setBitWidth(this.defaultBitWidth + 1);
+    }
+  }
+  
+  // Port sayısını değiştirme metotları - varsayılan boş implementasyon
+  public getMaxInputCount(): number {
+    return this.inputs.length; // Varsayılan olarak mevcut giriş sayısı
+  }
+  
+  public getMinInputCount(): number {
+    return this.inputs.length; // Varsayılan olarak mevcut giriş sayısı
+  }
+  
+  public decreaseInputCount(): void {
+    // Varsayılan implementasyon: Bir şey yapma
+    console.log("decreaseInputCount not implemented for this component");
+  }
+  
+  public increaseInputCount(): void {
+    // Varsayılan implementasyon: Bir şey yapma
+    console.log("increaseInputCount not implemented for this component");
+  }
+  
+  // Özel özellikler için yöntemler - bileşen tipine göre özelleştirilebilir
+  public getCustomProperties(): Array<{name: string, value: any}> {
+    return []; // Varsayılan olarak özel özellik yok
+  }
+  
+  public updateCustomProperty(name: string, value: any): void {
+    // Varsayılan implementasyon: Bir şey yapma
+    console.log(`updateCustomProperty ${name} not implemented for this component`);
   }
 
   // Get the bit width for an output port
@@ -180,6 +247,13 @@ export abstract class Component {
     
     return state;
   }
+
+
+// Temel rotate metodu - varsayılan olarak hiçbir şey yapmaz
+public rotate(direction: number): void {
+  // Temel implementasyon - bir şey yapma
+  console.log("Rotation not supported for this component");
+}
   
   setState(state: any): void {
     if (!state) return;
