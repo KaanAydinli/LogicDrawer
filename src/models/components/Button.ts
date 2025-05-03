@@ -16,6 +16,7 @@ export class Button extends Component {
         y: this.position.y + this.size.height / 2
       },
       value: this.state,
+      bitWidth: 1,
       isConnected: false,
       component: this
     });

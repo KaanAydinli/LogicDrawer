@@ -177,6 +177,18 @@
               <div class="component-label">Hexadecimal Digit</div>
             </div>
 
+            <div class="component" data-type="smartdisplay">
+              <div class="component-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <line x1="2" y1="10" x2="22" y2="10" stroke-width="1"/>
+                  <text x="12" y="8.5" font-size="4" text-anchor="middle" fill="currentColor" stroke="none">SMART</text>
+                  <text x="12" y="16" font-size="6" text-anchor="middle" fill="currentColor" stroke="none">10101</text>
+                </svg>
+              </div>
+              <div class="component-label">Smart Display</div>
+            </div>
+
             <div class="component" data-type="led">
               <div class="component-icon led">
 
@@ -556,9 +568,12 @@
       </div>
 
     
-      <div class="canvas-container">
-        <canvas id="circuit-canvas"></canvas>
-      </div>
+
+        <div class="canvas-container">
+          <canvas id="circuit-canvas"></canvas>
+        </div>
+        <div id="properties-panel-container"></div>
+    
 
       <div class = "minimap">
         <canvas id = "minicanvas"></canvas>
@@ -641,7 +656,7 @@
         
       </svg>
           </div>
-          <div class="message-content">Hello, my name is LogAI. I can help you design circuits or explain logic gates. How can I assist you today?</div>
+          <div class="message-content">Hello, my name is Logix. I can help you design circuits or explain logic gates. How can I assist you today?</div>
         </div>
       </div>
       <div id = "aiFile" class="ai-chat-input-area">
@@ -653,7 +668,7 @@
           </svg>
         </label>
         <input type="file" id="file-upload" accept="image/*" style="display: none;">
-        <input type="text" id="ai-chat-input" placeholder="Type your message...">
+        <textarea id="ai-chat-input" rows="1" placeholder="Type your message..."></textarea>
         <button id="send-message">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"></line>

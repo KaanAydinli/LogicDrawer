@@ -24,6 +24,7 @@ export class Clock extends Component {
         x: this.position.x + this.size.width + 10,
         y: this.position.y + this.size.height / 2
       },
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this

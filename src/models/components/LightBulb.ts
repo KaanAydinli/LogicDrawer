@@ -13,6 +13,7 @@ export class LightBulb extends Component {
         y: this.position.y + this.size.height / 2
       },
       value: false,
+      bitWidth: 1,
       isConnected: false,
       component: this
     });

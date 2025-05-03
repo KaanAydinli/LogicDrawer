@@ -29,6 +29,7 @@ import { HalfSubtractor } from "./gates/HalfSubtractor";
 import { FullSubtractor } from "./gates/FullSubtractor";
 import { Led } from "./components/Led";
 import { MultiBit } from "./components/MultiBit";
+import { GatePanel } from "./utils/GatePanel";
 
 export class CircuitBoard {
   components: Component[];
@@ -55,6 +56,7 @@ export class CircuitBoard {
   private selectionRect: { start: Point; end: Point } | null = null;
   private isSelecting: boolean = false;
   public selectedComponents: Component[] = [];
+  private gatePropertiesPanel: GatePanel;
 
   constructor(canvas: HTMLCanvasElement, minimap: HTMLCanvasElement) {
     this.components = [];
@@ -70,6 +72,11 @@ export class CircuitBoard {
     this.minimap = minimap || null;
 
     this.selectedComponents = [];
+
+    this.gatePropertiesPanel = new GatePanel("properties-panel-container", () => {
+      this.simulate();
+      this.draw();
+    });
 
     if (this.minimap) {
       this.minimapCtx = this.minimap.getContext("2d") as CanvasRenderingContext2D;
@@ -121,7 +128,7 @@ export class CircuitBoard {
           logic.type !== "state" &&
           typeof logic.rotate === "function"
         ) {
-          logic.rotate();
+          logic.rotate(1);
           this.draw();
         }
         return;
@@ -682,7 +689,8 @@ export class CircuitBoard {
 
     this.wires.forEach(wire => {
       if (wire.to && wire.from) {
-        wire.to.value = wire.from.value;
+        // Transfer value considering bit width
+        wire.transferValue();
       }
     });
 
@@ -693,7 +701,7 @@ export class CircuitBoard {
     for (let i = 0; i < 10; i++) {
       this.wires.forEach(wire => {
         if (wire.to && wire.from) {
-          wire.to.value = wire.from.value;
+          wire.transferValue();
         }
       });
 
@@ -1142,6 +1150,17 @@ export class CircuitBoard {
       ctx.stroke();
     }
   }
+  private handleBitWidthNegotiation(wire: Wire): void {
+    if (!wire.from || !wire.to) return;
+
+    const fromBitWidth = wire.from.bitWidth || 1;
+    const toBitWidth = wire.to.bitWidth || 1;
+
+    // Update wire bit width
+    wire.bitWidth = Math.max(fromBitWidth, toBitWidth);
+
+    console.log(`Wire connected: ${fromBitWidth}b -> ${toBitWidth}b`);
+  }
 
   private handleMouseDown(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
@@ -1158,15 +1177,6 @@ export class CircuitBoard {
     this.selectedWire = null;
 
     for (const component of this.components) {
-
-      if (component.type === "multibit" && component.containsPoint(mousePos)) {
-        const multibitComponent = component as MultiBit;
-        if (typeof multibitComponent.onMouseDown === "function") {
-          multibitComponent.onMouseDown(mousePos);
-          this.draw();
-          return;
-        }
-      }
       if (component.type === "button") {
         if (component.containsPoint(mousePos)) {
           (component as any).onMouseDown();
@@ -1184,6 +1194,9 @@ export class CircuitBoard {
           this.selectedComponent = component;
           component.selected = true;
           this.selectedComponents = [component];
+        }
+        if (this.selectedComponent) {
+          this.updatePropertiesPanel();
         }
 
         this.draggedComponent = component;
@@ -1221,9 +1234,14 @@ export class CircuitBoard {
           this.selectedComponent = component;
           component.selected = true;
           this.selectedComponents = [component];
+
+          if (this.selectedComponent) {
+            this.updatePropertiesPanel();
+          }
         }
 
         this.draggedComponent = component;
+
         this.dragOffset = mousePos;
 
         this.draw();
@@ -1242,16 +1260,35 @@ export class CircuitBoard {
     if (!this.isSelecting) {
       this.isSelecting = true;
       this.selectionRect = { start: mousePos, end: mousePos };
-      return;
+     
     }
+
+    
+      this.updatePropertiesPanel();
+    
 
     this.selectedComponent = null;
     this.selectedWire = null;
     this.draw();
   }
+  private updatePropertiesPanel(): void {
+    // Hide the panel if no selection or multiple selections
+    if (this.selectedComponents.length !== 1 || !this.selectedComponent) {
+      this.gatePropertiesPanel.hide();
+
+      return;
+    }
+
+    // Show the panel only if a single LogicGate is selected
+    const selectedComponent = this.selectedComponents[0];
+
+      this.gatePropertiesPanel.show(selectedComponent);
+
+  }
   public clearSelection(): void {
     this.selectedComponents.forEach(component => (component.selected = false));
     this.selectedComponents = [];
+    this.gatePropertiesPanel.hide();
     this.draw();
   }
   public getCanvasWidth(): number {
@@ -1379,7 +1416,7 @@ export class CircuitBoard {
       );
     }
 
-    if (!this.draggedComponent || !this.currentWire) {
+    if (!this.draggedComponent && !this.currentWire) {
       this.clearSelection();
     }
 
@@ -1521,6 +1558,7 @@ export class CircuitBoard {
   }
   public addWire(wire: Wire): void {
     this.wires.push(wire);
+    this.handleBitWidthNegotiation(wire);
     this.draw();
   }
 

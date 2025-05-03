@@ -2,7 +2,8 @@ import { Component, Point } from './Component';
 
 export abstract class LogicGate extends Component {
   
-  protected rotation: number = 0;
+  rotation: number = 0;
+  defaultBitWidth: number = 1;
   
   constructor(type: string, position: Point, inputCount: number = 2,outputs: number = 1,size: { width: number; height: number } = { width: 60, height: 60 }) {
     super(type, position,size);
@@ -12,7 +13,7 @@ export abstract class LogicGate extends Component {
   }
   
   
-  private initializePorts(inputCount: number, outputCount: number = 1): void {
+  public initializePorts(inputCount: number, outputCount: number = 1): void {
     
     this.inputs = [];
     this.outputs = [];
@@ -26,6 +27,7 @@ export abstract class LogicGate extends Component {
         type: 'input',
         position: portPosition,
         value: false,
+        bitWidth: this.defaultBitWidth,
         isConnected: false,
         component: this
       });
@@ -40,78 +42,272 @@ export abstract class LogicGate extends Component {
         type: 'output',
         position: portPosition,
         value: false,
+        bitWidth: this.defaultBitWidth,
         isConnected: false,
         component: this
       });
     }
   }
+  public getMaxInputCount(): number {
+    return 8; // LogicGate'ler için maksimum 8 giriş
+  }
   
-  
-  private getInputPortPosition(index: number, total: number): Point {
-    const spacing = this.size.height / (total + 1);
-    const offset = (index + 1) * spacing;
+  public getMinInputCount(): number {
+    return 2; // LogicGate'ler için minimum 2 giriş
+  }
+  public decreaseInputCount(): void {
+    if (this.inputs.length <= this.getMinInputCount()) return;
     
+    // Var olan implementasyonu kullan
+    this.initializePorts(this.inputs.length - 1, this.outputs.length);
+  }
+  
+  public increaseInputCount(): void {
+    if (this.inputs.length >= this.getMaxInputCount()) return;
+    
+    // Var olan implementasyonu kullan
+    this.initializePorts(this.inputs.length + 1, this.outputs.length);
+  }
+  public setBitWidth(width: number): void {
+    if (width < 1) {
+      console.warn("Bit genişliği 1'den küçük olamaz. 1 kullanılacak.");
+      width = 1;
+    }
+    
+    if (width > 64) {
+      console.warn("Bit genişliği 64'ten büyük olamaz. 64 kullanılacak.");
+      width = 64;
+    }
+    
+    // Tüm giriş portlarını güncelle
+    for (const input of this.inputs) {
+      // Eski değer çoklu bit mi kontrol et
+      const oldValue = input.value;
+      let newValue: boolean | boolean[] = false;
+      
+      // Değerleri yeni bit genişliğine dönüştür
+      if (Array.isArray(oldValue)) {
+        if (width === 1) {
+          // Çoklu bitten tek bite
+          newValue = oldValue.length > 0 ? oldValue[0] : false;
+        } else {
+          // Çoklu bitten çoklu bite
+          newValue = Array(width).fill(false);
+          for (let i = 0; i < Math.min(width, oldValue.length); i++) {
+            newValue[i] = oldValue[i];
+          }
+        }
+      } else {
+        // Tek bitten
+        if (width === 1) {
+          // Tek bitten tek bite
+          newValue = oldValue;
+        } else {
+          // Tek bitten çoklu bite
+          newValue = Array(width).fill(false);
+          if (oldValue) {
+            newValue[0] = true;
+          }
+        }
+      }
+      
+      // Bit genişliğini ve değeri güncelle
+      input.bitWidth = width;
+      input.value = newValue;
+    }
+    
+    // Tüm çıkış portlarını güncelle
+    for (const output of this.outputs) {
+      // Eski değer çoklu bit mi kontrol et
+      const oldValue = output.value;
+      let newValue: boolean | boolean[] = false;
+      
+      // Değerleri yeni bit genişliğine dönüştür (giriş portlarıyla aynı mantık)
+      if (Array.isArray(oldValue)) {
+        if (width === 1) {
+          newValue = oldValue.length > 0 ? oldValue[0] : false;
+        } else {
+          newValue = Array(width).fill(false);
+          for (let i = 0; i < Math.min(width, oldValue.length); i++) {
+            newValue[i] = oldValue[i];
+          }
+        }
+      } else {
+        if (width === 1) {
+          newValue = oldValue;
+        } else {
+          newValue = Array(width).fill(false);
+          if (oldValue) {
+            newValue[0] = true;
+          }
+        }
+      }
+      
+
+      output.bitWidth = width;
+      output.value = newValue;
+    }
+    
+
+    this.defaultBitWidth = width;
+    
+    // Komponent durumunu güncelle
+    this.evaluate();
+  }
+  
+  // Mevcut bit genişliğini döndür
+  getBitWidth(): number {
+    return this.defaultBitWidth;
+  }
+
+  increaseBitWidth(): void {
+    const newWidth = Math.min(64, this.defaultBitWidth * 2);
+    this.setBitWidth(newWidth);
+  }
+  
+  // Bit genişliğini azaltma
+  decreaseBitWidth(): void {
+    const newWidth = Math.max(1, Math.floor(this.defaultBitWidth / 2));
+    this.setBitWidth(newWidth);
+  }
+  
+  
+  // getInputPortPosition metodunu güncelleyip NOT ve BUFFER için özel durum ekleyelim
+private getInputPortPosition(index: number, total: number): Point {
+  // NOT ve BUFFER kapıları için özel durum
+  const isNotOrBuffer = this.type === "not" || this.type === "buffer";
+  
+  // NOT ve BUFFER kapıları tek girişli oldukları için ortaya konumlandır
+  if (isNotOrBuffer) {
     switch (this.rotation) {
       case 0: 
         return {
           x: this.position.x - 10,
-          y: this.position.y + offset
+          y: this.position.y + this.size.height / 2  // Tam ortaya yerleştir
         };
       case 90: 
         return {
-          x: this.position.x + offset,
-          y: this.position.y - 10
+          x: this.position.x + this.size.width / 2,  // Tam ortaya yerleştir
+          y: this.position.y - 15
         };
       case 180: 
         return {
           x: this.position.x + this.size.width + 10,
-          y: this.position.y + offset
+          y: this.position.y + this.size.height / 2  // Tam ortaya yerleştir
         };
       case 270: 
         return {
-          x: this.position.x + offset,
-          y: this.position.y + this.size.height + 10
+          x: this.position.x + this.size.width / 2,  // Tam ortaya yerleştir
+          y: this.position.y + this.size.height + 15
         };
       default:
         return { x: this.position.x, y: this.position.y };
     }
   }
   
+  // Diğer kapılar için mevcut hesaplamayı kullan
+  const spacing = this.size.height / (total + 1);
+  const offset = (index + 1) * spacing;
   
-  private getOutputPortPosition(index: number = 0, total: number = 1): Point {
-    const spacing = this.size.height / (total + 1);
-    const offset = (index + 1) * spacing;
-    
+  if(this.rotation < 0){
+    this.rotation += 360;
+  }
+  switch (this.rotation) {
+    case 0: 
+      return {
+        x: this.position.x - 10,
+        y: this.position.y + offset
+      };
+    case 90: 
+      return {
+        x: this.position.x + offset,
+        y: this.position.y - 10
+      };
+    case 180: 
+      return {
+        x: this.position.x + this.size.width + 10,
+        y: this.position.y + offset
+      };
+    case 270: 
+      return {
+        x: this.position.x + offset,
+        y: this.position.y + this.size.height + 10
+      };
+    default:
+      return { x: this.position.x, y: this.position.y };
+  }
+}
+
+// Benzer şekilde getOutputPortPosition metodunu da güncelleyelim
+private getOutputPortPosition(index: number = 0, total: number = 1): Point {
+  // NOT ve BUFFER kapıları için özel durum
+  const isNotOrBuffer = this.type === "not" || this.type === "buffer";
+  
+  // NOT ve BUFFER kapıları için çıkışı tam ortaya konumlandır
+  if (isNotOrBuffer) {
     switch (this.rotation) {
       case 0: 
         return {
           x: this.position.x + this.size.width + 10,
-          y: this.position.y + offset
+          y: this.position.y + this.size.height / 2  // Tam ortaya yerleştir
         };
       case 90: 
         return {
-          x: this.position.x + offset,
-          y: this.position.y + this.size.height + 10
+          x: this.position.x + this.size.width / 2,  // Tam ortaya yerleştir
+          y: this.position.y + this.size.height + 15
         };
       case 180: 
         return {
           x: this.position.x - 10,
-          y: this.position.y + offset
+          y: this.position.y + this.size.height / 2  // Tam ortaya yerleştir
         };
       case 270: 
         return {
-          x: this.position.x + offset,
-          y: this.position.y - 10
+          x: this.position.x + this.size.width / 2,  // Tam ortaya yerleştir
+          y: this.position.y - 15
         };
       default:
         return { x: this.position.x, y: this.position.y };
     }
   }
   
+  // Diğer kapılar için mevcut hesaplamayı kullan
+  const spacing = this.size.height / (total + 1);
+  const offset = (index + 1) * spacing;
   
-  public rotate(): void {
+  if(this.rotation < 0){
+    this.rotation += 360;
+  }
+  switch (this.rotation) {
+    case 0: 
+      return {
+        x: this.position.x + this.size.width + 10,
+        y: this.position.y + offset
+      };
+    case 90: 
+      return {
+        x: this.position.x + offset,
+        y: this.position.y + this.size.height + 15
+      };
+    case 180: 
+      return {
+        x: this.position.x - 10,
+        y: this.position.y + offset
+      };
+    case 270: 
+      return {
+        x: this.position.x + offset,
+        y: this.position.y - 15
+      };
+    default:
+      return { x: this.position.x, y: this.position.y };
+  }
+}
+  
+  
+  public rotate(direction: number): void {
     
-    this.rotation = (this.rotation + 90) % 360;
+    this.rotation = (this.rotation + (90 * direction)) % 360;
     
     
     this.updatePortPositions();
@@ -276,31 +472,6 @@ export abstract class LogicGate extends Component {
       ctx.stroke();
     });
   }
-  
-  
-  increaseInputCount(): void {
-    const portPosition = this.getInputPortPosition(this.inputs.length, this.inputs.length + 1);
-    
-    this.inputs.push({
-      id: `${this.id}-input-${this.inputs.length}`,
-      type: 'input',
-      position: portPosition,
-      value: false,
-      isConnected: false,
-      component: this
-    });
-    
-    
-    this.updatePortPositions();
-  }
-  decreaseInputCount(): void {
-
-    if(this.inputs.length <= 2) return;
-    this.inputs.pop();
-
-    this.updatePortPositions();
-  }
-  
   
   override getBoundingBox(): { x: number; y: number; width: number; height: number } {
     

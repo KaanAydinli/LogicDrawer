@@ -43,6 +43,7 @@ import { GoogleGenAI } from "@google/genai";
 import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
 import { apiBaseUrl } from "./services/apiConfig";
 import { MultiBit } from "./models/components/MultiBit";
+import { SmartDisplay } from "./models/components/SmartDisplay";
 
 export class Queue {
   public items: string[] = [];
@@ -66,13 +67,6 @@ const queue = new Queue();
 
 const repositoryService = new MongoDBCircuitRepository();
 var converter;
-
-const apiKey = import.meta.env.VITE_ROBOFLOW_API_KEY;
-const workflowId = import.meta.env.VITE_ROBOFLOW_WORKFLOW_ID;
-const apiKeyMinstral = import.meta.env.VITE_MISTRAL_API_KEY;
-
-var roboflow;
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GOOGLE_API_KEY });
 
 var imageUploader: ImageUploader;
 
@@ -472,7 +466,10 @@ function addComponentByType(type: string, position: Point) {
       component = new Led(position);
       break;
     case "multibit":
-      component = new MultiBit(position, 4); // Varsayılan olarak 4 bit
+      component = new MultiBit(position); // Varsayılan olarak 4 bit
+      break;
+    case "smartdisplay":
+      component = new SmartDisplay(position);
       break;
     default:
       return;
@@ -664,6 +661,13 @@ function setUpAI() {
       circuitBoard.selectedComponent = null;
       circuitBoard.selectedComponents = [];
     }
+  });
+  chatInput.addEventListener('input', function() {
+    // Önce yüksekliği sıfırla
+    this.style.height = 'auto';
+    
+    // Sonra içeriğin yüksekliğine göre ayarla
+    this.style.height = (this.scrollHeight) + 'px';
   });
 
   fileUpload.addEventListener("change", function (event) {
