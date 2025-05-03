@@ -418,7 +418,7 @@ export class CircuitBoard {
    */
   private rerouteAllWires(): void {
     this.wires.forEach(wire => {
-      wire.autoRoute();
+      wire.autoRoute(this.components, this.wires.filter(w => w !== wire));
     });
 
     console.log("Tüm kablolar yeniden yönlendirildi.");
@@ -1464,6 +1464,7 @@ export class CircuitBoard {
             console.log("Connection successful! Adding wire to list.");
             port.isConnected = true;
             this.wires.push(this.currentWire);
+            this.currentWire.autoRoute(this.components, this.wires);
             this.currentWire = null;
             this.simulate();
           } else {
@@ -1579,7 +1580,7 @@ export class CircuitBoard {
             (wire.to && wire.to.component === component)) &&
           !updatedWires.includes(wire)
         ) {
-          wire.autoRoute();
+          wire.autoRoute(this.components, this.wires.filter(w => w !== wire));
           updatedWires.push(wire);
         }
       }

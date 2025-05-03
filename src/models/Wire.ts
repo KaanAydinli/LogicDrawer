@@ -1,4 +1,4 @@
-import { Point, Port } from './Component';
+import { Component, Point, Port } from './Component';
 import { BitArray } from './MultibitTypes';
 
 export class Wire {
@@ -40,7 +40,7 @@ export class Wire {
 
     if (this.from && this.from.bitWidth !== toPort.bitWidth) {
       console.log(`Bit width mismatch: ${this.from.bitWidth} vs ${toPort.bitWidth}`);
-      // Optionally handle bit width adaptation here
+      
     }
 
     const isOutputToInput = this.from && this.from.type === 'output' && toPort.type === 'input';
@@ -48,7 +48,7 @@ export class Wire {
 
     if (isOutputToInput) {
       this.to = toPort;
-      // Only mark input ports as connected (outputs can have multiple connections)
+      
       if (toPort.type === 'input') {
         toPort.isConnected = true;
       }
@@ -69,7 +69,7 @@ export class Wire {
       this.from = toPort;
       this.to = temp;
       
-      // Only mark input ports as connected (outputs can have multiple connections)
+      
       if (this.to && this.to.type === 'input') {
         this.to.isConnected = true;
       }
@@ -91,36 +91,36 @@ export class Wire {
   transferValue(): void {
     if (!this.from || !this.to) return;
 
-    // Get source value
+    
     const sourceValue = this.from.value;
 
-    // Handle multi-bit transfer with potential width adaptation
+    
     if (Array.isArray(sourceValue)) {
       if (this.to.bitWidth === 1) {
-        // Multi-bit to single-bit: use MSB
+        
         this.to.value = sourceValue.length > 0 ? sourceValue[0] : false;
       } else {
-        // Multi-bit to multi-bit
+        
         const targetArray: BitArray = [];
         
-        // Copy bits with width adjustment
+        
         for (let i = 0; i < this.to.bitWidth; i++) {
           if (i < sourceValue.length) {
             targetArray.push(sourceValue[i]);
           } else {
-            targetArray.push(false); // Pad with false
+            targetArray.push(false); 
           }
         }
         
         this.to.value = targetArray;
       }
     } else {
-      // Single-bit to any width
+      
       if (this.to.bitWidth === 1) {
-        // Single-bit to single-bit
+        
         this.to.value = sourceValue;
       } else {
-        // Single-bit to multi-bit: fill all bits with source value
+        
         this.to.value = Array(this.to.bitWidth).fill(sourceValue);
       }
     }
@@ -129,7 +129,7 @@ export class Wire {
   disconnect(): void {
 
     console.log("Disconnected wire");
-    // Only mark input ports as not connected
+    
     if (this.to && this.to.type === 'input') {
       this.to.isConnected = false;
       this.to = null;
@@ -145,29 +145,216 @@ export class Wire {
     
     this.controlPoints = [];
   }
-  public autoRoute(): void {
-   
+  public autoRoute(components: Component[] = [], wires: Wire[] = []): void {
     this.controlPoints = [];
     
-    if (!this.to) return;
-    if (!this.from) return;
+    if (!this.to || !this.from) return;
+    
     const start = this.from.position;
     const end = this.to.position;
     
     
-    if (Math.abs(start.x - end.x) > 20 && Math.abs(start.y - end.y) > 20) {
+    const gridSize = 20;
+    
+    
+    const gridStart = {
+      x: Math.round(start.x / gridSize),
+      y: Math.round(start.y / gridSize)
+    };
+    
+    const gridEnd = {
+      x: Math.round(end.x / gridSize),
+      y: Math.round(end.y / gridSize)
+    };
+  
+    
+    const path = this.findPath(gridStart, gridEnd, components, wires);
+    
+    
+    this.controlPoints = path.slice(1, -1).map(p => ({
+      x: p.x * gridSize,
+      y: p.y * gridSize
+    }));
+    
+    
+    this.optimizeControlPoints();
+  }
+  
+  private findPath(start: {x: number, y: number}, end: {x: number, y: number}, 
+                  components: Component[], wires: Wire[]): {x: number, y: number}[] {
+    
+    const openSet: {point: {x: number, y: number}, f: number, g: number, parent: any}[] = [];
+    const closedSet = new Set<string>();
+    const gridSize = 20;
+    
+    
+    openSet.push({
+      point: start,
+      f: this.heuristic(start, end),
+      g: 0,
+      parent: null
+    });
+    
+    while (openSet.length > 0) {
       
-      if (Math.abs(start.x - end.x) > Math.abs(start.y - end.y)) {
-       
-        this.controlPoints.push({ x: start.x + (end.x - start.x) * 0.5, y: start.y });
-        this.controlPoints.push({ x: start.x + (end.x - start.x) * 0.5, y: end.y });
-      } else {
+      openSet.sort((a, b) => a.f - b.f);
+      const current = openSet.shift()!;
+      
+      
+      const key = `${current.point.x},${current.point.y}`;
+      if (current.point.x === end.x && current.point.y === end.y) {
         
-        this.controlPoints.push({ x: start.x, y: start.y + (end.y - start.y) * 0.5 });
-        this.controlPoints.push({ x: end.x, y: start.y + (end.y - start.y) * 0.5 });
+        return this.reconstructPath(current);
+      }
+      
+      closedSet.add(key);
+      
+      
+      const directions = [
+        {x: 0, y: -1}, 
+        {x: 1, y: 0},  
+        {x: 0, y: 1},  
+        {x: -1, y: 0}  
+      ];
+      
+      for (const dir of directions) {
+        const neighbor = {
+          x: current.point.x + dir.x,
+          y: current.point.y + dir.y
+        };
+        
+        const neighborKey = `${neighbor.x},${neighbor.y}`;
+        
+        
+        if (closedSet.has(neighborKey)) continue;
+        
+        
+        const g = current.g + 1;
+        
+        
+        let penalty = 0;
+        
+        
+        const worldPos = {x: neighbor.x * gridSize, y: neighbor.y * gridSize};
+        
+        
+        components.forEach(component => {
+          if (this.intersectsComponent(worldPos, component)) {
+            penalty += 100; 
+          }
+        });
+        
+        
+        wires.forEach(wire => {
+          if (wire !== this && this.intersectsWire(worldPos, wire)) {
+            penalty += 10; 
+          }
+        });
+        
+        
+        const h = this.heuristic(neighbor, end);
+        const f = g + h + penalty;
+        
+        
+        const existing = openSet.find(item => 
+          item.point.x === neighbor.x && item.point.y === neighbor.y);
+        
+        if (!existing || g < existing.g) {
+          
+          if (existing) {
+            existing.g = g;
+            existing.f = f;
+            existing.parent = current;
+          } else {
+            openSet.push({
+              point: neighbor,
+              f,
+              g,
+              parent: current
+            });
+          }
+        }
+      }
+    }
+    
+    
+    const midpoint = {
+      x: Math.round((start.x + end.x) / 2),
+      y: Math.round((start.y + end.y) / 2)
+    };
+    
+    return [start, midpoint, end];
+  }
+  
+  private heuristic(a: {x: number, y: number}, b: {x: number, y: number}): number {
+    
+    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+  }
+  
+  private reconstructPath(node: any): {x: number, y: number}[] {
+    const path: {x: number, y: number}[] = [];
+    let current = node;
+    
+    while (current) {
+      path.unshift(current.point);
+      current = current.parent;
+    }
+    
+    return path;
+  }
+  
+  private intersectsComponent(point: Point, component: Component): boolean {
+    
+    const bounds = component.getBoundingBox();
+    if (!bounds) return false;
+    
+    return (
+      point.x >= bounds.x &&
+      point.x <= bounds.x + bounds.width &&
+      point.y >= bounds.y &&
+      point.y <= bounds.y + bounds.height
+    );
+  }
+  
+  private intersectsWire(point: Point, wire: Wire): boolean {
+    
+    const wirePoints = wire.getAllPoints();
+    
+    for (let i = 0; i < wirePoints.length - 1; i++) {
+      const p1 = wirePoints[i];
+      const p2 = wirePoints[i + 1];
+      
+      const threshold = 10;
+      const distance = this.distanceToSegment(point, p1, p2);
+      
+      if (distance < threshold) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  private optimizeControlPoints(): void {
+    if (this.controlPoints.length <= 2) return;
+    
+    
+    for (let i = this.controlPoints.length - 2; i > 0; i--) {
+      const prev = i > 0 ? this.controlPoints[i - 1] : this.from!.position;
+      const current = this.controlPoints[i];
+      const next = i < this.controlPoints.length - 1 ? this.controlPoints[i + 1] : this.to!.position;
+      
+      
+      if (
+        (prev.x === current.x && current.x === next.x) ||
+        (prev.y === current.y && current.y === next.y)
+      ) {
+        
+        this.controlPoints.splice(i, 1);
       }
     }
   }
+
 
  
   updateTempEndPoint(point: Point): void {
@@ -190,26 +377,26 @@ export class Wire {
       return;
     }
   
-    // Determine wire color based on value and bit width
-    let wireColor = '#cdcfd0'; // Default color
+    
+    let wireColor = '#cdcfd0'; 
 
     if (this.from.value) {
       if (Array.isArray(this.from.value)) {
-        // Multi-bit wire: different color or visual indicator
+        
         const hasActiveBit = (this.from.value as BitArray).some(bit => bit);
         wireColor = hasActiveBit ? '#4CAF50' : '#cdcfd0';
       } else {
-        // Single-bit wire
+        
         wireColor = this.from.value ? '#4CAF50' : '#cdcfd0';
       }
     }
 
     ctx.strokeStyle = this.selected ? '#0B6E4F' : wireColor;
     
-    // Make multi-bit wires visually distinct
+    
     if (this.bitWidth > 1) {
       ctx.lineWidth = this.selected ? 4 : 3;
-      // Optional: Add a dash pattern for multi-bit
+      
       ctx.setLineDash([5, 3]);
     } else {
       ctx.lineWidth = this.selected ? 3 : 2;
@@ -233,11 +420,11 @@ export class Wire {
     }
     
     ctx.stroke();
-    ctx.setLineDash([]); // Reset dash pattern
+    ctx.setLineDash([]); 
 
-    // Draw bit width indicator for multi-bit wires
+    
     if (this.bitWidth > 1) {
-      // Find midpoint of wire
+      
       const points = this.getAllPoints();
       if (points.length >= 2) {
         const midIndex = Math.floor(points.length / 2);
@@ -247,7 +434,7 @@ export class Wire {
         const midX = (p1.x + p2.x) / 2;
         const midY = (p1.y + p2.y) / 2;
         
-        // Draw bit width indicator
+        
         ctx.fillStyle = '#ffffff';
         ctx.font = '10px Arial';
         ctx.textAlign = 'center';
