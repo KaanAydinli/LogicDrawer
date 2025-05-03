@@ -67,14 +67,37 @@ export class DFlipFlop extends Component {
   }
   
   evaluate(): void {
+    // D değerini al
     const dataIn = this.inputs[0].value;
-    const clockIn = !!this.inputs[1].value; // Ensure clock is a boolean
     
-    // Check for rising edge of clock (positive edge triggered)
+    // Clock değerini düzgün işle - MultiBit olma durumunu kontrol et
+    let clockIn = false;
+    if (Array.isArray(this.inputs[1].value)) {
+      // Clock MultiBit ise, ilk biti kullan
+      clockIn = !!this.inputs[1].value[0];
+      console.log("Clock is MultiBit array:", this.inputs[1].value, "Using first bit:", clockIn);
+    } else {
+      // Tek bit ise boolean'a çevir
+      clockIn = !!this.inputs[1].value;
+    }
+    
+    // Debug için loglama yap
+    console.log("DFlipFlop:", {
+      dataValue: dataIn,
+      clockValue: clockIn,
+      lastClk: this.lastClk,
+      risingEdge: clockIn && !this.lastClk
+    });
+    
+    // Yükselen kenar tespiti (rising edge detection)
     if (clockIn && !this.lastClk) {
+      console.log("Rising edge detected! D->Q transfer");
+      
       // Handle multi-bit input
       if (Array.isArray(dataIn)) {
-        this.qValue = [...dataIn]; // Store a copy of the input BitArray
+        // DERİN KOPYA OLUŞTUR
+        this.qValue = [...dataIn]; 
+        console.log("Setting Q to array:", this.qValue);
         
         // Set output bitWidth to match input
         this.outputs[0].bitWidth = dataIn.length;
@@ -82,6 +105,7 @@ export class DFlipFlop extends Component {
       } else {
         // Handle single bit input
         this.qValue = !!dataIn;
+        console.log("Setting Q to boolean:", this.qValue);
         
         // Reset bitWidth to 1 for single-bit operation
         this.outputs[0].bitWidth = 1;
@@ -89,13 +113,13 @@ export class DFlipFlop extends Component {
       }
     }
     
-    // Update outputs
+    // Update outputs - HER ZAMAN DERİN KOPYA KULLAN
     if (Array.isArray(this.qValue)) {
       // Multi-bit case: Set Q and invert for Q'
-      this.outputs[0].value = this.qValue;
+      this.outputs[0].value = [...this.qValue]; // DERİN KOPYA
       
       // Create inverted output for Q'
-      const notQ: BitArray = this.qValue.map(bit => !bit);
+      const notQ = this.qValue.map(bit => !bit);
       this.outputs[1].value = notQ;
     } else {
       // Single-bit case: Set Q and Q'
@@ -105,6 +129,34 @@ export class DFlipFlop extends Component {
     
     // Store current clock state for edge detection
     this.lastClk = clockIn;
+  }
+  
+  // setState metodunu da düzeltelim
+  setState(state: any): void {
+    super.setState(state);
+    
+    if (state.qValue !== undefined) {
+      // DERİN KOPYA ile qValue değerini ayarla
+      this.qValue = Array.isArray(state.qValue) ? [...state.qValue] : !!state.qValue;
+      
+      if (Array.isArray(this.qValue)) {
+        // Çıkışlara da derin kopyalar atayalım
+        this.outputs[0].value = [...this.qValue]; // DERİN KOPYA
+        this.outputs[1].value = this.qValue.map(bit => !bit);
+        this.outputs[0].bitWidth = this.qValue.length;
+        this.outputs[1].bitWidth = this.qValue.length;
+      } else {
+        this.outputs[0].value = this.qValue;
+        this.outputs[1].value = !this.qValue;
+        this.outputs[0].bitWidth = 1;
+        this.outputs[1].bitWidth = 1;
+      }
+    }
+    
+    if (state.lastClk !== undefined) {
+      // Boolean'a dönüştürmeyi unutma
+      this.lastClk = !!state.lastClk;
+    }
   }
   
   draw(ctx: CanvasRenderingContext2D): void {
@@ -251,27 +303,5 @@ export class DFlipFlop extends Component {
       qValue: this.qValue,
       lastClk: this.lastClk
     };
-  }
-  
-  setState(state: any): void {
-    super.setState(state);
-    if (state.qValue !== undefined) {
-      this.qValue = state.qValue;
-      
-      if (Array.isArray(this.qValue)) {
-        this.outputs[0].value = this.qValue;
-        this.outputs[1].value = this.qValue.map(bit => !bit);
-        this.outputs[0].bitWidth = this.qValue.length;
-        this.outputs[1].bitWidth = this.qValue.length;
-      } else {
-        this.outputs[0].value = this.qValue;
-        this.outputs[1].value = !this.qValue;
-        this.outputs[0].bitWidth = 1;
-        this.outputs[1].bitWidth = 1;
-      }
-    }
-    if (state.lastClk !== undefined) {
-      this.lastClk = state.lastClk;
-    }
   }
 }

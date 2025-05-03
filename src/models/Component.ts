@@ -71,7 +71,7 @@ export abstract class Component {
   }
   
   public decreaseBitWidth(): void {
-    if (this.defaultBitWidth > 1) {
+    if (this.defaultBitWidth > 1 ) {
       this.setBitWidth(this.defaultBitWidth - 1);
     }
   }
