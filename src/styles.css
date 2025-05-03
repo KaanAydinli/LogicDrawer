@@ -483,6 +483,10 @@ body {
   border-radius: 8px;
   font-size: 14px;
   line-height: 1.4;
+  word-wrap: break-word;      
+  overflow-wrap: break-word;  
+  word-break: break-word;    
+  max-width: 100%; 
 }
 
 .circuit-actions {
@@ -788,15 +792,36 @@ body {
 .user-message .message-content {
   border-top-right-radius: 0;
   background-color: var(--border-color);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
 }
 
+#ai-chat-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  font-size: 14px;
+  padding: 8px 12px;
+  resize: none; /* Kullanıcı tarafından yeniden boyutlandırılamaz */
+  overflow-y: auto; /* Dikey kaydırma çubuğu */
+  min-height: 24px;
+  max-height: 120px; /* Maksimum yükseklik */
+  line-height: 1.5;
+  font-family: inherit;
+  color: inherit;
+}
+
+/* Input alanının container'ını düzenli tutmak için */
 .ai-chat-input-area {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--border-color);
-  background-color: var(--secondary-bg);
+  padding: 5px 10px;
+  background-color: #333;
+  border-top: 1px solid #444;
+  position: relative;
 }
 
 .file-upload-label {
@@ -812,15 +837,6 @@ body {
   background-color: var(--component-bg);
 }
 
-#ai-chat-input {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
-  background-color: var(--component-bg);
-  color: var(--text-color);
-  font-size: 14px;
-}
 
 #ai-chat-input:focus {
   outline: none;

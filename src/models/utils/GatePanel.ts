@@ -53,7 +53,7 @@ export class GatePanel {
       
       .component-properties-header h3 {
         margin: 0;
-        color: #5da9e9;
+        color: var(--text-color);
         font-size: 16px;
       }
       
@@ -140,25 +140,25 @@ export class GatePanel {
         border-top: 1px solid #444;
       }
         .rotate-btn {
-  width: 100%;
-  height: 36px;
-  background: #444;
-  border: none;
-  border-radius: 4px;
-  color: #fff;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-  margin-top: 5px;
-}
+        width: 100%;
+        height: 36px;
+        background: #444;
+        border: none;
+        border-radius: 4px;
+        color: #fff;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s;
+        margin-top: 5px;
+        }
 
-.rotate-btn:hover {
-  background: #555;
-}
+        .rotate-btn:hover {
+        background: #555;
+        }
 
-.rotate-btn:active {
-  background: #666;
-}
+        .rotate-btn:active {
+        background: #666;
+        }
     `;
     document.head.appendChild(style);
   }

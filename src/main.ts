@@ -676,6 +676,13 @@ function setUpAI() {
       circuitBoard.selectedComponents = [];
     }
   });
+  chatInput.addEventListener('input', function() {
+    // Önce yüksekliği sıfırla
+    this.style.height = 'auto';
+    
+    // Sonra içeriğin yüksekliğine göre ayarla
+    this.style.height = (this.scrollHeight) + 'px';
+  });
 
   fileUpload.addEventListener("change", function (event) {
     const target = event.target as HTMLInputElement | null;
