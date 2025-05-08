@@ -2,6 +2,8 @@ import { Component, Port } from "../models/Component";
 import { VerilogCircuitConverter } from "../models/utils/VerilogCircuitConverter";
 import { Wire } from "../models/Wire";
 import { apiBaseUrl } from "../services/apiConfig";
+import { CircuitService } from '../services/CircuitService';
+import { CircuitBoard } from '../models/CircuitBoard';
 
 export interface Comment {
   id: string;
@@ -755,7 +757,7 @@ export class CircuitRepositoryController {
   public selectedCircuitId: string | null = null;
 
   constructor(
-    private repositoryService: CircuitRepositoryService,
+    private circuitService: CircuitService,
     private verilogConverter: VerilogCircuitConverter,
     containerElement: HTMLElement
   ) {
@@ -764,7 +766,7 @@ export class CircuitRepositoryController {
     const userInfo = localStorage.getItem("user_info");
 
     const user = userInfo ? JSON.parse(userInfo) : { id: "unknown-user" };
-    this.currentUserId = user.id || user._id; 
+    this.currentUserId = user.id || user._id;
   }
 
   public open(): void {
@@ -889,11 +891,11 @@ export class CircuitRepositoryController {
     this.circuitGridElement.innerHTML = `<div class="loading-indicator">Loading circuits...</div>`;
 
     try {
-      const allCircuits = await this.repositoryService.getCircuits();
+      const allCircuits = await this.circuitService.getCircuits();
 
       if (this.currentTab === "browse") {
         // Public devreleri getir
-        const allCircuits = await this.repositoryService.getCircuits();
+        const allCircuits = await this.circuitService.getCircuits();
         // Sadece public ve kullanıcının sahip olmadığı devreleri filtrele
         this.currentCircuits = allCircuits.filter(c => {
           const isPublic = c.isPublic === true;
@@ -907,7 +909,7 @@ export class CircuitRepositoryController {
         });
       } else if (this.currentTab === "my-circuits") {
         // Kullanıcının kendi devrelerini filtrele
-        const allCircuits = await this.repositoryService.getCircuits();
+        const allCircuits = await this.circuitService.getCircuits();
         this.currentCircuits = allCircuits.filter(c => {
           if (typeof c.userId === "object" && c.userId !== null) {
             return c.userId._id === this.currentUserId;
@@ -917,7 +919,7 @@ export class CircuitRepositoryController {
         });
       } else if (this.currentTab === "shared-me") {
         // Kullanıcı ile paylaşılan devreleri getir
-        this.currentCircuits = await this.repositoryService.getSharedCircuits();
+        this.currentCircuits = await this.circuitService.getSharedCircuits();
       }
       this.renderCircuitGrid();
       
@@ -1074,7 +1076,7 @@ export class CircuitRepositoryController {
         e.stopPropagation();
         if (confirm(`Are you sure you want to delete "${circuit.name || "Untitled Circuit"}"?`)) {
           try {
-            await this.repositoryService.deleteCircuit(circuit.id);
+            await this.circuitService.deleteCircuit(circuit.id);
             card.remove();
             alert("Circuit deleted successfully!");
 
@@ -1104,7 +1106,7 @@ export class CircuitRepositoryController {
     }
 
     try {
-      const circuit = await this.repositoryService.getCircuitById(circuitId);
+      const circuit = await this.circuitService.getCircuitById(circuitId);
       this.selectedCircuitId = circuitId;
 
       this.renderCircuitDetail(circuit);
@@ -1121,7 +1123,7 @@ export class CircuitRepositoryController {
       // Görünürlüğü tersine çevir
       const newVisibility = !circuit.isPublic;
       
-      await this.repositoryService.updateCircuitVisibility(circuit.id, newVisibility);
+      await this.circuitService.updateCircuitVisibility(circuit.id, newVisibility);
       
       // Devre objesini güncelle
       circuit.isPublic = newVisibility;
@@ -1266,7 +1268,7 @@ export class CircuitRepositoryController {
       deleteBtn.addEventListener("click", async () => {
         if (confirm(`Are you sure you want to delete "${circuit.name || "Untitled Circuit"}"?`)) {
           try {
-            await this.repositoryService.deleteCircuit(circuit.id);
+            await this.circuitService.deleteCircuit(circuit.id);
 
             
             this.showCircuitGrid();
@@ -1335,7 +1337,7 @@ private async searchCircuits(query: string): Promise<void> {
 
   try {
     
-    const searchResults = await this.repositoryService.searchCircuits(query);
+    const searchResults = await this.circuitService.searchCircuits(query);
     
     
     if (this.currentTab === "my-circuits") {
@@ -1416,7 +1418,7 @@ private async handleUploadSubmit(e: Event): Promise<void> {
   const isPublic = formData.get("isPublic") === "on" || true; 
 
   try {
-    const newCircuit = await this.repositoryService.uploadCircuit({
+    const newCircuit = await this.circuitService.uploadCircuit({
       name: title,
       description,
       userId: this.currentUserId,
@@ -1558,7 +1560,7 @@ private async handleUploadSubmit(e: Event): Promise<void> {
   }
   private async downloadCircuit(circuit: CircuitEntry): Promise<void> {
     try {
-      await this.repositoryService.downloadCircuit(circuit.id);
+      await this.circuitService.downloadCircuit(circuit.id);
 
       const blob = new Blob([circuit.verilogCode], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
@@ -1578,7 +1580,7 @@ private async handleUploadSubmit(e: Event): Promise<void> {
 
   private async likeCircuit(circuitId: string): Promise<void> {
     try {
-      await this.repositoryService.likeCircuit(circuitId);
+      await this.circuitService.likeCircuit(circuitId);
 
       this.viewCircuitDetails(circuitId);
     } catch (error) {
@@ -1594,7 +1596,7 @@ private async handleUploadSubmit(e: Event): Promise<void> {
         text: text.trim(),
       };
 
-      await this.repositoryService.addComment(circuitId, comment);
+      await this.circuitService.addComment(circuitId, comment);
 
       this.viewCircuitDetails(circuitId);
     } catch (error) {

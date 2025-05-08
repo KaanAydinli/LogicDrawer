@@ -40,10 +40,10 @@ import { HalfSubtractor } from "./models/gates/HalfSubtractor";
 import { FullSubtractor } from "./models/gates/FullSubtractor";
 import { Led } from "./models/components/Led";
 import { GoogleGenAI } from "@google/genai";
-import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
 import { apiBaseUrl } from "./services/apiConfig";
 import { MultiBit } from "./models/components/MultiBit";
 import { SmartDisplay } from "./models/components/SmartDisplay";
+import { CircuitService } from "./services/CircuitService";
 
 export class Queue {
   public items: string[] = [];
@@ -65,7 +65,7 @@ export class Queue {
 }
 const queue = new Queue();
 
-const repositoryService = new MongoDBCircuitRepository();
+const circuitService = new CircuitService();
 var converter;
 
 var imageUploader: ImageUploader;
@@ -96,7 +96,7 @@ function initApp() {
     circuitBoard.takeScreenshot();
   });
 
-  repository = new CircuitRepositoryController(repositoryService, converter, document.body);
+  repository = new CircuitRepositoryController(circuitService, converter, document.body);
   storage.addEventListener("click", () => {
     repository.open();
   });
