@@ -631,10 +631,15 @@ function setUpAI() {
   async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") return;
-
+    
     addUserMessage(message);
+    
+    chatInput.value = ""; 
+    
+    chatInput.style.height = "auto"; // Reset height to auto before setting new height
 
-    chatInput.value = "";
+
+
 
     try {
       // Process the message with our AI agent
@@ -654,6 +659,7 @@ function setUpAI() {
 
   chatInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
+      event.preventDefault();
       sendMessage();
     }
 
@@ -664,6 +670,7 @@ function setUpAI() {
   });
   chatInput.addEventListener('input', function() {
     // Önce yüksekliği sıfırla
+
     this.style.height = 'auto';
     
     // Sonra içeriğin yüksekliğine göre ayarla
