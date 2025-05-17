@@ -418,7 +418,10 @@ export class CircuitBoard {
    */
   private rerouteAllWires(): void {
     this.wires.forEach(wire => {
-      wire.autoRoute(this.components, this.wires.filter(w => w !== wire));
+      wire.autoRoute(
+        this.components,
+        this.wires.filter(w => w !== wire)
+      );
     });
 
     console.log("Tüm kablolar yeniden yönlendirildi.");
@@ -748,7 +751,18 @@ export class CircuitBoard {
 
     this.draw();
   }
-
+  public removeWire(wire: Wire): void {
+    const index = this.wires.indexOf(wire);
+    if (index !== -1) {
+      this.wires.splice(index, 1);
+    }
+  }
+  public removeComponent(component: Component): void {
+    const index = this.components.indexOf(component);
+    if (index !== -1) {
+      this.components.splice(index, 1);
+    }
+  }
   public resetZoom() {
     this.scale = 1;
     this.offsetX = 0;
@@ -1260,12 +1274,9 @@ export class CircuitBoard {
     if (!this.isSelecting) {
       this.isSelecting = true;
       this.selectionRect = { start: mousePos, end: mousePos };
-     
     }
 
-    
-      this.updatePropertiesPanel();
-    
+    this.updatePropertiesPanel();
 
     this.selectedComponent = null;
     this.selectedWire = null;
@@ -1282,8 +1293,7 @@ export class CircuitBoard {
     // Show the panel only if a single LogicGate is selected
     const selectedComponent = this.selectedComponents[0];
 
-      this.gatePropertiesPanel.show(selectedComponent);
-
+    this.gatePropertiesPanel.show(selectedComponent);
   }
   public clearSelection(): void {
     this.selectedComponents.forEach(component => (component.selected = false));
@@ -1580,7 +1590,10 @@ export class CircuitBoard {
             (wire.to && wire.to.component === component)) &&
           !updatedWires.includes(wire)
         ) {
-          wire.autoRoute(this.components, this.wires.filter(w => w !== wire));
+          wire.autoRoute(
+            this.components,
+            this.wires.filter(w => w !== wire)
+          );
           updatedWires.push(wire);
         }
       }
