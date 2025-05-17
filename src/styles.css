@@ -85,8 +85,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-left: 3px;
-  padding-top: 2px;
+  
   border-radius: 5px;
 }
 .screenshot:hover {
@@ -1253,8 +1252,7 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 5px;
-  margin-right: 10px;
+  
   border-radius: 5px;
   transition: background-color 0.2s;
 }
