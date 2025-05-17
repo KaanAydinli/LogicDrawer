@@ -198,27 +198,49 @@ export class TruthTableManager {
   }
   
   /**
+   * Giriş bileşenlerini döndürür
+   */
+  public getInputComponents(): Component[] {
+    return this.inputComponents;
+  }
+
+  /**
+   * Çıkış bileşenlerini döndürür
+   */
+  public getOutputComponents(): Component[] {
+    return this.outputComponents;
+  }
+
+  /**
+   * Bir bileşen için alfabetik etiket oluşturur
+   */
+  public getAlphabeticLabel(component: Component): string {
+    // Giriş bileşenleri için alfabetik etiketler (A, B, C...)
+    if (this.inputComponents.includes(component)) {
+      const index = this.inputComponents.indexOf(component);
+      return String.fromCharCode(65 + index); // ASCII: 65 = 'A'
+    }
+    
+    // Çıkış bileşenleri için F1, F2... şeklinde etiketler
+    if (this.outputComponents.includes(component)) {
+      const index = this.outputComponents.indexOf(component);
+      return `F${index + 1}`;
+    }
+    
+    return component.id;
+  }
+
+  /**
    * Bileşen için etiket oluşturur
    */
   private getComponentLabel(component: Component): string {
+    // Özel bir etiket tanımlanmışsa onu kullan
     if ((component as any).label) {
       return (component as any).label;
     }
     
-    // Varsayılan etiket
-    const typeMap: {[key: string]: string} = {
-      "toggle": "T",
-      "button": "B",
-      "constant0": "0",
-      "constant1": "1",
-      "clock": "CLK",
-      "light-bulb": "L",
-      "led": "LED",
-      "hex": "HEX"
-    };
-    
-    const prefix = typeMap[component.type] || component.type.charAt(0).toUpperCase();
-    return `${prefix}${component.id.slice(-2)}`;
+    // Alfabetik etiket kullan
+    return this.getAlphabeticLabel(component);
   }
   
   /**

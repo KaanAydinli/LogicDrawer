@@ -54,7 +54,7 @@ export class CircuitBoard {
   public minimapWidth: number = 200;
   public minimapHeight: number = 200;
   private truthTableManager: TruthTableManager;
-  
+
   private selectionRect: { start: Point; end: Point } | null = null;
   private isSelecting: boolean = false;
   public selectedComponents: Component[] = [];
@@ -75,7 +75,7 @@ export class CircuitBoard {
 
     this.selectedComponents = [];
     this.truthTableManager = new TruthTableManager(this);
-    
+
     this.gatePropertiesPanel = new GatePanel("properties-panel-container", () => {
       this.simulate();
       this.draw();
@@ -374,37 +374,45 @@ export class CircuitBoard {
 
     return true;
   }
-   public generateTruthTable(): void {
+  public generateTruthTable(): void {
     try {
       const ioCount = this.truthTableManager.identifyIOComponents();
-      
+
       if (ioCount.inputs === 0) {
-        alert("Truth table oluşturmak için devrede giriş bileşenleri (toggle, button, constant) gereklidir.");
+        alert(
+          "Truth table oluşturmak için devrede giriş bileşenleri (toggle, button, constant) gereklidir."
+        );
         return;
       }
-      
+
       if (ioCount.outputs === 0) {
-        alert("Truth table oluşturmak için devrede çıkış bileşenleri (light-bulb, led, hex) gereklidir.");
+        alert(
+          "Truth table oluşturmak için devrede çıkış bileşenleri (light-bulb, led, hex) gereklidir."
+        );
         return;
       }
-      
+
       // Çok fazla giriş varsa uyarı ver
       if (ioCount.inputs > 10) {
-        const confirmed = confirm(`${ioCount.inputs} giriş için ${Math.pow(2, ioCount.inputs)} kombinasyon hesaplanacak. Bu işlem uzun sürebilir. Devam etmek istiyor musunuz?`);
+        const confirmed = confirm(
+          `${ioCount.inputs} giriş için ${Math.pow(2, ioCount.inputs)} kombinasyon hesaplanacak. Bu işlem uzun sürebilir. Devam etmek istiyor musunuz?`
+        );
         if (!confirmed) return;
       }
-      
+
+      // Bileşenlere etiket ekle
+      this.addLabelsToComponents();
+
       // Truth table oluştur
       const truthTable = this.truthTableManager.generateTruthTable();
-      
+
       // Tabloyu göster
       this.showTruthTableModal();
-      
     } catch (error) {
       alert(`Truth table oluşturulurken hata: ${error}`);
     }
   }
-  
+
   /**
    * Truth table modalını gösterir
    */
@@ -412,7 +420,7 @@ export class CircuitBoard {
     // Modal container
     const modal = document.createElement("div");
     modal.className = "truth-table-modal";
-    
+
     // Modal içeriği için stil tanımlayalım
     modal.style.position = "fixed";
     modal.style.top = "0";
@@ -424,7 +432,7 @@ export class CircuitBoard {
     modal.style.justifyContent = "center";
     modal.style.alignItems = "center";
     modal.style.zIndex = "1000";
-    
+
     // Modal içeriği
     const content = document.createElement("div");
     content.className = "modal-content";
@@ -435,19 +443,19 @@ export class CircuitBoard {
     content.style.maxWidth = "90%";
     content.style.maxHeight = "90%";
     content.style.overflow = "auto";
-    
+
     // Modal başlığı
     const header = document.createElement("div");
     header.style.display = "flex";
     header.style.justifyContent = "space-between";
     header.style.alignItems = "center";
     header.style.marginBottom = "20px";
-    
+
     const title = document.createElement("h2");
     title.innerText = "Truth Table";
     title.style.color = "#fff";
     title.style.margin = "0";
-    
+
     const closeButton = document.createElement("button");
     closeButton.innerText = "×";
     closeButton.style.background = "none";
@@ -456,20 +464,20 @@ export class CircuitBoard {
     closeButton.style.color = "#fff";
     closeButton.style.cursor = "pointer";
     closeButton.onclick = () => document.body.removeChild(modal);
-    
+
     header.appendChild(title);
     header.appendChild(closeButton);
-    
+
     // Tablo container
     const tableContainer = document.createElement("div");
     tableContainer.style.marginBottom = "20px";
     tableContainer.style.overflow = "auto";
-    
+
     // Truth table
     const table = this.truthTableManager.createTruthTableElement();
     table.style.borderCollapse = "collapse";
     table.style.width = "100%";
-    
+
     // Tablo stili
     const style = document.createElement("style");
     style.textContent = `
@@ -490,14 +498,14 @@ export class CircuitBoard {
       }
     `;
     document.head.appendChild(style);
-    
+
     tableContainer.appendChild(table);
-    
+
     // Dışa aktarma butonları
     const exportContainer = document.createElement("div");
     exportContainer.style.display = "flex";
     exportContainer.style.gap = "10px";
-    
+
     const exportCSV = document.createElement("button");
     exportCSV.innerText = "Export CSV";
     exportCSV.style.padding = "8px 16px";
@@ -510,7 +518,7 @@ export class CircuitBoard {
       const csv = this.truthTableManager.exportToCSV();
       this.downloadFile(csv, "truth-table.csv", "text/csv");
     };
-    
+
     const exportPNG = document.createElement("button");
     exportPNG.innerText = "Export Image";
     exportPNG.style.padding = "8px 16px";
@@ -524,39 +532,42 @@ export class CircuitBoard {
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = table.offsetWidth;
       tempCanvas.height = table.offsetHeight;
-      
-      
     };
-    
+
     exportContainer.appendChild(exportCSV);
     exportContainer.appendChild(exportPNG);
-    
+
     // Tüm öğeleri modala ekle
     content.appendChild(header);
     content.appendChild(tableContainer);
     content.appendChild(exportContainer);
     modal.appendChild(content);
-    
+
     // Modalı ekrana ekle
     document.body.appendChild(modal);
   }
-  
+
   /**
    * Dosya indirme yardımcı fonksiyonu
    */
-  private downloadFile(content: string, fileName: string, contentType: string, isDataURL: boolean = false): void {
+  private downloadFile(
+    content: string,
+    fileName: string,
+    contentType: string,
+    isDataURL: boolean = false
+  ): void {
     const a = document.createElement("a");
-    
+
     if (isDataURL) {
       a.href = content;
     } else {
       const file = new Blob([content], { type: contentType });
       a.href = URL.createObjectURL(file);
     }
-    
+
     a.download = fileName;
     a.click();
-    
+
     if (!isDataURL) {
       URL.revokeObjectURL(a.href);
     }
@@ -608,7 +619,10 @@ export class CircuitBoard {
    */
   private rerouteAllWires(): void {
     this.wires.forEach(wire => {
-      wire.autoRoute(this.components, this.wires.filter(w => w !== wire));
+      wire.autoRoute(
+        this.components,
+        this.wires.filter(w => w !== wire)
+      );
     });
 
     console.log("Tüm kablolar yeniden yönlendirildi.");
@@ -1450,12 +1464,9 @@ export class CircuitBoard {
     if (!this.isSelecting) {
       this.isSelecting = true;
       this.selectionRect = { start: mousePos, end: mousePos };
-     
     }
 
-    
-      this.updatePropertiesPanel();
-    
+    this.updatePropertiesPanel();
 
     this.selectedComponent = null;
     this.selectedWire = null;
@@ -1472,8 +1483,7 @@ export class CircuitBoard {
     // Show the panel only if a single LogicGate is selected
     const selectedComponent = this.selectedComponents[0];
 
-      this.gatePropertiesPanel.show(selectedComponent);
-
+    this.gatePropertiesPanel.show(selectedComponent);
   }
   public clearSelection(): void {
     this.selectedComponents.forEach(component => (component.selected = false));
@@ -1770,7 +1780,10 @@ export class CircuitBoard {
             (wire.to && wire.to.component === component)) &&
           !updatedWires.includes(wire)
         ) {
-          wire.autoRoute(this.components, this.wires.filter(w => w !== wire));
+          wire.autoRoute(
+            this.components,
+            this.wires.filter(w => w !== wire)
+          );
           updatedWires.push(wire);
         }
       }
@@ -1999,5 +2012,56 @@ export class CircuitBoard {
       console.error("Local storage'dan yükleme hatası:", error);
       return false;
     }
+  }
+
+  private addLabelsToComponents(): void {
+    this.removeComponentLabels();
+
+    this.truthTableManager.identifyIOComponents();
+
+    const inputComponents = this.truthTableManager.getInputComponents();
+
+    inputComponents.forEach(component => {
+      if (
+        component.type === "toggle" ||
+        component.type === "button" ||
+        component.type === "clock"
+      ) {
+        const label = this.truthTableManager.getAlphabeticLabel(component);
+        this.addLabelToComponent(component, label);
+      }
+    });
+
+    const outputComponents = this.truthTableManager.getOutputComponents();
+    outputComponents.forEach(component => {
+      const label = this.truthTableManager.getAlphabeticLabel(component);
+      this.addLabelToComponent(component, label);
+    });
+
+    this.draw();
+  }
+
+  private addLabelToComponent(component: Component, label: string): void {
+    const textPosition = {
+      x: component.position.x - 25,
+      y: component.position.y - 20,
+    };
+
+    const textComponent = new Text(textPosition);
+    textComponent.setText(label);
+    this.addComponent(textComponent);
+  }
+
+  private removeComponentLabels(): void {
+    const labels = this.components.filter(
+      comp => comp.type === "text" && (comp as any).customData && (comp as any).customData.isLabel
+    );
+
+    labels.forEach(label => {
+      const index = this.components.indexOf(label);
+      if (index !== -1) {
+        this.components.splice(index, 1);
+      }
+    });
   }
 }
