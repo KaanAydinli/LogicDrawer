@@ -117,7 +117,7 @@ export class TruthTableManager {
   /**
    * Truth table'ı oluşturur
    */
-  public generateTruthTable(): {inputs: boolean[], outputs: boolean[]}[] {
+  public generateTruthTable(): void {
     // Önce giriş ve çıkışları tespit et
     this.identifyIOComponents();
     
@@ -158,7 +158,7 @@ export class TruthTableManager {
     // Devreyi orijinal durumuna geri getir
     this.restoreCircuitState(originalState);
     
-    return this.truthTable;
+    
   }
   
   /**

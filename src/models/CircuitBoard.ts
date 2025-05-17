@@ -404,7 +404,7 @@ export class CircuitBoard {
       this.addLabelsToComponents();
 
       // Truth table oluştur
-      const truthTable = this.truthTableManager.generateTruthTable();
+      this.truthTableManager.generateTruthTable();
 
       // Tabloyu göster
       this.showTruthTableModal();
@@ -412,12 +412,107 @@ export class CircuitBoard {
       alert(`Truth table oluşturulurken hata: ${error}`);
     }
   }
-
+/**
+ * HTML tablosunu Canvas'a render eder
+ */
+private renderTableToCanvas(ctx: CanvasRenderingContext2D, table: HTMLTableElement, padding: number): void {
+  // Stil bilgilerini al
+  const computedStyle = window.getComputedStyle(table);
+  
+  // Tablo başlık ve hücre stillerini ayarla
+  ctx.font = "14px Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  
+  // Tablo satırlarını al
+  const rows = table.rows;
+  const headerHeight = 40; // Başlık satır yüksekliği
+  const rowHeight = 30; // Normal satır yüksekliği
+  
+  // Kolon sayısını ve genişliğini hesapla
+  const columnCount = rows[0]?.cells.length || 0;
+  const columnWidth = (table.offsetWidth - (padding * 2)) / columnCount;
+  
+  // Başlık satırını çiz
+  if (rows.length > 0) {
+    ctx.fillStyle = "#222"; // Başlık arka plan rengi
+    ctx.fillRect(padding, padding, table.offsetWidth - (padding * 2), headerHeight);
+    
+    // Başlık metinlerini çiz
+    ctx.fillStyle = "#fff"; // Başlık metin rengi
+    const headerRow = rows[0];
+    
+    for (let j = 0; j < headerRow.cells.length; j++) {
+      const cellText = headerRow.cells[j].textContent || "";
+      const cellX = padding + (j * columnWidth) + (columnWidth / 2);
+      const cellY = padding + (headerHeight / 2);
+      ctx.fillText(cellText, cellX, cellY);
+    }
+  }
+  
+  // Veri satırlarını çiz
+  for (let i = 1; i < rows.length; i++) {
+    const isOdd = i % 2 === 1;
+    ctx.fillStyle = isOdd ? "#333" : "#282828"; // Satır arka plan rengi (çizgili)
+    
+    const rowY = padding + headerHeight + ((i - 1) * rowHeight);
+    ctx.fillRect(padding, rowY, table.offsetWidth - (padding * 2), rowHeight);
+    
+    // Hücre metinlerini çiz
+    ctx.fillStyle = "#fff"; // Hücre metin rengi
+    const row = rows[i];
+    
+    for (let j = 0; j < row.cells.length; j++) {
+      const cellText = row.cells[j].textContent || "";
+      const cellX = padding + (j * columnWidth) + (columnWidth / 2);
+      const cellY = rowY + (rowHeight / 2);
+      ctx.fillText(cellText, cellX, cellY);
+    }
+  }
+  
+  // Tablo ızgarasını çiz
+  ctx.strokeStyle = "#444";
+  ctx.lineWidth = 1;
+  
+  // Dikey çizgiler
+  for (let j = 0; j <= columnCount; j++) {
+    const lineX = padding + (j * columnWidth);
+    ctx.beginPath();
+    ctx.moveTo(lineX, padding);
+    ctx.lineTo(lineX, padding + headerHeight + ((rows.length - 1) * rowHeight));
+    ctx.stroke();
+  }
+  
+  // Yatay çizgiler
+  for (let i = 0; i <= rows.length; i++) {
+    const lineY = i === 0 
+      ? padding 
+      : (i === 1 
+        ? padding + headerHeight 
+        : padding + headerHeight + ((i - 1) * rowHeight));
+        
+    ctx.beginPath();
+    ctx.moveTo(padding, lineY);
+    ctx.lineTo(padding + (columnCount * columnWidth), lineY);
+    ctx.stroke();
+  }
+  
+  // Tablonun çevresini kalın çizgi olarak vurgula
+  ctx.lineWidth = 2;
+  ctx.strokeRect(
+    padding, 
+    padding, 
+    table.offsetWidth - (padding * 2), 
+    headerHeight + ((rows.length - 1) * rowHeight)
+  );
+}
   /**
    * Truth table modalını gösterir
    */
   private showTruthTableModal(): void {
-    // Modal container
+    if (document.querySelector(".truth-table-modal")) {
+      document.body.removeChild(document.querySelector(".truth-table-modal")!);
+    }
     const modal = document.createElement("div");
     modal.className = "truth-table-modal";
 
@@ -530,8 +625,22 @@ export class CircuitBoard {
     exportPNG.onclick = () => {
       // HTML tablosunu bir görüntüye dönüştürme
       const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = table.offsetWidth;
-      tempCanvas.height = table.offsetHeight;
+      const padding = 20; // Kenar boşluğu ekleyin
+      tempCanvas.width = table.offsetWidth + padding * 2;
+      tempCanvas.height = table.offsetHeight + padding * 2;
+
+      const tempCtx = tempCanvas.getContext("2d")!;
+
+      // Arka plan rengini ayarla
+      tempCtx.fillStyle = "#151515";
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+      // Truth Table'ı render et
+      this.renderTableToCanvas(tempCtx, table as HTMLTableElement, padding);
+
+      // PNG olarak dışa aktar
+      const dataUrl = tempCanvas.toDataURL("image/png");
+      this.downloadFile(dataUrl, "truth-table.png", "image/png", true);
     };
 
     exportContainer.appendChild(exportCSV);
@@ -1041,7 +1150,7 @@ export class CircuitBoard {
   }
 
   private getMinimapScale(): number {
-    const { bounds, width, height } = this.calculateCircuitBounds();
+    const { width, height } = this.calculateCircuitBounds();
 
     if (width === 0 || height === 0) {
       return 1;
