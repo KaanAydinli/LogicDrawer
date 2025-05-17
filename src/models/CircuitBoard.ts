@@ -31,6 +31,7 @@ import { Led } from "./components/Led";
 import { MultiBit } from "./components/MultiBit";
 import { GatePanel } from "./utils/GatePanel";
 import { TruthTableManager } from "./utils/TruthTableManager";
+import { KarnaughMap } from "./utils/KarnaughMap";
 
 export class CircuitBoard {
   components: Component[];
@@ -655,6 +656,210 @@ private renderTableToCanvas(ctx: CanvasRenderingContext2D, table: HTMLTableEleme
     // Modalı ekrana ekle
     document.body.appendChild(modal);
   }
+  public showKarnaughMap(): void {
+  try {
+    // IO bileşenlerini tespit et
+    const ioCount = this.truthTableManager.identifyIOComponents();
+    
+    if (ioCount.inputs === 0) {
+      alert("K-Map oluşturmak için devrede giriş bileşenleri (toggle, button, constant) gereklidir.");
+      return;
+    }
+    
+    if (ioCount.outputs === 0) {
+      alert("K-Map oluşturmak için devrede çıkış bileşenleri (light-bulb, led, hex) gereklidir.");
+      return;
+    }
+    
+    // Truth table oluştur
+    this.truthTableManager.generateTruthTable();
+    
+    // KMap oluştur
+    const kmap = this.truthTableManager.createKarnaughMap();
+    
+    // Minimum grupları bul
+    kmap.findMinimalGroups();
+    
+    // KMap modalını göster
+    this.showKarnaughMapModal(kmap);
+    
+  } catch (error) {
+    alert(`K-Map oluşturulurken hata: ${error}`);
+  }
+}
+
+/**
+ * K-Map modalını gösterir
+ */
+private showKarnaughMapModal(kmap: KarnaughMap): void {
+  if (document.querySelector(".kmap-modal")) {
+    document.body.removeChild(document.querySelector(".kmap-modal")!);
+  }
+  
+  const modal = document.createElement("div");
+  modal.className = "kmap-modal";
+  
+  // Modal içeriği için stil tanımlayalım
+  modal.style.position = "fixed";
+  modal.style.top = "0";
+  modal.style.left = "0";
+  modal.style.width = "100%";
+  modal.style.height = "100%";
+  modal.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+  modal.style.display = "flex";
+  modal.style.justifyContent = "center";
+  modal.style.alignItems = "center";
+  modal.style.zIndex = "1000";
+  
+  // Modal içeriği
+  const content = document.createElement("div");
+  content.className = "modal-content";
+  content.style.backgroundColor = "#151515";
+  content.style.border = "1px solid #444";
+  content.style.borderRadius = "5px";
+  content.style.padding = "20px";
+  content.style.maxWidth = "90%";
+  content.style.maxHeight = "90%";
+  content.style.overflow = "auto";
+  
+  // Modal başlığı
+  const header = document.createElement("div");
+  header.style.display = "flex";
+  header.style.justifyContent = "space-between";
+  header.style.alignItems = "center";
+  header.style.marginBottom = "20px";
+  
+  const title = document.createElement("h2");
+  title.innerText = "Karnaugh Map";
+  title.style.color = "#fff";
+  title.style.margin = "0";
+  
+  const closeButton = document.createElement("button");
+  closeButton.innerText = "×";
+  closeButton.style.background = "none";
+  closeButton.style.border = "none";
+  closeButton.style.fontSize = "24px";
+  closeButton.style.color = "#fff";
+  closeButton.style.cursor = "pointer";
+  closeButton.onclick = () => document.body.removeChild(modal);
+  
+  header.appendChild(title);
+  header.appendChild(closeButton);
+  
+  // K-Map container
+  const kmapContainer = document.createElement("div");
+  kmapContainer.style.marginBottom = "20px";
+  
+  // K-Map render et
+  const kmapElement = kmap.renderKMap();
+  kmapContainer.appendChild(kmapElement);
+  
+  // K-Map stilleri
+  const style = document.createElement("style");
+  style.textContent = `
+    .kmap-container {
+      margin-bottom: 20px;
+    }
+    
+    .kmap-table {
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    
+    .kmap-table th, .kmap-table td {
+      border: 1px solid #444;
+      padding: 8px 12px;
+      text-align: center;
+      min-width: 40px;
+    }
+    
+    .kmap-cell-true {
+      background-color: #2a7340;
+      color: white;
+    }
+    
+    .kmap-cell-false {
+      background-color: #333;
+      color: #aaa;
+    }
+    
+    .kmap-cell-group-0 { border: 2px solid #ff5252; }
+    .kmap-cell-group-1 { border: 2px solid #4caf50; }
+    .kmap-cell-group-2 { border: 2px solid #2196f3; }
+    .kmap-cell-group-3 { border: 2px solid #ff9800; }
+    .kmap-cell-group-4 { border: 2px solid #9c27b0; }
+    
+    .kmap-boolean-expression {
+      margin-top: 15px;
+      padding: 10px;
+      background-color: #222;
+      border-radius: 4px;
+      color: white;
+    }
+    
+    .kmap-expression-value {
+      font-weight: bold;
+      color: #4caf50;
+    }
+    
+    .kmap-horizontal-labels, .kmap-vertical-labels {
+      color: #fff;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+  `;
+  
+  document.head.appendChild(style);
+  
+  // Buton container
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.display = "flex";
+  buttonContainer.style.gap = "10px";
+  buttonContainer.style.marginTop = "20px";
+  
+  // Devre oluştur butonu
+  const createCircuitButton = document.createElement("button");
+  createCircuitButton.innerText = "Bu K-Map İle Devre Oluştur";
+  createCircuitButton.style.padding = "8px 16px";
+  createCircuitButton.style.backgroundColor = "#4CAF50";
+  createCircuitButton.style.color = "white";
+  createCircuitButton.style.border = "none";
+  createCircuitButton.style.borderRadius = "4px";
+  createCircuitButton.style.cursor = "pointer";
+  createCircuitButton.onclick = () => {
+    const confirmCreate = confirm("Bu işlem mevcut devreyi temizleyecek ve K-Map'e göre yeni bir devre oluşturacak. Devam etmek istiyor musunuz?");
+    if (confirmCreate) {
+      this.clearCircuit(); // Mevcut devreyi temizle
+      kmap.createCircuitFromExpression(this); // Yeni devre oluştur
+      document.body.removeChild(modal); // Modalı kapat
+    }
+  };
+  
+  // Resim olarak dışa aktar butonu
+  const exportImageButton = document.createElement("button");
+  exportImageButton.innerText = "K-Map'i Resim Olarak İndir";
+  exportImageButton.style.padding = "8px 16px";
+  exportImageButton.style.backgroundColor = "#2196F3";
+  exportImageButton.style.color = "white";
+  exportImageButton.style.border = "none";
+  exportImageButton.style.borderRadius = "4px";
+  exportImageButton.style.cursor = "pointer";
+  exportImageButton.onclick = () => {
+    
+  };
+  
+  buttonContainer.appendChild(createCircuitButton);
+  buttonContainer.appendChild(exportImageButton);
+  
+  // Tüm öğeleri modala ekle
+  content.appendChild(header);
+  content.appendChild(kmapContainer);
+  content.appendChild(buttonContainer);
+  modal.appendChild(content);
+  
+  // Modalı ekrana ekle
+  document.body.appendChild(modal);
+}
 
   /**
    * Dosya indirme yardımcı fonksiyonu

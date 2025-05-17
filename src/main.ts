@@ -497,6 +497,9 @@ function setupKeyboardShortcuts() {
       }
     }
     if (event.key === "a") {
+      circuitBoard.showKarnaughMap();
+    }
+    if (event.key === "d") {
       circuitBoard.generateTruthTable();
     }
   });

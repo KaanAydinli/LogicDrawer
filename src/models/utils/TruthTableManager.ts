@@ -4,6 +4,7 @@ import { ToggleSwitch } from "../components/ToggleSwitch";
 import { Button } from "../components/Button";
 import { LightBulb } from "../components/LightBulb";
 import { Led } from "../components/Led";
+import { KarnaughMap } from "./KarnaughMap";
 
 
 export class TruthTableManager {
@@ -176,6 +177,14 @@ export class TruthTableManager {
     
     return state;
   }
+  public createKarnaughMap(outputIndex: number = 0): KarnaughMap {
+  // K-Map için giriş ve çıkış etiketlerini hazırla
+  const inputLabels = this.inputComponents.map(component => this.getComponentLabel(component));
+  const outputLabels = this.outputComponents.map(component => this.getComponentLabel(component));
+  
+  // K-Map oluştur
+  return new KarnaughMap(this.truthTable, inputLabels, outputLabels, outputIndex);
+}
   
   /**
    * Devreyi kaydedilen duruma geri getirir
