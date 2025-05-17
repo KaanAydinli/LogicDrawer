@@ -30,6 +30,7 @@ import { FullSubtractor } from "./gates/FullSubtractor";
 import { Led } from "./components/Led";
 import { MultiBit } from "./components/MultiBit";
 import { GatePanel } from "./utils/GatePanel";
+import { TruthTableManager } from "./utils/TruthTableManager";
 
 export class CircuitBoard {
   components: Component[];
@@ -52,7 +53,8 @@ export class CircuitBoard {
   lastMouseY: number = 0;
   public minimapWidth: number = 200;
   public minimapHeight: number = 200;
-
+  private truthTableManager: TruthTableManager;
+  
   private selectionRect: { start: Point; end: Point } | null = null;
   private isSelecting: boolean = false;
   public selectedComponents: Component[] = [];
@@ -72,7 +74,8 @@ export class CircuitBoard {
     this.minimap = minimap || null;
 
     this.selectedComponents = [];
-
+    this.truthTableManager = new TruthTableManager(this);
+    
     this.gatePropertiesPanel = new GatePanel("properties-panel-container", () => {
       this.simulate();
       this.draw();
@@ -370,6 +373,193 @@ export class CircuitBoard {
     }
 
     return true;
+  }
+   public generateTruthTable(): void {
+    try {
+      const ioCount = this.truthTableManager.identifyIOComponents();
+      
+      if (ioCount.inputs === 0) {
+        alert("Truth table oluşturmak için devrede giriş bileşenleri (toggle, button, constant) gereklidir.");
+        return;
+      }
+      
+      if (ioCount.outputs === 0) {
+        alert("Truth table oluşturmak için devrede çıkış bileşenleri (light-bulb, led, hex) gereklidir.");
+        return;
+      }
+      
+      // Çok fazla giriş varsa uyarı ver
+      if (ioCount.inputs > 10) {
+        const confirmed = confirm(`${ioCount.inputs} giriş için ${Math.pow(2, ioCount.inputs)} kombinasyon hesaplanacak. Bu işlem uzun sürebilir. Devam etmek istiyor musunuz?`);
+        if (!confirmed) return;
+      }
+      
+      // Truth table oluştur
+      const truthTable = this.truthTableManager.generateTruthTable();
+      
+      // Tabloyu göster
+      this.showTruthTableModal();
+      
+    } catch (error) {
+      alert(`Truth table oluşturulurken hata: ${error}`);
+    }
+  }
+  
+  /**
+   * Truth table modalını gösterir
+   */
+  private showTruthTableModal(): void {
+    // Modal container
+    const modal = document.createElement("div");
+    modal.className = "truth-table-modal";
+    
+    // Modal içeriği için stil tanımlayalım
+    modal.style.position = "fixed";
+    modal.style.top = "0";
+    modal.style.left = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
+    modal.style.display = "flex";
+    modal.style.justifyContent = "center";
+    modal.style.alignItems = "center";
+    modal.style.zIndex = "1000";
+    
+    // Modal içeriği
+    const content = document.createElement("div");
+    content.className = "modal-content";
+    content.style.backgroundColor = "#151515";
+    content.style.border = "1px solid #444";
+    content.style.borderRadius = "5px";
+    content.style.padding = "20px";
+    content.style.maxWidth = "90%";
+    content.style.maxHeight = "90%";
+    content.style.overflow = "auto";
+    
+    // Modal başlığı
+    const header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.marginBottom = "20px";
+    
+    const title = document.createElement("h2");
+    title.innerText = "Truth Table";
+    title.style.color = "#fff";
+    title.style.margin = "0";
+    
+    const closeButton = document.createElement("button");
+    closeButton.innerText = "×";
+    closeButton.style.background = "none";
+    closeButton.style.border = "none";
+    closeButton.style.fontSize = "24px";
+    closeButton.style.color = "#fff";
+    closeButton.style.cursor = "pointer";
+    closeButton.onclick = () => document.body.removeChild(modal);
+    
+    header.appendChild(title);
+    header.appendChild(closeButton);
+    
+    // Tablo container
+    const tableContainer = document.createElement("div");
+    tableContainer.style.marginBottom = "20px";
+    tableContainer.style.overflow = "auto";
+    
+    // Truth table
+    const table = this.truthTableManager.createTruthTableElement();
+    table.style.borderCollapse = "collapse";
+    table.style.width = "100%";
+    
+    // Tablo stili
+    const style = document.createElement("style");
+    style.textContent = `
+      .truth-table th, .truth-table td {
+        padding: 8px 12px;
+        border: 1px solid #444;
+        text-align: center;
+        color: #fff;
+      }
+      .truth-table th {
+        background-color: #222;
+      }
+      .truth-table tr:nth-child(odd) {
+        background-color: #333;
+      }
+      .truth-table tr:nth-child(even) {
+        background-color: #282828;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    tableContainer.appendChild(table);
+    
+    // Dışa aktarma butonları
+    const exportContainer = document.createElement("div");
+    exportContainer.style.display = "flex";
+    exportContainer.style.gap = "10px";
+    
+    const exportCSV = document.createElement("button");
+    exportCSV.innerText = "Export CSV";
+    exportCSV.style.padding = "8px 16px";
+    exportCSV.style.backgroundColor = "#4CAF50";
+    exportCSV.style.color = "white";
+    exportCSV.style.border = "none";
+    exportCSV.style.borderRadius = "4px";
+    exportCSV.style.cursor = "pointer";
+    exportCSV.onclick = () => {
+      const csv = this.truthTableManager.exportToCSV();
+      this.downloadFile(csv, "truth-table.csv", "text/csv");
+    };
+    
+    const exportPNG = document.createElement("button");
+    exportPNG.innerText = "Export Image";
+    exportPNG.style.padding = "8px 16px";
+    exportPNG.style.backgroundColor = "#2196F3";
+    exportPNG.style.color = "white";
+    exportPNG.style.border = "none";
+    exportPNG.style.borderRadius = "4px";
+    exportPNG.style.cursor = "pointer";
+    exportPNG.onclick = () => {
+      // HTML tablosunu bir görüntüye dönüştürme
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = table.offsetWidth;
+      tempCanvas.height = table.offsetHeight;
+      
+      
+    };
+    
+    exportContainer.appendChild(exportCSV);
+    exportContainer.appendChild(exportPNG);
+    
+    // Tüm öğeleri modala ekle
+    content.appendChild(header);
+    content.appendChild(tableContainer);
+    content.appendChild(exportContainer);
+    modal.appendChild(content);
+    
+    // Modalı ekrana ekle
+    document.body.appendChild(modal);
+  }
+  
+  /**
+   * Dosya indirme yardımcı fonksiyonu
+   */
+  private downloadFile(content: string, fileName: string, contentType: string, isDataURL: boolean = false): void {
+    const a = document.createElement("a");
+    
+    if (isDataURL) {
+      a.href = content;
+    } else {
+      const file = new Blob([content], { type: contentType });
+      a.href = URL.createObjectURL(file);
+    }
+    
+    a.download = fileName;
+    a.click();
+    
+    if (!isDataURL) {
+      URL.revokeObjectURL(a.href);
+    }
   }
 
   /**

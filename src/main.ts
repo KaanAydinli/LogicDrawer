@@ -3,8 +3,8 @@ declare global {
     circuitBoard: CircuitBoard;
   }
 }
-import { AIAgent } from './ai/AIAgent';
-import { MessageQueue } from './ai/Tools';
+import { AIAgent } from "./ai/AIAgent";
+import { MessageQueue } from "./ai/Tools";
 import { CircuitBoard } from "./models/CircuitBoard";
 import { AndGate } from "./models/gates/AndGate";
 import { OrGate } from "./models/gates/OrGate";
@@ -134,41 +134,6 @@ function initApp() {
   handleResize();
   setFile();
 
-  // Extend Window interface to include circuitBoard property
-
-  //Open it when needed to test api
-  // const testApiBtn = document.createElement("button");
-  // testApiBtn.textContent = "Test API Connection";
-  // testApiBtn.className = "primary-button";
-  // testApiBtn.style.position = "fixed";
-  // testApiBtn.style.bottom = "20px";
-  // testApiBtn.style.right = "20px";
-  // testApiBtn.style.zIndex = "1000";
-
-  // testApiBtn.addEventListener("click", async () => {
-  //   try {
-  //     const startTime = Date.now();
-  //     const response = await fetch(`${apiBaseUrl}/api/analyze/roboflow`);
-  //     const endTime = Date.now();
-
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       alert(
-  //         `API Connection Success ✅\nResponse time: ${endTime - startTime}ms\nGoogle API: ${data.env.GOOGLE_API_KEY}\nRoboflow API: ${data.env.ROBOFLOW_API_KEY}`,
-  //       );
-  //     } else {
-  //       alert(
-  //         `API Connection Failed ❌\nStatus: ${response.status}\nError: ${await response.text()}`,
-  //       );
-  //     }
-  //   } catch (error) {
-  //     alert(`API Connection Error ❌\n${error}`);
-  //   }
-  // });
-
-  // document.body.appendChild(testApiBtn);
-
-  // Add this function to verify token on app start
   async function verifyAuthToken() {
     const token = localStorage.getItem("auth_token");
     if (!token) return false;
@@ -187,7 +152,6 @@ function initApp() {
 
         return true;
       } else {
-        // Token invalid - clear it
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user_info");
 
@@ -199,7 +163,6 @@ function initApp() {
     }
   }
 
-  // Call this at the end of initApp()
   verifyAuthToken().then(valid => {
     if (valid) {
       console.log("Authentication verified");
@@ -227,17 +190,15 @@ function handleResize() {
   circuitBoard.resizeCanvas();
 }
 function extractVerilogFromPrompt(prompt: string): string | null {
-  // First remove all backtick characters from the text
-  const cleanedPrompt = prompt.replace(/`/g, '');
-  
-  // Simple approach to extract module content
-  const moduleStartIndex = cleanedPrompt.indexOf('module');
-  const endModuleIndex = cleanedPrompt.lastIndexOf('endmodule') + 'endmodule'.length;
-  
-  if (moduleStartIndex === -1 || endModuleIndex === -1 + 'endmodule'.length) {
+  const cleanedPrompt = prompt.replace(/`/g, "");
+
+  const moduleStartIndex = cleanedPrompt.indexOf("module");
+  const endModuleIndex = cleanedPrompt.lastIndexOf("endmodule") + "endmodule".length;
+
+  if (moduleStartIndex === -1 || endModuleIndex === -1 + "endmodule".length) {
     return null;
   }
-  
+
   return cleanedPrompt.substring(moduleStartIndex, endModuleIndex);
 }
 
@@ -466,7 +427,7 @@ function addComponentByType(type: string, position: Point) {
       component = new Led(position);
       break;
     case "multibit":
-      component = new MultiBit(position); // Varsayılan olarak 4 bit
+      component = new MultiBit(position);
       break;
     case "smartdisplay":
       component = new SmartDisplay(position);
@@ -483,17 +444,15 @@ function setupKeyboardShortcuts() {
     const activeElement = document.activeElement;
     const tagName = activeElement?.tagName.toLowerCase();
 
-    // Eğer aktif eleman bir metin giriş alanıysa, kısayolları işleme
     const isTextInput =
       tagName === "input" ||
       tagName === "textarea" ||
       (activeElement?.getAttribute && activeElement?.getAttribute("role") === "textbox") ||
-      activeElement?.id === "ai-chat-input" || // AI chat alanı
-      activeElement?.id === "verilog-editor"; // Verilog editörü
+      activeElement?.id === "ai-chat-input" ||
+      activeElement?.id === "verilog-editor";
 
-    // Eğer metin giriş alanında ise, kısayolları devre dışı bırak
     if (isTextInput) {
-      return; // Metin girişi sırasında kısayolları çalıştırma
+      return;
     }
 
     if (event.key === "Delete") {
@@ -538,7 +497,7 @@ function setupKeyboardShortcuts() {
       }
     }
     if (event.key === "a") {
-      circuitBoard.autoArrangeCircuit();
+      circuitBoard.generateTruthTable();
     }
   });
 }
@@ -551,9 +510,13 @@ function setUpAI() {
   const chatInput = document.getElementById("ai-chat-input") as HTMLInputElement;
   const messagesContainer = document.getElementById("ai-chat-messages") as HTMLElement;
 
-  const aiAgent = new AIAgent(circuitBoard, queue as unknown as MessageQueue, promptAI, imageUploader);
-  
-  // Store a reference to the last uploaded image
+  const aiAgent = new AIAgent(
+    circuitBoard,
+    queue as unknown as MessageQueue,
+    promptAI,
+    imageUploader
+  );
+
   let lastUploadedImage: string | null = null;
 
   aiLogo.addEventListener("click", function () {
@@ -577,14 +540,12 @@ function setUpAI() {
     aiLogo.classList.remove("active");
   });
 
-  // In main.ts, update the callMistralAPI function
   async function callMistralAPI(userMessage: string): Promise<string> {
     try {
-      // Loading message
       const loadingMessageDiv = document.createElement("div");
       loadingMessageDiv.className = "ai-message";
       loadingMessageDiv.innerHTML = `
-      <svg width = 40px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
+      <svg width = 40px height = 40px xmlns="http:
             
           <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
           
@@ -594,10 +555,8 @@ function setUpAI() {
       messagesContainer.appendChild(loadingMessageDiv);
       scrollToBottom();
 
-      // Convert queue to a simple array before sending
       const messages = [];
 
-      // Access the items directly if available
       if (queue.items && Array.isArray(queue.items)) {
         messages.push(...queue.items);
       }
@@ -636,16 +595,15 @@ function setUpAI() {
 
     chatInput.value = "";
 
-    try {
-      // Process the message with our AI agent
-      const aiResponse = await aiAgent.processUserInput(message);
+    chatInput.style.height = "auto";
 
-      
+    try {
+      const aiResponse = await aiAgent.processUserInput(message);
 
       addAIMessage(aiResponse);
     } catch (error) {
       console.error("Error getting AI response:", error);
-   
+
       addAIMessage("I'm having trouble processing your request right now. Please try again later.");
     }
   }
@@ -662,12 +620,10 @@ function setUpAI() {
       circuitBoard.selectedComponents = [];
     }
   });
-  chatInput.addEventListener('input', function() {
-    // Önce yüksekliği sıfırla
-    this.style.height = 'auto';
-    
-    // Sonra içeriğin yüksekliğine göre ayarla
-    this.style.height = (this.scrollHeight) + 'px';
+  chatInput.addEventListener("input", function () {
+    this.style.height = "auto";
+
+    this.style.height = this.scrollHeight + "px";
   });
 
   fileUpload.addEventListener("change", function (event) {
@@ -679,26 +635,23 @@ function setUpAI() {
       addAIMessage("Sorry, I can only process image files.");
       return;
     }
-    
-    // Also read the image for the chat interface and AI agent
+
     const reader = new FileReader();
     reader.onload = function (e) {
       if (e.target && e.target.result) {
         if (typeof e.target.result === "string") {
           const imageSrc = e.target.result;
-          
-          // Save reference to the last uploaded image
+
           lastUploadedImage = imageSrc;
-          
-          // Set the image in the AI agent
+
           aiAgent.setCurrentImage(imageSrc);
-          
-          // Add the image to chat
+
           addUserImageMessage(imageSrc);
-          
-          // Add assistant message about the image
+
           setTimeout(() => {
-            addAIMessage("I see you've uploaded an image. Would you like me to analyze it or detect a circuit from it?");
+            addAIMessage(
+              "I see you've uploaded an image. Would you like me to analyze it or detect a circuit from it?"
+            );
           }, 1000);
         }
       }
@@ -737,7 +690,7 @@ function setUpAI() {
 
   function addAIMessage(text: string) {
     const messageDiv = document.createElement("div");
-    
+
     const code = extractVerilogFromPrompt(text);
     var aiText = escapeHTML(text);
 
@@ -757,7 +710,7 @@ function setUpAI() {
     messageDiv.className = "ai-message";
     messageDiv.innerHTML = `
     <div class="ai-avatar">
-                <svg width = 200px height = 40px xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" >
+                <svg width = 200px height = 40px xmlns="http:
               
             <text x="0" y="18"  font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
             
@@ -782,8 +735,8 @@ function setUpAI() {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;")
       .replace(/\n/g, "<br>")
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>');
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>");
   }
 }
 
@@ -873,24 +826,20 @@ function setupSettings() {
   const minimapElement = document.querySelector(".minimap") as HTMLElement;
   const canvasBackground = document.getElementById("canvasBackground") as HTMLInputElement;
 
-  // Open settings panel
   settingsIcon?.addEventListener("click", () => {
     settingsPanel?.classList.add("active");
   });
 
-  // Close settings panel
   closeSettings?.addEventListener("click", () => {
     settingsPanel?.classList.remove("active");
   });
 
-  // Handle minimap visibility - only when checkbox or slider is clicked
   showMinimapToggle?.addEventListener("change", () => {
     if (minimapElement) {
       minimapElement.style.display = showMinimapToggle.checked ? "block" : "none";
     }
   });
 
-  // Handle minimap size
   minimapSizeSelect?.addEventListener("change", () => {
     if (minimapElement) {
       switch (minimapSizeSelect.value) {
@@ -908,7 +857,6 @@ function setupSettings() {
           break;
       }
 
-      // Update minimap
       circuitBoard.draw();
     }
   });
@@ -930,7 +878,6 @@ function setupSettings() {
     circuitBoard.minimap.style.backgroundColor = "#1e1e1e";
   }
 
-  // Handle grid visibility
   showGridToggle?.addEventListener("change", () => {
     circuitBoard.grid = showGridToggle.checked;
     circuitBoard.draw();
@@ -994,7 +941,6 @@ function setFile() {
     });
   });
 }
-// setUpLoginAndSignup fonksiyonunu güncelle
 
 function setUpLoginAndSignup() {
   const authModal = document.getElementById("auth-modal");
@@ -1006,7 +952,6 @@ function setUpLoginAndSignup() {
   const loginButton = document.getElementById("login-button");
   const signupButton = document.getElementById("signup-button");
 
-  // Header'a giriş/kayıt butonu ekle
   const addAuthButton = () => {
     const rightContainer = document.querySelector(".rightContainer");
     if (rightContainer) {
@@ -1015,13 +960,10 @@ function setUpLoginAndSignup() {
       authButton.textContent = "Sign In";
       authButton.id = "auth-button";
 
-      // Mevcut elementlerin önüne ekle
       rightContainer.append(authButton);
 
-      // Event listener ekle
       authButton.addEventListener("click", showAuthModal);
 
-      // Kullanıcı zaten giriş yapmışsa güncelle
       const token = localStorage.getItem("auth_token");
       if (token) {
         updateUserInterface(true);
@@ -1031,29 +973,25 @@ function setUpLoginAndSignup() {
 
   addAuthButton();
 
-  // Authentication modal göster
   function showAuthModal() {
     if (authModal) {
       authModal.classList.add("active");
-      // Varsayılan olarak login view göster
+
       showLoginView();
     }
   }
 
-  // Authentication modal gizle
   function hideAuthModal() {
     if (authModal) {
       authModal.classList.remove("active");
     }
   }
 
-  // Login view göster
   function showLoginView() {
     loginForm.classList.add("active");
     signupForm.classList.remove("active");
   }
 
-  // Signup view göster
   function showSignupView() {
     signupForm.classList.add("active");
     loginForm.classList.remove("active");
@@ -1063,51 +1001,40 @@ function setUpLoginAndSignup() {
 
     if (!authButton) return;
 
-    // Remove any existing profile dropdown
     const existingDropdown = document.getElementById("profile-dropdown");
     if (existingDropdown) {
       existingDropdown.remove();
     }
 
-    // Create a new button to clear event listeners
     const newAuthButton = authButton.cloneNode(true) as HTMLElement;
     authButton.parentNode?.replaceChild(newAuthButton, authButton);
 
     if (isLoggedIn) {
-      // Change button appearance for logged in users
       newAuthButton.textContent = userName || "My Account";
       newAuthButton.classList.add("logged-in");
 
-      // Set up click handler for profile menu
       newAuthButton.addEventListener("click", toggleProfileDropdown);
     } else {
-      // Reset to default for logged out users
       newAuthButton.textContent = "Sign In";
       newAuthButton.classList.remove("logged-in");
 
-      // Add event listener to show auth modal
       newAuthButton.addEventListener("click", showAuthModal);
     }
   }
 
-  // Separate function to toggle the profile dropdown
   function toggleProfileDropdown(event: MouseEvent) {
     event.stopPropagation();
 
-    // Check if dropdown already exists
     let profileDropdown = document.getElementById("profile-dropdown");
 
-    // If exists, just remove it
     if (profileDropdown) {
       profileDropdown.remove();
       return;
     }
 
-    // Get user info from localStorage
     const userInfo = localStorage.getItem("user_info");
     const user = userInfo ? JSON.parse(userInfo) : { name: "User", email: "" };
 
-    // Create dropdown
     profileDropdown = document.createElement("div");
     profileDropdown.id = "profile-dropdown";
     profileDropdown.className = "profile-dropdown";
@@ -1157,7 +1084,6 @@ function setUpLoginAndSignup() {
       const loginBtn = document.getElementById("login-button") as HTMLButtonElement;
       loginBtn.disabled = true;
       loginBtn.textContent = "Giriş yapılıyor...";
-      
 
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: "POST",
@@ -1176,26 +1102,22 @@ function setUpLoginAndSignup() {
 
       const data = await response.json();
 
-      // Debugging to make sure token is received
       console.log("Login successful, received data:", {
         token: data.token ? "Token received" : "No token!",
         user: data.user ? "User data received" : "No user data!",
       });
 
-      // Store token & user info
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("user_info", JSON.stringify(data.user));
 
-      // Update UI
       updateUserInterface(true, data.user.name);
       hideAuthModal();
-      
+
       repository.refresh();
-      // Test token was saved
+
       const savedToken = localStorage.getItem("auth_token");
       console.log("Token saved to localStorage:", savedToken ? "Yes" : "No");
 
-      // Success message
       alert("Login successful!");
     } catch (error) {
       console.error("Login error:", error);
@@ -1228,12 +1150,10 @@ function setUpLoginAndSignup() {
         return;
       }
 
-      // Sign up butonunu devre dışı bırak ve yükleniyor göster
       const signupBtn = document.getElementById("signup-button") as HTMLButtonElement;
       signupBtn.disabled = true;
       signupBtn.textContent = "Hesap oluşturuluyor...";
 
-      // API'ye kayıt isteği gönder
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
         method: "POST",
         headers: {
@@ -1242,7 +1162,6 @@ function setUpLoginAndSignup() {
         body: JSON.stringify({ name, email, password }),
       });
 
-      // Butonu tekrar etkinleştir
       signupBtn.disabled = false;
       signupBtn.textContent = "Create Account";
 
@@ -1253,13 +1172,10 @@ function setUpLoginAndSignup() {
 
       const data = await response.json();
 
-      // Kayıt başarılı, login formunu göster
       showLoginView();
 
-      // E-posta adresini login formuna doldur
       (document.getElementById("login-email") as HTMLInputElement).value = email;
 
-      // Başarılı mesajı göster
       alert("Hesap başarıyla oluşturuldu! Lütfen giriş yapın.");
     } catch (error) {
       console.error("Signup error:", error);
@@ -1267,29 +1183,21 @@ function setUpLoginAndSignup() {
     }
   }
 
-  // Replace the handleLogout function with this improved version:
-
   function handleLogout() {
-    // Remove token and user info
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_info");
 
-    // Remove the dropdown
     const profileDropdown = document.getElementById("profile-dropdown");
     if (profileDropdown) {
       profileDropdown.remove();
     }
 
-    // Update the UI immediately
     updateUserInterface(false);
 
-    // Show success message
     alert("Successfully logged out!");
   }
 
-  // Event listener'ları ayarla
   function setupAuthListeners() {
-    // Login ve signup arasında geçiş
     showSignupLink?.addEventListener("click", e => {
       e.preventDefault();
       showSignupView();
@@ -1300,30 +1208,25 @@ function setUpLoginAndSignup() {
       showLoginView();
     });
 
-    // Modal'ı kapat
     closeAuthButtons.forEach(button => {
       button.addEventListener("click", hideAuthModal);
     });
 
-    // Dışarı tıklayarak kapat
     authModal?.addEventListener("click", e => {
       if (e.target === authModal) {
         hideAuthModal();
       }
     });
 
-    // Form gönderileri
     loginButton?.addEventListener("click", handleLogin);
     signupButton?.addEventListener("click", handleSignup);
 
-    // Giriş yapıldığında logout seçeneği ekle
     document.addEventListener("DOMContentLoaded", () => {
       const userInfo = localStorage.getItem("user_info");
       if (userInfo) {
         const user = JSON.parse(userInfo);
         updateUserInterface(true, user.name);
 
-        // Çıkış yapma fonksiyonalitesi ekle
         const authButton = document.getElementById("auth-button");
         if (authButton) {
           authButton.addEventListener("click", e => {
@@ -1344,20 +1247,17 @@ function setUpLoginAndSignup() {
 
 async function saveToMongoDB(name: string, circuitData: any) {
   try {
-    // Auth token kontrolü
     const token = localStorage.getItem("auth_token");
     if (!token) {
       alert("You must be logged in to save circuits. Please sign in.");
       return;
     }
 
-    // Kullanıcı bilgileri
     const userInfo = localStorage.getItem("user_info");
     const user = userInfo ? JSON.parse(userInfo) : { name: "Unknown" };
 
-    // Veriyi hazırla
     const parsedData = typeof circuitData === "string" ? JSON.parse(circuitData) : circuitData;
-    
+
     const data = {
       name: name,
       username: user.name,
@@ -1380,16 +1280,14 @@ async function saveToMongoDB(name: string, circuitData: any) {
           portId: wire.toPortId || "",
         },
       })),
-      isPublic: false // Varsayılan olarak private
+      isPublic: false,
     };
 
-    // Mevcut devre ID'sini kontrol et
     const currentCircuitId = localStorage.getItem("currentCircuitId");
-    
-    // ID varsa güncelleme yap, yoksa yeni oluştur
+
     if (currentCircuitId) {
       console.log("Updating existing circuit ID:", currentCircuitId);
-      
+
       try {
         const updateResponse = await fetch(`${apiBaseUrl}/api/circuits/${currentCircuitId}`, {
           method: "PUT",
@@ -1405,7 +1303,6 @@ async function saveToMongoDB(name: string, circuitData: any) {
           alert(`Circuit "${name}" updated successfully`);
           return;
         } else {
-          // Güncelleme hatası durumunda yeni devreye geç
           console.log("Failed to update, creating new circuit");
           localStorage.removeItem("currentCircuitId");
         }
@@ -1414,7 +1311,6 @@ async function saveToMongoDB(name: string, circuitData: any) {
       }
     }
 
-    // Yeni devre oluştur
     console.log("Creating new circuit");
     const response = await fetch(`${apiBaseUrl}/api/circuits`, {
       method: "POST",
@@ -1428,7 +1324,7 @@ async function saveToMongoDB(name: string, circuitData: any) {
     if (response.ok) {
       const newCircuit = await response.json();
       console.log("New circuit created:", newCircuit);
-      // Oluşturulan devrenin ID'sini sakla
+
       localStorage.setItem("currentCircuitId", newCircuit._id);
       alert(`Circuit "${name}" saved successfully`);
     } else {
@@ -1442,7 +1338,6 @@ async function saveToMongoDB(name: string, circuitData: any) {
 
 async function loadSavedCircuits() {
   try {
-    // Get auth token
     const token = localStorage.getItem("auth_token");
     if (!token) {
       console.log("User not authenticated");
@@ -1455,10 +1350,9 @@ async function loadSavedCircuits() {
       },
     });
 
-
     if (response.ok) {
       const circuits = await response.json();
-      // Display circuits in the UI
+
       const circuitList = document.getElementById("circuit-list");
       if (circuitList) {
         circuitList.innerHTML = circuits
@@ -1478,71 +1372,6 @@ async function loadSavedCircuits() {
     console.error("Error loading circuits:", error);
   }
 }
-
-// async function loadCircuit(circuitId: string) {
-//   try {
-//     // Get auth token
-//     const token = localStorage.getItem("auth_token");
-//     if (!token) {
-//       alert("Please sign in to load circuits");
-//       return;
-//     }
-
-//     const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-
-//     if (response.ok) {
-//       const circuit = await response.json();
-//       // Clear the current circuit
-//       circuitBoard.clearCircuit();
-//       // Import the loaded circuit
-//       circuitBoard.importCircuit(JSON.stringify(circuit));
-//       console.log("Circuit loaded successfully!");
-//       alert("Circuit loaded successfully!");
-//     } else {
-//       console.error("Failed to load circuit.");
-//       alert("Failed to load circuit.");
-//     }
-//   } catch (error) {
-//     console.error("Error loading circuit:", error);
-//     alert("Error loading circuit.");
-//   }
-// }
-
-// async function deleteCircuit(circuitId: string) {
-//   if (confirm("Are you sure you want to delete this circuit?")) {
-//     try {
-//       // Get auth token
-//       const token = localStorage.getItem("auth_token");
-//       if (!token) {
-//         alert("Please sign in to delete circuits");
-//         return;
-//       }
-
-//       const response = await fetch(`${apiBaseUrl}/api/circuits/${circuitId}`, {
-//         method: "DELETE",
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       });
-
-//       if (response.ok) {
-//         console.log("Circuit deleted successfully!");
-//         alert("Circuit deleted successfully!");
-//         loadSavedCircuits(); // Refresh the list
-//       } else {
-//         console.error("Failed to delete circuit.");
-//         alert("Failed to delete circuit.");
-//       }
-//     } catch (error) {
-//       console.error("Error deleting circuit:", error);
-//       alert("Error deleting circuit.");
-//     }
-//   }
-// }
 
 function setTheme() {
   const themeButton = document.querySelector(".Theme") as HTMLElement;

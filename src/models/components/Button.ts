@@ -26,6 +26,9 @@ export class Button extends Component {
     
     this.outputs[0].value = this.state;
   }
+  setValue(value: boolean): void {
+    this.state = value;
+  }
   
   
   onMouseDown(): void {

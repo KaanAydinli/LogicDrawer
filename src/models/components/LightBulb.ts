@@ -1,4 +1,5 @@
 import { Component, Point } from '../Component';
+import { BitArray } from '../MultibitTypes';
 
 export class LightBulb extends Component {
   constructor(position: Point) {
@@ -21,6 +22,9 @@ export class LightBulb extends Component {
 
   evaluate(): void {
     
+  }
+  isOn(): boolean | BitArray {
+    return this.inputs[0].value;
   }
 
   draw(ctx: CanvasRenderingContext2D): void {

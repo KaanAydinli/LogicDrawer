@@ -45,6 +45,13 @@ protected setComponentSpecificState(state: any): void {
     this.on = !this.on;
     this.evaluate();
   }
+  setValue(value: boolean): void {
+    this.on = value;
+    this.evaluate();
+  }
+  isOn(): boolean {
+    return this.on;
+  }
 
   draw(ctx: CanvasRenderingContext2D): void {
     

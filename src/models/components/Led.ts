@@ -25,6 +25,9 @@ export class Led extends Component {
       });
     }
   }
+  isOn() : boolean | BitArray {
+    return this.inputs[0].value;
+  }
   public setBitWidth(width: number): void {
     if (width > 8) {
       width = 8;  // LED için maksimum 8-bit (255 değer)
