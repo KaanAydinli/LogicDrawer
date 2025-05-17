@@ -590,20 +590,29 @@ function setUpAI() {
   async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") return;
-
+    
     addUserMessage(message);
-
+    
+    // Textarea'yı sıfırlarken daha kapsamlı bir yaklaşım
     chatInput.value = "";
-
-    chatInput.style.height = "auto";
-
+    
+    // Textarea'yı style değerlerini tamamen sıfırlayarak resetle
+    chatInput.style.cssText = "";
+    chatInput.style.height = "24px";
+    
+    // Scroll değerlerini de sıfırla
+    chatInput.scrollTop = 0;
+    
+    // DOM'un güncellenmesini zorla
+    chatInput.blur();
+    chatInput.focus();
+    
     try {
+      // Process the message with our AI agent
       const aiResponse = await aiAgent.processUserInput(message);
-
       addAIMessage(aiResponse);
     } catch (error) {
       console.error("Error getting AI response:", error);
-
       addAIMessage("I'm having trouble processing your request right now. Please try again later.");
     }
   }
@@ -612,6 +621,8 @@ function setUpAI() {
 
   chatInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
+      // Enter tuşuna basıldığında yeni satır eklenmesini engelle
+      event.preventDefault();
       sendMessage();
     }
 
