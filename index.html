@@ -27,63 +27,72 @@
             <span>Logic Drawer</span>
           </div>
           <input type="text" class = "docName" placeholder="Untitled" ></input>
-          <div class = "rightContainer">
-            <div class = "storage" >Circuits</div>
-            <div id="open-verilog-editor" class="verilog-button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 6L6 18M18 18L6 6"></path>
-                <path d="M18 2h-3v4h3v3h4V2h-4z"></path>
-                <path d="M6 13H2v9h9v-4H6v-5z"></path>
-              </svg>
-              IDE
-            </div>
-            <div class="fileContainer">
-              <div  class = "file">File</div>
-              <div class="file-dropdown">
-                <div class = "fileOption" data = "new">New</div>
-                
-                <div class = "fileOption" >
-                  <label  for="loadFile" class="load">Load
-                    <input type="file" id="loadFile" accept=".json" style="display: none;">
-                  </label>
-                </div>
 
-                <div class = "fileOption" data = "save">Save</div>
-                <div class = "fileOption" data = "saveas">Save as</div>
+          
+          <div class = "rightContainer">
+            
+            <div class = buttonGroup>
+
+              <div class = "storage" >Circuits</div>
+              <div id="open-verilog-editor" class="verilog-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 6L6 18M18 18L6 6"></path>
+                  <path d="M18 2h-3v4h3v3h4V2h-4z"></path>
+                  <path d="M6 13H2v9h9v-4H6v-5z"></path>
+                </svg>
+                IDE
+              </div>
+              <div class="fileContainer">
+                <div  class = "file">File</div>
+                <div class="file-dropdown">
+                  <div class = "fileOption" data = "new">New</div>
+                  
+                  <div class = "fileOption" >
+                    <label  for="loadFile" class="load">Load
+                      <input type="file" id="loadFile" accept=".json" style="display: none;">
+                    </label>
+                  </div>
+  
+                  <div class = "fileOption" data = "save">Save</div>
+                  <div class = "fileOption" data = "saveas">Save as</div>
+                </div>
+                
               </div>
               
-            </div>
-            
-
-
-            <div class = "aiLogo" >AI</div>
-
-            <div class="theme-container">
-              <div id="test" class="Theme">Themes</div>
-              <div class="theme-dropdown">
-                <div class="theme-option" data-theme="dark">Dark Mode</div>
-                <div class="theme-option" data-theme="light">Light Mode</div>
-                <div class="theme-option" data-theme="forest">Forest Theme</div>
-                <div class="theme-option" data-theme="midnight">Midnight Blue</div>
+  
+  
+              <div class = "aiLogo" >AI</div>
+  
+              <div class="theme-container">
+                <div id="test" class="Theme">Themes</div>
+                <div class="theme-dropdown">
+                  <div class="theme-option" data-theme="dark">Dark Mode</div>
+                  <div class="theme-option" data-theme="light">Light Mode</div>
+                  <div class="theme-option" data-theme="forest">Forest Theme</div>
+                  <div class="theme-option" data-theme="midnight">Midnight Blue</div>
+                </div>
+              </div>
+              
+             
+  
+              <div class = "toolsContainer"> 
+                <span class = "tools" >Tools</span>
+                <div class="tools-dropdown">
+                  <div class="tools-option" data-tool="truthtable">Truth Table</div>
+                  <div class="tools-option" data-tool="kmap">K-Map</div>
+                  <div class="tools-option" data-tool="screenshot">Screenshot</div>
+    
+                  </div>
+              </div>
+              <div class="settings-icon">
+                
+                 
+                <i class="fa-solid fa-gear"></i>
               </div>
             </div>
+
             
-           
-
-            <div  class="tooltip" > 
-              <div class = "screenshot" style >
-                <span class="tooltiptext">Screenshot</span>
-                <i class="fa-solid fa-camera"></i> 
-
-              </div>
-            </div>
-
-                <div  class="tooltip" > 
-            <div class="settings-icon">
-              <span class="tooltiptext">Settings</span>
-              <i class="fa-solid fa-gear"></i>
-            </div>
-            </div>
+            
 
             
           </div>

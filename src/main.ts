@@ -133,6 +133,7 @@ function initApp() {
 
   handleResize();
   setFile();
+  setTools();
 
   async function verifyAuthToken() {
     const token = localStorage.getItem("auth_token");
@@ -895,6 +896,53 @@ function setupSettings() {
   showGridToggle?.addEventListener("change", () => {
     circuitBoard.grid = showGridToggle.checked;
     circuitBoard.draw();
+  });
+}
+//This method will set the tools for the dropdown similar to setFile it will have components like truth table K Map screenshot and so on
+function setTools(){
+  const toolsButton = document.querySelector(".tools") as HTMLElement;
+  const toolsDropdown = document.querySelector(".tools-dropdown") as HTMLElement;
+  const toolsOptions = document.querySelectorAll(".tools-option") as NodeListOf<HTMLElement>;
+
+  if (!toolsButton || !toolsDropdown) {
+    console.warn("Tools elements not found in HTML");
+    return;
+  }
+  toolsButton.addEventListener("click", function (e) {
+    e.stopPropagation();
+    toolsDropdown.classList.toggle("show");
+  });
+  document.addEventListener("click", function () {
+    toolsDropdown.classList.remove("show");
+  });
+  toolsButton.addEventListener("mouseenter", (event: MouseEvent) => {
+    toolsDropdown.classList.toggle("show");
+  });
+  toolsDropdown.addEventListener("mouseleave", (event: MouseEvent) => {
+    toolsDropdown.classList.remove("show");
+  });
+  toolsDropdown.addEventListener("click", function (e) {
+    e.stopPropagation();
+  });
+
+  toolsOptions.forEach(option => {
+    option.addEventListener("click", function () {
+      const selectedTool = this.getAttribute("data-tool");
+      if (!selectedTool) return;
+
+      toolsOptions.forEach(opt => opt.classList.remove("active"));
+
+      this.classList.add("active");
+
+      if (selectedTool === "truthtable") {
+        circuitBoard.generateTruthTable();
+      } else if (selectedTool === "kmap") {
+        circuitBoard.showKarnaughMap();
+      } else if (selectedTool === "screenshot") {
+        circuitBoard.takeScreenshot();
+      }
+      toolsDropdown.classList.remove("show");
+    });
   });
 }
 function setFile() {
