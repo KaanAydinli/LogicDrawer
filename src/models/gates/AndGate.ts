@@ -4,8 +4,8 @@ import { BitArray, BitwiseOperations } from '../MultibitTypes';
 
 
 export class AndGate extends LogicGate {
-  constructor(position: Point) {
-    super('and', position);
+  constructor(position: Point, inputCount: number = 2) {
+    super('and', position, inputCount);
   }
 
   evaluate(): void {

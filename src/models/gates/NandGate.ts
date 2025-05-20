@@ -3,8 +3,8 @@ import { LogicGate } from "../LogicGate";
 import { BitArray, BitwiseOperations } from "../MultibitTypes";
 
 export class NandGate extends LogicGate {
-  constructor(position: Point) {
-    super("nand", position);
+  constructor(position: Point, inputCount: number = 2) {
+    super("nand", position, inputCount);
   }
 
   evaluate(): void {

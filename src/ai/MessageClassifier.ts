@@ -6,6 +6,12 @@ export class MessageClassifier {
   
   async classify(message: string, hasImage: boolean): Promise<string> {
     try {
+      // Add context hint if image is present
+      let contextHint = "";
+      if (hasImage) {
+        contextHint = " (Note: The user has uploaded an image)";
+      }
+      
       // Prepare the request to Mistral
       const response = await fetch(`${apiBaseUrl}/api/generate/mistral`, {
         method: "POST",
@@ -13,7 +19,7 @@ export class MessageClassifier {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          userPrompt: message + (hasImage ? " (Note: The user has uploaded an image)" : ""),
+          userPrompt: message + contextHint,
           systemPrompt: this.systemPrompt,
         }),
       });
@@ -27,10 +33,23 @@ export class MessageClassifier {
       const data = await response.json();
       const classification = data.text.trim().toUpperCase();
       
+    
       // Normalize the classification
       if (classification.includes("VERILOG")) return "VERILOG_IMPORT";
       if (classification.includes("CIRCUIT") && classification.includes("DETECT")) return "CIRCUIT_DETECTION";
-      if (classification.includes("IMAGE")) return "IMAGE_ANALYSIS";
+      
+      // New image type classifications
+      if (hasImage) {
+        if (classification.includes("TRUTH") && classification.includes("TABLE")) {
+          return "TRUTH_TABLE_IMAGE";
+        }
+        if (classification.includes("KMAP") || classification.includes("K-MAP") || 
+            classification.includes("KARNAUGH")) {
+          return "KMAP_IMAGE";
+        }
+      }
+      
+      if (hasImage) return "IMAGE_ANALYSIS";
       
       return "GENERAL_INFORMATION";
     } catch (error) {

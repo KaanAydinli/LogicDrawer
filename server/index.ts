@@ -12,8 +12,8 @@ import { User } from "./models/User";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { authMiddleware, AuthRequest } from "./middlewares/auth";
-import { spawn } from 'child_process'; // Import spawn
-import path from 'path';  
+import { spawn } from "child_process"; // Import spawn
+import path from "path";
 
 dotenv.config();
 
@@ -26,10 +26,10 @@ app.use(express.urlencoded({ limit: "25mb", extended: true }));
 
 app.use(
   cors({
-    origin: '*',  // Tüm kaynaklardan erişime izin ver
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    origin: "*", // Tüm kaynaklardan erişime izin ver
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
@@ -51,38 +51,38 @@ app.get("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
     const ownCircuits = await Circuit.find({ userId: req.user?.id })
       .populate("userId", "name email")
       .sort({ createdAt: -1 });
-      
+
     // Fetch circuits shared with the user
-    const sharedCircuits = await Circuit.find({ 
-      sharedWith: req.user?.id 
+    const sharedCircuits = await Circuit.find({
+      sharedWith: req.user?.id,
     })
-    .populate("userId", "name email")
-    .sort({ createdAt: -1 });
-    
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+
     // Fetch public circuits (that aren't owned by the user)
     const publicCircuits = await Circuit.find({
       userId: { $ne: req.user?.id },
-      isPublic: true
+      isPublic: true,
     })
-    .populate("userId", "name email")
-    .sort({ createdAt: -1 });
-    
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+
     // Mark shared and public circuits
     const sharedCircuitsWithFlag = sharedCircuits.map(circuit => {
       const circuitObj = circuit.toObject();
       circuitObj.isShared = true;
       return circuitObj;
     });
-    
+
     const publicCircuitsWithFlag = publicCircuits.map(circuit => {
       const circuitObj = circuit.toObject();
       circuitObj.isPublic = true;
       return circuitObj;
     });
-    
+
     // Combine all sets
     const allCircuits = [...ownCircuits, ...sharedCircuitsWithFlag, ...publicCircuitsWithFlag];
-    
+
     res.json(allCircuits);
   } catch (error) {
     console.error("Error fetching circuits:", error);
@@ -93,20 +93,20 @@ app.get("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
 app.get("/api/circuits/search", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const query = req.query.q as string;
-    
-    if (!query || typeof query !== 'string') {
+
+    if (!query || typeof query !== "string") {
       return res.status(400).json({ error: "Search query is required" });
     }
-    
+
     // Create a regex pattern that matches beginning of words (prefix match)
     // This will match strings that start with the query (case insensitive)
-    const searchPattern = new RegExp(`^${query}`, 'i');
-    
+    const searchPattern = new RegExp(`^${query}`, "i");
+
     // Find circuits that match the search criteria
     const matchingCircuits = await Circuit.find({
       $or: [
         { name: searchPattern },
-        { description: searchPattern }
+        { description: searchPattern },
         // Removed tag matching as it's not prefix-friendly
       ],
       $and: [
@@ -117,21 +117,20 @@ app.get("/api/circuits/search", authMiddleware, async (req: AuthRequest, res) =>
             // Circuits shared with the user
             { sharedWith: req.user?.id },
             // Public circuits
-            { isPublic: true }
-          ]
-        }
-      ]
+            { isPublic: true },
+          ],
+        },
+      ],
     })
-    .populate("userId", "name email")
-    .sort({ createdAt: -1 });
-    
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+
     res.json(matchingCircuits);
   } catch (error) {
     console.error("Error searching circuits:", error);
     res.status(500).json({ error: "Failed to search circuits" });
   }
 });
-
 
 const JWT_SECRET = process.env.JWT_SECRET || "s";
 
@@ -232,7 +231,6 @@ app.get("/api/auth/me", async (req, res) => {
 });
 
 app.get("/api/circuits/shared-with-me", authMiddleware, async (req: AuthRequest, res) => {
-  
   console.log("Fetching circuits shared with user:");
   try {
     if (!req.user?.id) {
@@ -245,7 +243,7 @@ app.get("/api/circuits/shared-with-me", authMiddleware, async (req: AuthRequest,
       console.error("User not found for shared circuits lookup:", req.user.id);
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     console.log("Looking for circuits shared with:", user.name);
 
     try {
@@ -288,7 +286,7 @@ app.put("/api/circuits/:id/visibility", authMiddleware, async (req: AuthRequest,
 
     res.json({
       isPublic: circuit.isPublic,
-      message: `Circuit is now ${circuit.isPublic ? 'public' : 'private'}`
+      message: `Circuit is now ${circuit.isPublic ? "public" : "private"}`,
     });
   } catch (error) {
     console.error("Error updating circuit visibility:", error);
@@ -299,7 +297,7 @@ app.put("/api/circuits/:id/visibility", authMiddleware, async (req: AuthRequest,
 app.get("/api/circuits/public", async (req, res) => {
   try {
     console.log("Fetching public circuits...");
-    
+
     const circuits = await Circuit.find({ isPublic: true })
       .populate("userId", "name email")
       .sort({ dateCreated: -1 });
@@ -333,16 +331,16 @@ app.post("/api/analyze/roboflow", async (req, res) => {
     const base64Data = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
 
     // --- 1. Spawn Python Script ---
-    const pythonScriptPath = path.join(__dirname, 'detectCircuit.py'); // Ensure correct script name
+    const pythonScriptPath = path.join(__dirname, "detectCircuit.py"); // Ensure correct script name
     console.log(`Spawning Python script: ${pythonScriptPath}`);
 
-    const pythonExecutable = 'python'; // Or 'python3'
+    const pythonExecutable = "python"; // Or 'python3'
 
     // Spawn the process WITHOUT the base64 data as an argument
     const pythonProcess = spawn(pythonExecutable, [pythonScriptPath]);
 
-    let scriptOutput = '';
-    let scriptError = '';
+    let scriptOutput = "";
+    let scriptError = "";
 
     // --- 2. Write base64 data to Python's stdin ---
     pythonProcess.stdin.write(base64Data);
@@ -350,25 +348,25 @@ app.post("/api/analyze/roboflow", async (req, res) => {
     console.log("Sent base64 data to Python script via stdin.");
 
     // --- 3. Capture stdout and stderr (same as before) ---
-    pythonProcess.stdout.on('data', (data) => {
+    pythonProcess.stdout.on("data", data => {
       scriptOutput += data.toString();
     });
 
-    pythonProcess.stderr.on('data', (data) => {
+    pythonProcess.stderr.on("data", data => {
       scriptError += data.toString();
       console.error(`Python stderr: ${data}`);
     });
 
     // --- 4. Handle Python Script Completion (same as before) ---
     return new Promise((resolve, reject) => {
-      pythonProcess.on('close', (code) => {
+      pythonProcess.on("close", code => {
         console.log(`Python script exited with code ${code}`);
 
         if (code === 0) {
           try {
             const trimmedOutput = scriptOutput.trim();
             if (!trimmedOutput) {
-                throw new Error("Python script produced empty output.");
+              throw new Error("Python script produced empty output.");
             }
             const resultJson = JSON.parse(trimmedOutput);
             console.log("Successfully parsed output from Python script.");
@@ -380,7 +378,7 @@ app.post("/api/analyze/roboflow", async (req, res) => {
             res.status(500).json({
               error: "Failed to parse analysis result from Python script",
               details: scriptError || "Parsing error",
-              rawOutput: scriptOutput
+              rawOutput: scriptOutput,
             });
             reject(parseError);
           }
@@ -389,19 +387,18 @@ app.post("/api/analyze/roboflow", async (req, res) => {
           res.status(500).json({
             error: "Circuit analysis script failed",
             details: scriptError || `Script exited with code ${code}`,
-            rawOutput: scriptOutput
+            rawOutput: scriptOutput,
           });
           reject(new Error(`Python script failed: ${scriptError}`));
         }
       });
 
-      pythonProcess.on('error', (err) => {
-        console.error('Failed to start Python subprocess:', err);
+      pythonProcess.on("error", err => {
+        console.error("Failed to start Python subprocess:", err);
         res.status(500).json({ error: "Failed to start analysis script", details: err.message });
         reject(err);
       });
     });
-
   } catch (error) {
     console.error("Error in /api/analyze/roboflow (stdin) endpoint:", error);
     res.status(500).json({
@@ -415,23 +412,22 @@ interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
 
-
 // Add this endpoint for message classification
 app.post("/api/classify-message", async (req, res) => {
   try {
     console.log("Message classification request received");
-    
+
     const { message, hasImage } = req.body;
-    
+
     if (!message) {
       return res.status(400).json({ error: "No message provided" });
     }
-    
+
     if (!process.env.MISTRAL_API_KEY) {
       console.error("Mistral API key not found");
       return res.status(500).json({ error: "Mistral API is not configured" });
     }
-    
+
     try {
       // System prompt for classification
       const systemPrompt = `You are a classification assistant for a logic circuit design application.
@@ -439,62 +435,66 @@ Analyze the user's message and return ONLY ONE of these categories:
 - VERILOG_IMPORT: If the message contains Verilog code or asks to import/create a circuit from code
 - CIRCUIT_DETECTION: If the message asks to detect, draw, or analyze a circuit from an image
 - IMAGE_ANALYSIS: If the message asks to analyze or describe an image without creating a circuit
+- TRUTH_TABLE_IMAGE: If the message asks to analyze or draw the truth table from an image
+- KMAP_IMAGE: If the message asks to analyze or draw the Karnaugh map from an image
 - GENERAL_INFORMATION: For questions about circuitry, programming, or other informational requests
 
 Reply with ONLY the category name, nothing else.`;
-      
+
       // Create messages array for Mistral
       const messages = [
         { role: "system", content: systemPrompt },
-        { role: "user", content: message + (hasImage ? " (Note: The user has uploaded an image)" : "") }
+        {
+          role: "user",
+          content: message + (hasImage ? " (Note: The user has uploaded an image)" : ""),
+        },
       ];
-      
+
       // Call Mistral API
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: "mistral-large-latest",
-          messages: messages
-        })
+          messages: messages,
+        }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(`Mistral API error: ${error.error?.message || response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.choices || !data.choices.length) {
         throw new Error("Empty response from Mistral API");
       }
-      
+
       const text = data.choices[0].message.content.trim().toUpperCase();
-      
+      console.log(text);
+
       // Normalize the classification
-      let classification = "GENERAL_INFORMATION";
-      if (text.includes("VERILOG")) classification = "VERILOG_IMPORT";
-      else if (text.includes("CIRCUIT") && (text.includes("DETECT") || text.includes("DRAW"))) classification = "CIRCUIT_DETECTION";
-      else if (text.includes("IMAGE")) classification = "IMAGE_ANALYSIS";
-      
+      let classification = text;
+     
+
       console.log(`Message classified as: ${classification}`);
       return res.json({ classification });
     } catch (error) {
       console.error("Error calling Mistral API for classification:", error);
       return res.status(500).json({
         error: "Failed to classify message",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       });
     }
   } catch (error) {
     console.error("Error processing classification request:", error);
     return res.status(500).json({
       error: "Internal server error",
-      details: error instanceof Error ? error.message : String(error)
+      details: error instanceof Error ? error.message : String(error),
     });
   }
 });
@@ -502,11 +502,8 @@ app.post("/api/generate/mistral", async (req, res) => {
   try {
     console.log("Mistral text generation request received");
 
-    const {userPrompt, systemPrompt } = req.body;
+    const { userPrompt, systemPrompt } = req.body;
 
-
-
-   
     if (!process.env.MISTRAL_API_KEY) {
       console.error("Mistral API key not found in environment variables");
       return res.status(500).json({ error: "Mistral API key not configured" });
@@ -516,24 +513,21 @@ app.post("/api/generate/mistral", async (req, res) => {
       console.log("Sending request to Mistral API...");
 
       let messages = [];
-      
-    
+
       if (systemPrompt) {
         messages.push({
           role: "system",
-          content: systemPrompt
+          content: systemPrompt,
         });
       }
-      
+
       // Add conversation history
 
-          const role = "user" ;
-          messages.push({
-            role: role,
-            content: userPrompt
-          });
-        
-
+      const role = "user";
+      messages.push({
+        role: role,
+        content: userPrompt,
+      });
 
       // Make the API request to Mistral
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -544,7 +538,7 @@ app.post("/api/generate/mistral", async (req, res) => {
         },
         body: JSON.stringify({
           model: "mistral-large-latest",
-          messages: messages
+          messages: messages,
         }),
       });
 
@@ -554,11 +548,11 @@ app.post("/api/generate/mistral", async (req, res) => {
       }
 
       const data = await response.json();
-      
+
       if (!data.choices || !data.choices.length) {
         throw new Error("Empty response from Mistral API");
       }
-      
+
       const text = data.choices[0].message.content;
       console.log("Response received from Mistral");
 
@@ -581,13 +575,13 @@ app.post("/api/generate/mistral", async (req, res) => {
 app.post("/api/generate/gemini-text", async (req, res) => {
   try {
     console.log("Gemini text generation request received");
-    
+
     const { prompt, systemPrompt } = req.body;
-    
+
     if (!prompt) {
       return res.status(400).json({ error: "No prompt provided" });
     }
-    
+
     // Check if the API key is configured
     const googleApiKey = process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY;
     if (!googleApiKey) {
@@ -599,34 +593,34 @@ app.post("/api/generate/gemini-text", async (req, res) => {
       // Get the model for text generation
       console.log("Processing text-only query with Gemini Pro");
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-      
+
       // Combine system prompt and user prompt if needed
       let fullPrompt = prompt;
       if (systemPrompt) {
         fullPrompt = `${systemPrompt}\n\n${prompt}`;
       }
-      
+
       console.log(`Sending prompt to Gemini (length: ${fullPrompt.length})`);
-      
+
       // Using the simplest possible API call to minimize errors
       const result = await model.generateContent(fullPrompt);
       const response = result.response;
       const text = response.text();
-      
+
       console.log("Received text response from Gemini");
       return res.json({ text });
     } catch (error) {
       console.error("Error calling Gemini text API:", error);
       return res.status(500).json({
         error: "Failed to generate text with Gemini",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       });
     }
   } catch (error) {
     console.error("Error processing text request:", error);
     return res.status(500).json({
       error: "Internal server error",
-      details: error instanceof Error ? error.message : String(error)
+      details: error instanceof Error ? error.message : String(error),
     });
   }
 });
@@ -634,26 +628,22 @@ app.post("/api/generate/gemini-text", async (req, res) => {
 // Image analysis Gemini endpoint
 app.post("/api/generate/gemini-vision", async (req, res) => {
   try {
-    
     const { prompt, imageData } = req.body;
-    
+
     if (!prompt) {
       return res.status(400).json({ error: "No prompt provided" });
     }
-    
+
     if (!imageData) {
       return res.status(400).json({ error: "No image data provided" });
     }
-    
 
     try {
-
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-      
 
       let base64Data;
       let mimeType = "image/jpeg";
-      
+
       try {
         if (imageData.includes("base64,")) {
           const matches = imageData.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
@@ -666,59 +656,59 @@ app.post("/api/generate/gemini-vision", async (req, res) => {
         } else {
           base64Data = imageData;
         }
-        
+
         if (!base64Data) {
           throw new Error("Could not extract base64 data from image");
         }
       } catch (parseError) {
         return res.status(400).json({ error: "Invalid image data format" });
       }
-      
+
       // Generate content with image and text
       const result = await model.generateContent({
-        contents: [{ 
-          role: "user",
-          parts: [
-            { text: prompt },
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType: mimeType
-              }
-            }
-          ] 
-        }]
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  data: base64Data,
+                  mimeType: mimeType,
+                },
+              },
+            ],
+          },
+        ],
       });
-      
+
       const response = result.response;
       const text = response.text();
-      
+
       return res.json({ text });
     } catch (error) {
       console.error("Error calling Gemini vision API:", error);
       return res.status(500).json({
         error: "Failed to analyze image with Gemini",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       });
     }
   } catch (error) {
     console.error("Error processing image analysis request:", error);
     return res.status(500).json({
       error: "Internal server error",
-      details: error instanceof Error ? error.message : String(error)
+      details: error instanceof Error ? error.message : String(error),
     });
   }
 });
-
 
 app.post("/api/circuits/:id/like", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const circuitId = req.params.id;
     const userId = req.user?.id;
-    
 
     const circuit = await Circuit.findById(circuitId);
-    
+
     if (!circuit) {
       return res.status(404).json({ error: "Circuit not found" });
     }
@@ -726,7 +716,6 @@ app.post("/api/circuits/:id/like", authMiddleware, async (req: AuthRequest, res)
     if (!circuit.likedBy) {
       circuit.likedBy = [];
     }
-    
 
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
@@ -736,24 +725,21 @@ app.post("/api/circuits/:id/like", authMiddleware, async (req: AuthRequest, res)
     if (circuit.likedBy.some(id => id.toString() === userIdStr)) {
       return res.status(400).json({ error: "You have already liked this circuit" });
     }
-    
 
     circuit.likedBy.push(new mongoose.Types.ObjectId(userId));
     circuit.likes = circuit.likedBy.length;
 
     await circuit.save();
-    
-    res.json({ 
-      message: "Circuit liked successfully", 
-      likes: circuit.likes 
+
+    res.json({
+      message: "Circuit liked successfully",
+      likes: circuit.likes,
     });
   } catch (error) {
     console.error("Error liking circuit:", error);
     res.status(500).json({ error: "Failed to like circuit" });
   }
 });
-
-
 
 app.get("/api/circuits/:id/download", authMiddleware, async (req: AuthRequest, res) => {
   try {
@@ -778,7 +764,6 @@ app.get("/api/circuits/:id/download", authMiddleware, async (req: AuthRequest, r
 });
 
 app.post("/api/circuits/:id/share", authMiddleware, async (req: AuthRequest, res) => {
-  
   try {
     const { username } = req.body;
 
@@ -792,7 +777,7 @@ app.post("/api/circuits/:id/share", authMiddleware, async (req: AuthRequest, res
     }
     const circuit = await Circuit.findOne({
       _id: req.params.id,
-      userId: req.user?.id
+      userId: req.user?.id,
     });
 
     if (!circuit) {
@@ -803,18 +788,16 @@ app.post("/api/circuits/:id/share", authMiddleware, async (req: AuthRequest, res
       circuit.sharedWith = [];
     }
 
-
     if (circuit.sharedWith.includes(username)) {
       return res.status(400).json({ error: "Circuit already shared with this user" });
     }
-
 
     circuit.sharedWith.push(username);
     await circuit.save();
 
     res.json({
       message: `Circuit shared with ${username}`,
-      circuit
+      circuit,
     });
   } catch (error) {
     console.error("Error sharing circuit:", error);
@@ -822,19 +805,15 @@ app.post("/api/circuits/:id/share", authMiddleware, async (req: AuthRequest, res
   }
 });
 
-
 app.post("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
   try {
-
     if (!req.user?.id) {
       return res.status(401).json({ error: "User ID not found in token" });
     }
 
-
     const circuitData = {
       ...req.body,
       userId: req.user.id,
-    
     };
 
     console.log("Saving circuit with data:", JSON.stringify(circuitData, null, 2));
@@ -860,9 +839,7 @@ app.post("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
-
 app.get("/api/auth/check", authMiddleware, (req: AuthRequest, res) => {
-
   res.json({
     authenticated: true,
     user: {
@@ -876,53 +853,41 @@ app.put("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
     const circuitId = req.params.id;
     const updateData = req.body;
 
-   
     const user = await User.findById(req.user?.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-  
     const circuit = await Circuit.findOne({
       _id: circuitId,
-      $or: [
-        { userId: req.user?.id },                   
-        { sharedWith: user.name },                 
-        
-      ]
+      $or: [{ userId: req.user?.id }, { sharedWith: user.name }],
     });
 
     if (!circuit) {
-   
       const publicCircuit = await Circuit.findOne({
         _id: circuitId,
-        isPublic: true
+        isPublic: true,
       });
-      
+
       if (publicCircuit) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: "This is a public circuit. You need to fork it first.",
           circuitId: circuitId,
-          isForkable: true
+          isForkable: true,
         });
       }
-      
+
       return res.status(404).json({ error: "Circuit not found or you don't have permission" });
     }
-
 
     const updates = {
       name: updateData.name,
       components: updateData.components,
       wires: updateData.wires,
-      dateModified: new Date()
+      dateModified: new Date(),
     };
 
-    const updatedCircuit = await Circuit.findByIdAndUpdate(
-      circuitId,
-      updates,
-      { new: true }
-    );
+    const updatedCircuit = await Circuit.findByIdAndUpdate(circuitId, updates, { new: true });
 
     res.json(updatedCircuit);
   } catch (error) {
@@ -932,7 +897,6 @@ app.put("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
 });
 app.get("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
-
     const user = await User.findById(req.user?.id);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
@@ -940,27 +904,24 @@ app.get("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
 
     console.log(`User ${user.name} (${req.user?.id}) is trying to access circuit ${req.params.id}`);
 
-
     let circuit = await Circuit.findOne({
       _id: req.params.id,
-      userId: req.user?.id
+      userId: req.user?.id,
     });
 
- 
     if (!circuit) {
       console.log(`Circuit is not owned by user, checking if shared with ${user.name}`);
       circuit = await Circuit.findOne({
         _id: req.params.id,
-        sharedWith: user.name 
+        sharedWith: user.name,
       });
     }
-
 
     if (!circuit) {
       console.log("Circuit is not shared with user, checking if public");
       circuit = await Circuit.findOne({
         _id: req.params.id,
-        isPublic: true
+        isPublic: true,
       });
     }
 
@@ -968,7 +929,7 @@ app.get("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
       console.log("Circuit not found or user doesn't have access");
       return res.status(404).json({ error: "Circuit not found or you don't have permission" });
     }
-    
+
     console.log(`Circuit found, returning to user ${user.name}`);
     res.json(circuit);
   } catch (error) {
@@ -996,30 +957,25 @@ app.get("/health", (req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    ip: req.ip
+    ip: req.ip,
   });
 });
-
 
 app.post("/api/auth/refresh", async (req, res) => {
   try {
     const { userId } = req.body;
-    
+
     if (!userId) {
       return res.status(400).json({ error: "User ID is required" });
     }
-    
+
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    
-    const token = jwt.sign(
-      { id: user._id, email: user.email }, 
-      JWT_SECRET, 
-      { expiresIn: "24h" }
-    );
-    
+
+    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "24h" });
+
     res.json({ token });
   } catch (error) {
     console.error("Token refresh error:", error);

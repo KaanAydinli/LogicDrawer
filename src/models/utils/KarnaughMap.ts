@@ -1,4 +1,5 @@
 import { Component } from "../Component";
+import { VerilogCircuitConverter } from "./VerilogCircuitConverter";
 
 export class KarnaughMap {
   private truthTable: { inputs: boolean[]; outputs: boolean[] }[];
@@ -733,9 +734,31 @@ export class KarnaughMap {
    */
   public createCircuitFromExpression(circuitBoard: any): void {
     const booleanExpr = this.generateBooleanExpression();
+    
+    // Boolean ifadeyi Verilog formatına dönüştür
+    const verilogCode = this.convertBooleanToVerilog(booleanExpr);
+    
+    // VerilogCircuitConverter kullan
+    const converter = new VerilogCircuitConverter(circuitBoard);
+    converter.importVerilogCode(verilogCode);
+  }
 
-    const parser = new BooleanExpressionParser(booleanExpr, this.inputLabels);
-    parser.createCircuit(circuitBoard);
+  // Boolean ifadeyi Verilog modül formatına dönüştürür
+  private convertBooleanToVerilog(expr: string): string {
+    // K-Map etiketlerini module portları olarak tanımla
+    const inputs = this.inputLabels.map(label => `input ${label}`).join(', ');
+    const outputs = this.outputLabels.map(label => `output ${label}`).join(', ');
+    
+    // Boolean operatörleri Verilog operatörlerine dönüştür
+    let verilogExpr = expr
+      .replace(/∧/g, '&')   // AND
+      .replace(/∨/g, '|')   // OR
+      .replace(/¬/g, '~');  // NOT
+    
+    // Verilog modülü oluştur
+    return `module boolean_circuit(${inputs}, ${outputs});
+      assign ${this.outputLabels[0]} = ${verilogExpr};
+    endmodule`;
   }
 }
 
