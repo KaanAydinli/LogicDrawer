@@ -38,7 +38,7 @@ export class VerilogCircuitConverter {
       const module = this.parser.parseVerilog(code);
       console.log("Parsed module:", module);
 
-      this.circuitBoard.clearCircuit();
+ 
       this.components = {};
       this.outputPorts = {};
       this.componentPositions.clear();

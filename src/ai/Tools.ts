@@ -267,14 +267,11 @@ export class TruthTableImageTool implements Tool {
         return "I couldn't properly extract a truth table from the image. Please make sure the image shows a clear truth table.";
       }
       
-      // Convert to the format expected by TruthTableManager
-      const { truthTable, inputLabels, outputLabels } = this.convertToTruthTableFormat(extractedTableData);
-      
-      // Create circuit from the truth table
-      const success = await this.createCircuitFromTruthTable(truthTable, inputLabels, outputLabels, context.circuitBoard);
-      
-      if (success) {
-        return "I've successfully created a circuit from the truth table in your image!";
+      // Use improved heuristic and multi-output support
+      const { truthTable, inputLabels, outputLabels, inputIndices, outputIndices } = this.convertToTruthTableFormat(extractedTableData);
+      const {success, createdOutputs} = await this.createCircuitFromTruthTable(truthTable, inputLabels, outputLabels, context.circuitBoard, inputIndices, outputIndices);
+      if (success && createdOutputs.length > 0) {
+        return `I've successfully created circuits for outputs: ${createdOutputs.join(", ")}. You can see them on the canvas now.`;
       } else {
         return "I recognized a truth table in your image, but couldn't create a circuit from it. The table might be complex or have an unusual format.";
       }
@@ -314,47 +311,48 @@ export class TruthTableImageTool implements Tool {
   private convertToTruthTableFormat(data: { headers: string[], rows: string[][] }): { 
     truthTable: { inputs: boolean[], outputs: boolean[] }[], 
     inputLabels: string[],
-    outputLabels: string[]
+    outputLabels: string[],
+    inputIndices: number[],
+    outputIndices: number[]
   } {
-    // Determine which columns are inputs and which are outputs
     const headers = data.headers;
-    
-    // By convention, assume outputs are the columns whose headers contain 'output', 'out', 'f', 'y', 'z'
-    // or are positioned after inputs
+    const rows = data.rows;
+    // Heuristic for output detection
+    const outputKeywords = ['out', 'output', 'f', 'y', 'z', 'q', 's', 'c'];
     const outputIndices: number[] = [];
-    
-    for (let i = 0; i < headers.length; i++) {
-      const h = headers[i].toLowerCase();
-      if (h.includes('output') || h.includes('out') || h.includes('f') || 
-          h === 'y' || h === 'z' || h === 'q') {
+    // 1. Keyword-based detection
+    headers.forEach((h, i) => {
+      const lower = h.toLowerCase();
+      if (outputKeywords.some(k => lower.includes(k)) || /^f\d+$/i.test(h) || /^[SC]$/.test(h)) {
         outputIndices.push(i);
       }
+    });
+    // 2. If no outputs found, try to find columns with only 0/1 values (likely outputs)
+    if (outputIndices.length === 0) {
+      for (let i = 0; i < headers.length; i++) {
+        if (rows.every(row => row[i] === '0' || row[i] === '1')) {
+          outputIndices.push(i);
+        }
+      }
     }
-    
-    // If no obvious outputs were found, assume the last column is the output
+    // 3. If still ambiguous, fallback to last column as output
     if (outputIndices.length === 0 && headers.length > 1) {
       outputIndices.push(headers.length - 1);
     }
-    
-    // Determine input indices (all columns that are not outputs)
+    // Inputs are all columns not in outputs
     const inputIndices = headers.map((_, i) => i).filter(i => !outputIndices.includes(i));
-    
-    // Create input and output labels
     const inputLabels = inputIndices.map(i => headers[i]);
     const outputLabels = outputIndices.map(i => headers[i]);
-    
     // Convert rows to boolean arrays
     const truthTable: { inputs: boolean[], outputs: boolean[] }[] = [];
-    
-    for (const row of data.rows) {
+    for (const row of rows) {
       if (row.length >= headers.length) {
         const inputs = inputIndices.map(i => this.parseBooleanValue(row[i]));
         const outputs = outputIndices.map(i => this.parseBooleanValue(row[i]));
         truthTable.push({ inputs, outputs });
       }
     }
-    
-    return { truthTable, inputLabels, outputLabels };
+    return { truthTable, inputLabels, outputLabels, inputIndices, outputIndices };
   }
   
   // Parse various representations of boolean values
@@ -368,24 +366,33 @@ export class TruthTableImageTool implements Tool {
     truthTable: { inputs: boolean[], outputs: boolean[] }[],
     inputLabels: string[],
     outputLabels: string[],
-    circuitBoard: any
-  ): Promise<boolean> {
-    try {
-
-      const kmap = new KarnaughMap(truthTable, inputLabels, outputLabels);
-      
-      // Generate minimal boolean expression and create circuit
-      kmap.findMinimalGroups();
-      kmap.createCircuitFromExpression(circuitBoard);
-      
-      // Auto arrange the circuit for better visibility
-      circuitBoard.autoArrangeCircuit();
-      
-      return true;
-    } catch (error) {
-      console.error("Error creating circuit from truth table:", error);
-      return false;
+    circuitBoard: any,
+    inputIndices: number[],
+    outputIndices: number[]
+  ): Promise<{success: boolean, createdOutputs: string[]}> {
+    const createdOutputs: string[] = [];
+    let anySuccess = false;
+    for (let outIdx = 0; outIdx < outputIndices.length; outIdx++) {
+      // Build per-output truth table
+      const perOutputTruthTable = truthTable.map(row => ({
+        inputs: row.inputs,
+        outputs: [row.outputs[outIdx]]
+      }));
+      try {
+        const kmap = new KarnaughMap(perOutputTruthTable, inputLabels, [outputLabels[outIdx]]);
+        kmap.findMinimalGroups();
+        kmap.createCircuitFromExpression(circuitBoard);
+        anySuccess = true;
+        createdOutputs.push(outputLabels[outIdx]);
+      } catch (err) {
+        console.error(`Failed to create circuit for output ${outputLabels[outIdx]}:`, err);
+      }
     }
+    // Auto arrange the circuit for better visibility if any succeeded
+    if (anySuccess) {
+      circuitBoard.autoArrangeCircuit();
+    }
+    return {success: anySuccess, createdOutputs};
   }
 }
 
