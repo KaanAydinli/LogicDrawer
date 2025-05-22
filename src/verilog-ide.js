@@ -76,17 +76,11 @@ window.initAceEditor = function () {
 
     // Başlangıç kodunu ayarla
     window.editor.setValue(`module if_test(
-  input a, b, sel,
+  input a, b, c,
   output out
 );
-  // If-else ile 2:1 multiplexer
-  always @(a or b or sel) begin
-    if (sel) begin
-      out = a;
-    end else begin
-      out = b;
-    end
-  end
+  assign out = (a & b) | c;
+
 endmodule`);
 
     // İmleç pozisyonunu başa getir

@@ -688,36 +688,20 @@ export class VerilogParser {
       const literalPattern = /^\d+'[bB][01xXzZ_]+$|^\d+'[hH][0-9a-fA-FxXzZ_]+$|^\d+'[dD][0-9_]+$|^\d+'[oO][0-7xXzZ_]+$|^1'b[01xXzZ]$/;
       
       if (literalPattern.test(trimmedExpr)) {
-        // Direct constant assignment - KEEP THE LITERAL VALUE AS-IS
+        // Direct constant assignment
         const constantGate: VerilogGate = {
           type: 'buf',
           name: `constant_${output}_${gateCounter++}`,
           output: output,
-          inputs: [trimmedExpr] // Important: Use the actual literal value
+          inputs: [trimmedExpr]
         };
         
         console.log(`Created constant assignment: ${output} = ${trimmedExpr}`);
-        gates.push(constantGate); // Make sure to add it to gates array
+        gates.push(constantGate);
         continue;
       }
 
-      if (this.isSimpleExpression(trimmedExpr)) {
-        this.processSimpleExpression(trimmedExpr, output, gates);
-        continue;
-      }
-
-      if (trimmedExpr.includes("(")) {
-        this.processParenthesisExpression(trimmedExpr, output, gates, gateCounter);
-        gateCounter += this.countOperators(trimmedExpr);
-        continue;
-      }
-
-      if (trimmedExpr.includes("?") && trimmedExpr.includes(":")) {
-        this.processTernaryExpression(trimmedExpr, output, gates, gateCounter);
-        gateCounter += 1;
-        continue;
-      }
-
+      // Process complex expression
       this.processComplexExpression(trimmedExpr, output, gates, gateCounter);
       gateCounter += this.countOperators(trimmedExpr);
     }
@@ -1126,93 +1110,181 @@ export class VerilogParser {
     gates: VerilogGate[],
     gateCounter: number
   ): void {
-    let currentExpr = expr.trim();
-    let tempCounter = 0;
+    // First, tokenize the expression
+    const tokens = this.tokenizeExpression(expr);
+    
+    // Convert to postfix notation (Reverse Polish Notation)
+    const postfix = this.infixToPostfix(tokens);
+    
+    // Process the postfix expression to create gates
+    this.processPostfixExpression(postfix, output, gates, gateCounter);
+  }
 
+  private tokenizeExpression(expr: string): string[] {
+    const tokens: string[] = [];
+    let current = '';
+    let inIdentifier = false;
+    let inNumber = false;
+    let inBitSelect = false;
+    let parenDepth = 0;
+
+    for (let i = 0; i < expr.length; i++) {
+      const char = expr[i];
+      
+      if (char === '(') {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+        tokens.push(char);
+        parenDepth++;
+        continue;
+      }
+      
+      if (char === ')') {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+        tokens.push(char);
+        parenDepth--;
+        continue;
+      }
+      
+      if (char === '&' || char === '|' || char === '^' || char === '~') {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+        tokens.push(char);
+        continue;
+      }
+      
+      if (/\s/.test(char)) {
+        if (current) {
+          tokens.push(current);
+          current = '';
+        }
+        continue;
+      }
+      
+      current += char;
+    }
+    
+    if (current) {
+      tokens.push(current);
+    }
+    
+    return tokens;
+  }
+
+  private getOperatorPrecedence(op: string): number {
+    switch (op) {
+      case '~': return 3;
+      case '&': return 2;
+      case '^': return 1;
+      case '|': return 0;
+      default: return -1;
+    }
+  }
+
+  private infixToPostfix(tokens: string[]): string[] {
+    const output: string[] = [];
+    const operators: string[] = [];
+    
+    for (const token of tokens) {
+      if (token === '(') {
+        operators.push(token);
+      } else if (token === ')') {
+        while (operators.length > 0 && operators[operators.length - 1] !== '(') {
+          output.push(operators.pop()!);
+        }
+        if (operators.length > 0 && operators[operators.length - 1] === '(') {
+          operators.pop();
+        }
+      } else if (this.isOperator(token)) {
+        while (
+          operators.length > 0 &&
+          operators[operators.length - 1] !== '(' &&
+          this.getOperatorPrecedence(operators[operators.length - 1]) >= this.getOperatorPrecedence(token)
+        ) {
+          output.push(operators.pop()!);
+        }
+        operators.push(token);
+      } else {
+        output.push(token);
+      }
+    }
+    
+    while (operators.length > 0) {
+      output.push(operators.pop()!);
+    }
+    
+    return output;
+  }
+
+  private isOperator(token: string): boolean {
+    return ['~', '&', '|', '^'].includes(token);
+  }
+
+  private processPostfixExpression(
+    postfix: string[],
+    output: string,
+    gates: VerilogGate[],
+    gateCounter: number
+  ): void {
+    const stack: string[] = [];
+    let tempCounter = 0;
+    
     const generateTempName = (op: string): string => `_temp_${op}_${gateCounter}_${tempCounter++}`;
     
-
-    const notRegex = /~\s*([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)/g;
-    let tempExpr = currentExpr;
-    do {
-      currentExpr = tempExpr;
-      tempExpr = currentExpr.replace(notRegex, (match, signal) => {
-        const tempNotOut = generateTempName("not");
-        const cleanSignal = this.cleanSignalName(signal);
-        gates.push({
-          type: "not",
-          name: `not_${tempNotOut}`,
-          output: tempNotOut,
-          inputs: [cleanSignal],
-        });
-        return tempNotOut;
-      });
-    } while (tempExpr !== currentExpr);
-
-    const andRegex =
-      /([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)\s*&\s*([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)/;
-    let andMatch;
-    while ((andMatch = currentExpr.match(andRegex)) !== null) {
-      const tempAndOut = generateTempName("and");
-
-      const input1 = this.cleanSignalName(andMatch[1]);
-      const input2 = this.cleanSignalName(andMatch[2]);
-      gates.push({
-        type: "and",
-        name: `and_${tempAndOut}`,
-        output: tempAndOut,
-        inputs: [input1, input2],
-      });
-
-      currentExpr = currentExpr.replace(andMatch[0], tempAndOut);
+    for (const token of postfix) {
+      if (this.isOperator(token)) {
+        if (token === '~') {
+          // Unary operator
+          const operand = stack.pop()!;
+          const tempOut = generateTempName('not');
+          
+          gates.push({
+            type: 'not',
+            name: `not_${tempOut}`,
+            output: tempOut,
+            inputs: [this.cleanSignalName(operand)]
+          });
+          
+          stack.push(tempOut);
+        } else {
+          // Binary operator
+          const right = stack.pop()!;
+          const left = stack.pop()!;
+          const tempOut = generateTempName(token);
+          
+          gates.push({
+            type: token === '&' ? 'and' : token === '|' ? 'or' : 'xor',
+            name: `${token}_${tempOut}`,
+            output: tempOut,
+            inputs: [
+              this.cleanSignalName(left),
+              this.cleanSignalName(right)
+            ]
+          });
+          
+          stack.push(tempOut);
+        }
+      } else {
+        stack.push(token);
+      }
     }
-
-    const xorRegex =
-      /([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)\s*\^\s*([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)/;
-    let xorMatch;
-    while ((xorMatch = currentExpr.match(xorRegex)) !== null) {
-      const tempXorOut = generateTempName("xor");
-      const input1 = this.cleanSignalName(xorMatch[1]);
-      const input2 = this.cleanSignalName(xorMatch[2]);
+    
+    // Connect final result to output
+    const finalResult = stack.pop()!;
+    if (finalResult !== output) {
       gates.push({
-        type: "xor",
-        name: `xor_${tempXorOut}`,
-        output: tempXorOut,
-        inputs: [input1, input2],
-      });
-      currentExpr = currentExpr.replace(xorMatch[0], tempXorOut);
-    }
-
-    const orRegex =
-      /([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)\s*\|\s*([a-zA-Z_]\w*(?:\[\d+:\d+\]|\[\d+\])?|_\w+)/;
-    let orMatch;
-    while ((orMatch = currentExpr.match(orRegex)) !== null) {
-      const tempOrOut = generateTempName("or");
-      const input1 = this.cleanSignalName(orMatch[1]);
-      const input2 = this.cleanSignalName(orMatch[2]);
-      gates.push({
-        type: "or",
-        name: `or_${tempOrOut}`,
-        output: tempOrOut,
-        inputs: [input1, input2],
-      });
-      currentExpr = currentExpr.replace(orMatch[0], tempOrOut);
-    }
-
-    const finalSource = this.cleanSignalName(currentExpr);
-
-    if (finalSource !== output) {
-      gates.push({
-        type: "buf",
-        name: `buf_assign_${output}`,
+        type: 'buf',
+        name: `buf_${output}`,
         output: output,
-        inputs: [finalSource],
+        inputs: [this.cleanSignalName(finalResult)]
       });
-      console.log(`Assigning final result '${finalSource}' to output '${output}' via buffer.`);
-    } else {
-      console.log(
-        `Expression simplified directly to the output name: ${output}. No final gate needed.`
-      );
     }
   }
 
