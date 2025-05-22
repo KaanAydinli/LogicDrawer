@@ -17,7 +17,7 @@ export class DFlipFlop extends Component {
         x: this.position.x - 10,
         y: this.position.y + 20
       },
-      bitWidth: 4,
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this
@@ -45,7 +45,7 @@ export class DFlipFlop extends Component {
         x: this.position.x + this.size.width + 10,
         y: this.position.y + 20
       },
-      bitWidth: 4,
+      bitWidth: 1,
       value: false,
       isConnected: false,
       component: this

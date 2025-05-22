@@ -701,7 +701,27 @@ export class VerilogParser {
         continue;
       }
 
-      // Process complex expression
+      // Check for ternary expressions first
+      if (trimmedExpr.includes("?") && trimmedExpr.includes(":")) {
+        this.processTernaryExpression(trimmedExpr, output, gates, gateCounter);
+        gateCounter += 1;
+        continue;
+      }
+
+      // Check for expressions with parentheses
+      if (trimmedExpr.includes("(")) {
+        this.processParenthesisExpression(trimmedExpr, output, gates, gateCounter);
+        gateCounter += this.countOperators(trimmedExpr);
+        continue;
+      }
+
+      // Then check for simple expressions
+      if (this.isSimpleExpression(trimmedExpr)) {
+        this.processSimpleExpression(trimmedExpr, output, gates);
+        continue;
+      }
+
+      // Finally, process as complex expression
       this.processComplexExpression(trimmedExpr, output, gates, gateCounter);
       gateCounter += this.countOperators(trimmedExpr);
     }
@@ -770,27 +790,31 @@ export class VerilogParser {
     gates: VerilogGate[],
     gateCounter: number
   ): void {
-    
+    // First, extract all parenthesized groups
     const parentheses = this.extractParenthesisGroups(expr);
     let processedExpr = expr;
     const tempWires: string[] = [];
 
-    
+    // Process each parenthesized group
     parentheses.forEach((parenthesis, index) => {
       const tempOutput = `_temp_wire_${gateCounter + index}`;
       tempWires.push(tempOutput);
 
-      
+      // Extract the inner expression without parentheses
       const innerExpr = parenthesis.substring(1, parenthesis.length - 1);
 
-      
-      this.processNestedExpression(innerExpr, tempOutput, gates, gateCounter + index + 100);
+      // Process the inner expression
+      if (this.isSimpleExpression(innerExpr)) {
+        this.processSimpleExpression(innerExpr, tempOutput, gates);
+      } else {
+        this.processComplexExpression(innerExpr, tempOutput, gates, gateCounter + index + 100);
+      }
 
-      
+      // Replace the parenthesized expression with the temporary wire
       processedExpr = processedExpr.replace(parenthesis, tempOutput);
     });
 
-    
+    // Process the remaining expression after replacing all parentheses
     if (processedExpr !== output) {
       if (this.isSimpleExpression(processedExpr)) {
         this.processSimpleExpression(processedExpr, output, gates);
@@ -810,7 +834,6 @@ export class VerilogParser {
     let depth = 0;
     let start = -1;
 
-    
     for (let i = 0; i < expr.length; i++) {
       if (expr[i] === "(") {
         if (depth === 0) {
@@ -828,58 +851,10 @@ export class VerilogParser {
 
     return groups;
   }
-  private processNestedExpression(
-    expr: string,
-    output: string,
-    gates: VerilogGate[],
-    gateCounter: number
-  ): void {
-    
-    if (expr.startsWith("(") && expr.endsWith(")")) {
-      const innerExpr = expr.substring(1, expr.length - 1);
-      if (this.isBalancedParentheses(innerExpr)) {
-        expr = innerExpr;
-      }
-    }
-
-    
-    const parenthesisGroups = this.extractParenthesisGroups(expr);
-
-    if (parenthesisGroups.length > 0) {
-      
-      this.processParenthesisExpression(expr, output, gates, gateCounter);
-    } else if (this.isSimpleExpression(expr)) {
-      
-      this.processSimpleExpression(expr, output, gates);
-    } else {
-      
-      this.processComplexExpression(expr, output, gates, gateCounter);
-    }
-  }
-
-  
-  private isBalancedParentheses(expr: string): boolean {
-    let depth = 0;
-
-    for (let i = 0; i < expr.length; i++) {
-      if (expr[i] === "(") {
-        depth++;
-      } else if (expr[i] === ")") {
-        depth--;
-        if (depth < 0) return false; 
-      }
-    }
-
-    return depth === 0; 
-  }
 
   /**
    * Ternary ifadeleri işler (? :)
    */
-  /**
-   * Ternary ifadeleri işler (? :)
-   */
-
   private processTernaryExpression(
     expr: string,
     output: string,
@@ -898,49 +873,43 @@ export class VerilogParser {
     const cleanTrueExpr = this.cleanSignalName(trueExpr);
     const cleanFalseExpr = this.cleanSignalName(falseExpr);
 
-    
+    // For simple ternary expressions (like sel ? a : b)
     if (
       this.isSimpleIdentifier(condition) &&
       this.isSimpleIdentifier(trueExpr) &&
       this.isSimpleIdentifier(falseExpr)
     ) {
-      
       const muxGate: VerilogGate = {
-        
         type: "mux2",
-        name: `assign_mux2_${output}_${gateCounter}`, 
+        name: `assign_mux2_${output}_${gateCounter}`,
         output: output,
-        
-        inputs: [cleanTrueExpr, cleanFalseExpr], 
-        
+        inputs: [cleanFalseExpr, cleanTrueExpr], // Note: falseExpr is first input, trueExpr is second input
         controlSignal: cleanCondition,
       };
-      console.log("Created MUX2 directly (simple):", JSON.stringify(muxGate)); 
+      console.log("Created MUX2 directly (simple):", JSON.stringify(muxGate));
       gates.push(muxGate);
-      return; 
+      return;
     }
-    
 
-    
+    // For complex expressions in any part of the ternary
     let finalConditionSignal = cleanCondition;
     let finalTrueSignal = cleanTrueExpr;
     let finalFalseSignal = cleanFalseExpr;
-    let tempGateCounter = gateCounter + 1; 
+    let tempGateCounter = gateCounter + 1;
 
-    
+    // Process complex condition if needed
     if (!this.isSimpleIdentifier(condition)) {
       finalConditionSignal = `_temp_cond_${gateCounter}`;
       console.log(`Processing complex condition: ${condition} -> ${finalConditionSignal}`);
-      
       if (condition.includes("(")) {
         this.processParenthesisExpression(condition, finalConditionSignal, gates, tempGateCounter);
       } else {
         this.processComplexExpression(condition, finalConditionSignal, gates, tempGateCounter);
       }
-      tempGateCounter += this.countOperators(condition) + 1; 
+      tempGateCounter += this.countOperators(condition) + 1;
     }
 
-    
+    // Process complex true expression if needed
     if (!this.isSimpleIdentifier(trueExpr)) {
       finalTrueSignal = `_temp_true_${gateCounter}`;
       console.log(`Processing complex true expression: ${trueExpr} -> ${finalTrueSignal}`);
@@ -952,7 +921,7 @@ export class VerilogParser {
       tempGateCounter += this.countOperators(trueExpr) + 1;
     }
 
-    
+    // Process complex false expression if needed
     if (!this.isSimpleIdentifier(falseExpr)) {
       finalFalseSignal = `_temp_false_${gateCounter}`;
       console.log(`Processing complex false expression: ${falseExpr} -> ${finalFalseSignal}`);
@@ -961,23 +930,18 @@ export class VerilogParser {
       } else {
         this.processComplexExpression(falseExpr, finalFalseSignal, gates, tempGateCounter);
       }
-      
     }
 
-    
+    // Create the final MUX2 gate
     const finalMuxGate: VerilogGate = {
-      
       type: "mux2",
-      name: `assign_mux2_${output}_${gateCounter}`, 
+      name: `assign_mux2_${output}_${gateCounter}`,
       output: output,
-      
-      inputs: [finalTrueSignal, finalFalseSignal], 
-      
+      inputs: [finalFalseSignal, finalTrueSignal], // Note: falseExpr is first input, trueExpr is second input
       controlSignal: finalConditionSignal,
     };
-    console.log(`Created final MUX2 for ternary (complex):`, JSON.stringify(finalMuxGate)); 
+    console.log(`Created final MUX2 for ternary (complex):`, JSON.stringify(finalMuxGate));
     gates.push(finalMuxGate);
-    
   }
 
   /**
