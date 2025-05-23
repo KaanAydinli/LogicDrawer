@@ -152,10 +152,14 @@ export class Wire {
     
     const start = this.from.position;
     const end = this.to.position;
-    
+  
+    // Use simple routing for short distances or when few components
+    if (components.length < 10 || this.getDistance(start, end) < 100) {
+      this.simpleRoute(start, end);
+      return;
+    }
     
     const gridSize = 20;
-    
     
     const gridStart = {
       x: Math.round(start.x / gridSize),
@@ -167,17 +171,34 @@ export class Wire {
       y: Math.round(end.y / gridSize)
     };
   
-    
     const path = this.findPath(gridStart, gridEnd, components, wires);
-    
     
     this.controlPoints = path.slice(1, -1).map(p => ({
       x: p.x * gridSize,
       y: p.y * gridSize
     }));
     
-    
     this.optimizeControlPoints();
+  }
+  
+  private simpleRoute(start: Point, end: Point): void {
+    // Create a simple L or Z shaped path
+    // L-shape: one horizontal segment, one vertical segment
+    const midPoint = {
+      x: end.x,
+      y: start.y
+    };
+    
+    // Only add the mid point if it would create a significant bend
+    if (Math.abs(start.x - end.x) > 20 && Math.abs(start.y - end.y) > 20) {
+      this.controlPoints = [midPoint];
+    } else {
+      this.controlPoints = [];
+    }
+  }
+  
+  private getDistance(p1: Point, p2: Point): number {
+    return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y); // Manhattan distance
   }
   
   private findPath(start: {x: number, y: number}, end: {x: number, y: number}, 

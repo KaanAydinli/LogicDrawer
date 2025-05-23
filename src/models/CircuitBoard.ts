@@ -1920,9 +1920,12 @@ private showKarnaughMapModal(kmap: KarnaughMap): void {
     }
 
     if (this.draggedComponent) {
-      this.updateConnectedWires(
-        this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent]
-      );
+      if(this.wires.length < 20){
+
+        this.updateConnectedWires(
+          this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent]
+        );
+      }
     }
 
     if (!this.draggedComponent && !this.currentWire) {
