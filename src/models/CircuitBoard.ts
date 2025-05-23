@@ -2165,7 +2165,7 @@ private showKarnaughMapModal(kmap: KarnaughMap): void {
     this.simulate();
   }
 
-  clearCircuit(): void {
+  public clearCircuit(): void {
     this.components = [];
     this.wires = [];
     this.selectedComponent = null;

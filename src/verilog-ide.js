@@ -502,6 +502,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // VerilogCircuitConverter modülünü dinamik olarak yükle
         import("./models/utils/VerilogCircuitConverter.js")
           .then(module => {
+            circuitBoard.clearCircuit();
             const VerilogCircuitConverter = module.VerilogCircuitConverter;
             window.verilogConverter = new VerilogCircuitConverter(circuitBoard);
             processVerilogCode(verilogCode, container);
