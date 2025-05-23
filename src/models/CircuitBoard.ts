@@ -413,100 +413,105 @@ export class CircuitBoard {
       alert(`Truth table oluşturulurken hata: ${error}`);
     }
   }
-/**
- * HTML tablosunu Canvas'a render eder
- */
-private renderTableToCanvas(ctx: CanvasRenderingContext2D, table: HTMLTableElement, padding: number): void {
-  // Stil bilgilerini al
-  const computedStyle = window.getComputedStyle(table);
-  
-  // Tablo başlık ve hücre stillerini ayarla
-  ctx.font = "14px Arial";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  
-  // Tablo satırlarını al
-  const rows = table.rows;
-  const headerHeight = 40; // Başlık satır yüksekliği
-  const rowHeight = 30; // Normal satır yüksekliği
-  
-  // Kolon sayısını ve genişliğini hesapla
-  const columnCount = rows[0]?.cells.length || 0;
-  const columnWidth = (table.offsetWidth - (padding * 2)) / columnCount;
-  
-  // Başlık satırını çiz
-  if (rows.length > 0) {
-    ctx.fillStyle = "#222"; // Başlık arka plan rengi
-    ctx.fillRect(padding, padding, table.offsetWidth - (padding * 2), headerHeight);
-    
-    // Başlık metinlerini çiz
-    ctx.fillStyle = "#fff"; // Başlık metin rengi
-    const headerRow = rows[0];
-    
-    for (let j = 0; j < headerRow.cells.length; j++) {
-      const cellText = headerRow.cells[j].textContent || "";
-      const cellX = padding + (j * columnWidth) + (columnWidth / 2);
-      const cellY = padding + (headerHeight / 2);
-      ctx.fillText(cellText, cellX, cellY);
+  /**
+   * HTML tablosunu Canvas'a render eder
+   */
+  private renderTableToCanvas(
+    ctx: CanvasRenderingContext2D,
+    table: HTMLTableElement,
+    padding: number
+  ): void {
+    // Stil bilgilerini al
+    const computedStyle = window.getComputedStyle(table);
+
+    // Tablo başlık ve hücre stillerini ayarla
+    ctx.font = "14px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Tablo satırlarını al
+    const rows = table.rows;
+    const headerHeight = 40; // Başlık satır yüksekliği
+    const rowHeight = 30; // Normal satır yüksekliği
+
+    // Kolon sayısını ve genişliğini hesapla
+    const columnCount = rows[0]?.cells.length || 0;
+    const columnWidth = (table.offsetWidth - padding * 2) / columnCount;
+
+    // Başlık satırını çiz
+    if (rows.length > 0) {
+      ctx.fillStyle = "#222"; // Başlık arka plan rengi
+      ctx.fillRect(padding, padding, table.offsetWidth - padding * 2, headerHeight);
+
+      // Başlık metinlerini çiz
+      ctx.fillStyle = "#fff"; // Başlık metin rengi
+      const headerRow = rows[0];
+
+      for (let j = 0; j < headerRow.cells.length; j++) {
+        const cellText = headerRow.cells[j].textContent || "";
+        const cellX = padding + j * columnWidth + columnWidth / 2;
+        const cellY = padding + headerHeight / 2;
+        ctx.fillText(cellText, cellX, cellY);
+      }
     }
-  }
-  
-  // Veri satırlarını çiz
-  for (let i = 1; i < rows.length; i++) {
-    const isOdd = i % 2 === 1;
-    ctx.fillStyle = isOdd ? "#333" : "#282828"; // Satır arka plan rengi (çizgili)
-    
-    const rowY = padding + headerHeight + ((i - 1) * rowHeight);
-    ctx.fillRect(padding, rowY, table.offsetWidth - (padding * 2), rowHeight);
-    
-    // Hücre metinlerini çiz
-    ctx.fillStyle = "#fff"; // Hücre metin rengi
-    const row = rows[i];
-    
-    for (let j = 0; j < row.cells.length; j++) {
-      const cellText = row.cells[j].textContent || "";
-      const cellX = padding + (j * columnWidth) + (columnWidth / 2);
-      const cellY = rowY + (rowHeight / 2);
-      ctx.fillText(cellText, cellX, cellY);
+
+    // Veri satırlarını çiz
+    for (let i = 1; i < rows.length; i++) {
+      const isOdd = i % 2 === 1;
+      ctx.fillStyle = isOdd ? "#333" : "#282828"; // Satır arka plan rengi (çizgili)
+
+      const rowY = padding + headerHeight + (i - 1) * rowHeight;
+      ctx.fillRect(padding, rowY, table.offsetWidth - padding * 2, rowHeight);
+
+      // Hücre metinlerini çiz
+      ctx.fillStyle = "#fff"; // Hücre metin rengi
+      const row = rows[i];
+
+      for (let j = 0; j < row.cells.length; j++) {
+        const cellText = row.cells[j].textContent || "";
+        const cellX = padding + j * columnWidth + columnWidth / 2;
+        const cellY = rowY + rowHeight / 2;
+        ctx.fillText(cellText, cellX, cellY);
+      }
     }
+
+    // Tablo ızgarasını çiz
+    ctx.strokeStyle = "#444";
+    ctx.lineWidth = 1;
+
+    // Dikey çizgiler
+    for (let j = 0; j <= columnCount; j++) {
+      const lineX = padding + j * columnWidth;
+      ctx.beginPath();
+      ctx.moveTo(lineX, padding);
+      ctx.lineTo(lineX, padding + headerHeight + (rows.length - 1) * rowHeight);
+      ctx.stroke();
+    }
+
+    // Yatay çizgiler
+    for (let i = 0; i <= rows.length; i++) {
+      const lineY =
+        i === 0
+          ? padding
+          : i === 1
+            ? padding + headerHeight
+            : padding + headerHeight + (i - 1) * rowHeight;
+
+      ctx.beginPath();
+      ctx.moveTo(padding, lineY);
+      ctx.lineTo(padding + columnCount * columnWidth, lineY);
+      ctx.stroke();
+    }
+
+    // Tablonun çevresini kalın çizgi olarak vurgula
+    ctx.lineWidth = 2;
+    ctx.strokeRect(
+      padding,
+      padding,
+      table.offsetWidth - padding * 2,
+      headerHeight + (rows.length - 1) * rowHeight
+    );
   }
-  
-  // Tablo ızgarasını çiz
-  ctx.strokeStyle = "#444";
-  ctx.lineWidth = 1;
-  
-  // Dikey çizgiler
-  for (let j = 0; j <= columnCount; j++) {
-    const lineX = padding + (j * columnWidth);
-    ctx.beginPath();
-    ctx.moveTo(lineX, padding);
-    ctx.lineTo(lineX, padding + headerHeight + ((rows.length - 1) * rowHeight));
-    ctx.stroke();
-  }
-  
-  // Yatay çizgiler
-  for (let i = 0; i <= rows.length; i++) {
-    const lineY = i === 0 
-      ? padding 
-      : (i === 1 
-        ? padding + headerHeight 
-        : padding + headerHeight + ((i - 1) * rowHeight));
-        
-    ctx.beginPath();
-    ctx.moveTo(padding, lineY);
-    ctx.lineTo(padding + (columnCount * columnWidth), lineY);
-    ctx.stroke();
-  }
-  
-  // Tablonun çevresini kalın çizgi olarak vurgula
-  ctx.lineWidth = 2;
-  ctx.strokeRect(
-    padding, 
-    padding, 
-    table.offsetWidth - (padding * 2), 
-    headerHeight + ((rows.length - 1) * rowHeight)
-  );
-}
   /**
    * Truth table modalını gösterir
    */
@@ -657,210 +662,387 @@ private renderTableToCanvas(ctx: CanvasRenderingContext2D, table: HTMLTableEleme
     document.body.appendChild(modal);
   }
   public showKarnaughMap(): void {
-  try {
-    // IO bileşenlerini tespit et
-    const ioCount = this.truthTableManager.identifyIOComponents();
-    
-    if (ioCount.inputs === 0) {
-      alert("K-Map oluşturmak için devrede giriş bileşenleri (toggle, button, constant) gereklidir.");
+    try {
+      // IO bileşenlerini tespit et
+      const ioCount = this.truthTableManager.identifyIOComponents();
+
+      if (ioCount.inputs === 0) {
+        alert(
+          "K-Map oluşturmak için devrede giriş bileşenleri (toggle, button, constant) gereklidir."
+        );
+        return;
+      }
+
+      if (ioCount.outputs === 0) {
+        alert("K-Map oluşturmak için devrede çıkış bileşenleri (light-bulb, led, hex) gereklidir.");
+        return;
+      }
+
+      // Truth table oluştur
+      this.truthTableManager.generateTruthTable();
+
+      // KMap oluştur
+      const kmap = this.truthTableManager.createKarnaughMap();
+
+      // Minimum grupları bul
+      kmap.findMinimalGroups();
+
+      // KMap modalını göster
+      this.showKarnaughMapModal(kmap);
+    } catch (error) {
+      alert(`K-Map oluşturulurken hata: ${error}`);
+    }
+  }
+
+  /**
+   * K-Map modalını gösterir
+   */
+  private showKarnaughMapModal(kmap: KarnaughMap): void {
+    if (document.querySelector(".kmap-modal")) {
+      document.body.removeChild(document.querySelector(".kmap-modal")!);
+    }
+
+    const modal = document.createElement("div");
+    modal.className = "kmap-modal";
+
+    // Modal styles
+    modal.style.position = "fixed";
+    modal.style.top = "0";
+    modal.style.left = "0";
+    modal.style.width = "100%";
+    modal.style.height = "100%";
+    modal.style.backgroundColor = "rgba(0, 0, 0, 0.8)"; // Darker background
+    modal.style.display = "flex";
+    modal.style.justifyContent = "center";
+    modal.style.alignItems = "center";
+    modal.style.zIndex = "1000";
+
+    // Modal content
+    const content = document.createElement("div");
+    content.className = "modal-content";
+    content.style.backgroundColor = "#1e1e1e"; // Darker background
+    content.style.border = "1px solid #555"; // Lighter border
+    content.style.borderRadius = "8px"; // Rounded corners
+    content.style.padding = "25px"; // More padding
+    content.style.maxWidth = "800px"; // Wider
+    content.style.width = "90%";
+    content.style.maxHeight = "90%";
+    content.style.overflow = "auto";
+    content.style.boxShadow = "0 8px 24px rgba(0,0,0,0.5)"; // Stronger shadow
+
+    // Modal header with better styling
+    const header = document.createElement("div");
+    header.style.display = "flex";
+    header.style.justifyContent = "space-between";
+    header.style.alignItems = "center";
+    header.style.marginBottom = "20px";
+    header.style.borderBottom = "1px solid #444"; // Add a bottom border
+    header.style.paddingBottom = "15px"; // Add padding
+
+    const title = document.createElement("h2");
+    title.innerText = "Karnaugh Map";
+    title.style.color = "#fff";
+    title.style.margin = "0";
+    title.style.fontSize = "24px"; // Larger font
+    title.style.fontWeight = "600"; // Semibold
+
+    const closeButton = document.createElement("button");
+    closeButton.innerText = "×";
+    closeButton.style.background = "none";
+    closeButton.style.border = "none";
+    closeButton.style.fontSize = "28px"; // Larger font
+    closeButton.style.color = "#fff";
+    closeButton.style.cursor = "pointer";
+    closeButton.style.padding = "5px 12px"; // More padding
+    closeButton.style.borderRadius = "4px"; // Rounded corners
+    closeButton.style.transition = "background-color 0.2s"; // Smooth hover
+    closeButton.onmouseover = () => {
+      closeButton.style.backgroundColor = "rgba(255,255,255,0.1)";
+    };
+    closeButton.onmouseout = () => {
+      closeButton.style.backgroundColor = "transparent";
+    };
+    closeButton.onclick = () => document.body.removeChild(modal);
+
+    header.appendChild(title);
+    header.appendChild(closeButton);
+
+    // K-Map container with shadow
+    const kmapContainer = document.createElement("div");
+    kmapContainer.style.marginBottom = "25px";
+    kmapContainer.style.backgroundColor = "#222";
+    kmapContainer.style.borderRadius = "8px";
+    kmapContainer.style.padding = "20px";
+    kmapContainer.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
+
+    // Render K-Map
+    const kmapElement = kmap.renderKMap();
+    kmapContainer.appendChild(kmapElement);
+
+    // Button container with better styling
+    const buttonContainer = document.createElement("div");
+    buttonContainer.style.display = "flex";
+    buttonContainer.style.gap = "15px"; // More spacing
+    buttonContainer.style.marginTop = "25px";
+    buttonContainer.style.justifyContent = "center"; // Center the buttons
+
+    // Create circuit button with better styling
+    const createCircuitButton = document.createElement("button");
+    createCircuitButton.innerText = "Create Circuit From K-Map";
+    createCircuitButton.style.padding = "12px 20px"; // More padding
+    createCircuitButton.style.backgroundColor = "#4CAF50";
+    createCircuitButton.style.color = "white";
+    createCircuitButton.style.border = "none";
+    createCircuitButton.style.borderRadius = "6px"; // More rounded
+    createCircuitButton.style.cursor = "pointer";
+    createCircuitButton.style.fontSize = "16px"; // Larger font
+    createCircuitButton.style.fontWeight = "bold";
+    createCircuitButton.style.transition = "background-color 0.2s, transform 0.1s"; // Smooth hover
+    createCircuitButton.onmouseover = () => {
+      createCircuitButton.style.backgroundColor = "#66bb6a";
+    };
+    createCircuitButton.onmouseout = () => {
+      createCircuitButton.style.backgroundColor = "#4CAF50";
+    };
+    createCircuitButton.onmousedown = () => {
+      createCircuitButton.style.transform = "scale(0.98)";
+    };
+    createCircuitButton.onmouseup = () => {
+      createCircuitButton.style.transform = "scale(1)";
+    };
+    createCircuitButton.onclick = () => {
+      const confirmCreate = confirm(
+        "This will clear your current circuit and create a new one based on this K-Map. Continue?"
+      );
+      if (confirmCreate) {
+        this.clearCircuit(); // Clear current circuit
+        kmap.createCircuitFromExpression(this); // Create new circuit
+        document.body.removeChild(modal); // Close modal
+      }
+    };
+
+    // Export image button with better styling
+    const exportImageButton = document.createElement("button");
+    exportImageButton.innerText = "Export as Image";
+    exportImageButton.style.padding = "12px 20px"; // More padding
+    exportImageButton.style.backgroundColor = "#2196F3";
+    exportImageButton.style.color = "white";
+    exportImageButton.style.border = "none";
+    exportImageButton.style.borderRadius = "6px"; // More rounded
+    exportImageButton.style.cursor = "pointer";
+    exportImageButton.style.fontSize = "16px"; // Larger font
+    exportImageButton.style.fontWeight = "bold";
+    exportImageButton.style.transition = "background-color 0.2s, transform 0.1s"; // Smooth hover
+    exportImageButton.onmouseover = () => {
+      exportImageButton.style.backgroundColor = "#42a5f5";
+    };
+    exportImageButton.onmouseout = () => {
+      exportImageButton.style.backgroundColor = "#2196F3";
+    };
+    exportImageButton.onmousedown = () => {
+      exportImageButton.style.transform = "scale(0.98)";
+    };
+    exportImageButton.onmouseup = () => {
+      exportImageButton.style.transform = "scale(1)";
+    };
+    exportImageButton.onclick = () => {
+      // Create a canvas from the K-Map for better image export
+      this.exportKMapAsImage(kmapContainer);
+    };
+
+    buttonContainer.appendChild(createCircuitButton);
+    buttonContainer.appendChild(exportImageButton);
+
+    // Add everything to the modal
+    content.appendChild(header);
+    content.appendChild(kmapContainer);
+    content.appendChild(buttonContainer);
+    modal.appendChild(content);
+
+    // Add modal to document body
+    document.body.appendChild(modal);
+  }
+
+  private exportKMapAsImage(kmapContainer: HTMLElement): void {
+    // Create a canvas for rendering
+    const tempCanvas = document.createElement("canvas");
+    const padding = 30;
+
+    // Find the actual K-Map table in the container
+    const kmapTable = kmapContainer.querySelector(".kmap-table") as HTMLTableElement;
+    const kmapTitle = kmapContainer.querySelector("h3") as HTMLElement;
+    const kmapExpr = kmapContainer.querySelector(".kmap-boolean-expression") as HTMLElement;
+
+    if (!kmapTable) {
+      console.error("K-Map table not found in container");
       return;
     }
-    
-    if (ioCount.outputs === 0) {
-      alert("K-Map oluşturmak için devrede çıkış bileşenleri (light-bulb, led, hex) gereklidir.");
+
+    // Set canvas dimensions based on content
+    const width = kmapTable.offsetWidth + padding * 2;
+    const height = kmapTable.offsetHeight + padding * 2;
+
+    // Add extra height for title and expression
+    const titleHeight = kmapTitle ? 50 : 0;
+    const exprHeight = kmapExpr ? 60 : 0;
+
+    tempCanvas.width = Math.max(width, 400);
+    tempCanvas.height = height + titleHeight + exprHeight;
+
+    const tempCtx = tempCanvas.getContext("2d")!;
+
+    // Draw background
+    tempCtx.fillStyle = "#1e1e1e";
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+    // Draw title if exists
+    let yOffset = padding;
+    if (kmapTitle) {
+      tempCtx.font = "bold 18px Arial";
+      tempCtx.fillStyle = "#ffffff";
+      tempCtx.textAlign = "center";
+      tempCtx.fillText(kmapTitle.textContent || "K-Map", tempCanvas.width / 2, yOffset + 20);
+      yOffset += titleHeight;
+    }
+
+    // Collect K-Map data from the table
+    const rows = kmapTable.rows;
+    const rowCount = rows.length;
+    const colCount = rows[0]?.cells.length || 0;
+
+    if (rowCount < 2 || colCount < 2) {
+      console.error("Invalid K-Map structure");
       return;
     }
-    
-    // Truth table oluştur
-    this.truthTableManager.generateTruthTable();
-    
-    // KMap oluştur
-    const kmap = this.truthTableManager.createKarnaughMap();
-    
-    // Minimum grupları bul
-    kmap.findMinimalGroups();
-    
-    // KMap modalını göster
-    this.showKarnaughMapModal(kmap);
-    
-  } catch (error) {
-    alert(`K-Map oluşturulurken hata: ${error}`);
-  }
-}
 
-/**
- * K-Map modalını gösterir
- */
-private showKarnaughMapModal(kmap: KarnaughMap): void {
-  if (document.querySelector(".kmap-modal")) {
-    document.body.removeChild(document.querySelector(".kmap-modal")!);
-  }
-  
-  const modal = document.createElement("div");
-  modal.className = "kmap-modal";
-  
-  // Modal içeriği için stil tanımlayalım
-  modal.style.position = "fixed";
-  modal.style.top = "0";
-  modal.style.left = "0";
-  modal.style.width = "100%";
-  modal.style.height = "100%";
-  modal.style.backgroundColor = "rgba(0, 0, 0, 0.7)";
-  modal.style.display = "flex";
-  modal.style.justifyContent = "center";
-  modal.style.alignItems = "center";
-  modal.style.zIndex = "1000";
-  
-  // Modal içeriği
-  const content = document.createElement("div");
-  content.className = "modal-content";
-  content.style.backgroundColor = "#151515";
-  content.style.border = "1px solid #444";
-  content.style.borderRadius = "5px";
-  content.style.padding = "20px";
-  content.style.maxWidth = "90%";
-  content.style.maxHeight = "90%";
-  content.style.overflow = "auto";
-  
-  // Modal başlığı
-  const header = document.createElement("div");
-  header.style.display = "flex";
-  header.style.justifyContent = "space-between";
-  header.style.alignItems = "center";
-  header.style.marginBottom = "20px";
-  
-  const title = document.createElement("h2");
-  title.innerText = "Karnaugh Map";
-  title.style.color = "#fff";
-  title.style.margin = "0";
-  
-  const closeButton = document.createElement("button");
-  closeButton.innerText = "×";
-  closeButton.style.background = "none";
-  closeButton.style.border = "none";
-  closeButton.style.fontSize = "24px";
-  closeButton.style.color = "#fff";
-  closeButton.style.cursor = "pointer";
-  closeButton.onclick = () => document.body.removeChild(modal);
-  
-  header.appendChild(title);
-  header.appendChild(closeButton);
-  
-  // K-Map container
-  const kmapContainer = document.createElement("div");
-  kmapContainer.style.marginBottom = "20px";
-  
-  // K-Map render et
-  const kmapElement = kmap.renderKMap();
-  kmapContainer.appendChild(kmapElement);
-  
-  // K-Map stilleri
-  const style = document.createElement("style");
-  style.textContent = `
-    .kmap-container {
-      margin-bottom: 20px;
-    }
-    
-    .kmap-table {
-      border-collapse: collapse;
-      margin: 10px 0;
-    }
-    
-    .kmap-table th, .kmap-table td {
-      border: 1px solid #444;
-      padding: 8px 12px;
-      text-align: center;
-      min-width: 40px;
-    }
-    
-    .kmap-cell-true {
-      background-color: #2a7340;
-      color: white;
-    }
-    
-    .kmap-cell-false {
-      background-color: #333;
-      color: #aaa;
-    }
-    
-    .kmap-cell-group-0 { border: 2px solid #ff5252; }
-    .kmap-cell-group-1 { border: 2px solid #4caf50; }
-    .kmap-cell-group-2 { border: 2px solid #2196f3; }
-    .kmap-cell-group-3 { border: 2px solid #ff9800; }
-    .kmap-cell-group-4 { border: 2px solid #9c27b0; }
-    
-    .kmap-boolean-expression {
-      margin-top: 15px;
-      padding: 10px;
-      background-color: #222;
-      border-radius: 4px;
-      color: white;
-    }
-    
-    .kmap-expression-value {
-      font-weight: bold;
-      color: #4caf50;
-    }
-    
-    .kmap-horizontal-labels, .kmap-vertical-labels {
-      color: #fff;
-      font-weight: bold;
-      margin: 5px 0;
-    }
-  `;
-  
-  document.head.appendChild(style);
-  
-  // Buton container
-  const buttonContainer = document.createElement("div");
-  buttonContainer.style.display = "flex";
-  buttonContainer.style.gap = "10px";
-  buttonContainer.style.marginTop = "20px";
-  
-  // Devre oluştur butonu
-  const createCircuitButton = document.createElement("button");
-  createCircuitButton.innerText = "Bu K-Map İle Devre Oluştur";
-  createCircuitButton.style.padding = "8px 16px";
-  createCircuitButton.style.backgroundColor = "#4CAF50";
-  createCircuitButton.style.color = "white";
-  createCircuitButton.style.border = "none";
-  createCircuitButton.style.borderRadius = "4px";
-  createCircuitButton.style.cursor = "pointer";
-  createCircuitButton.onclick = () => {
-    const confirmCreate = confirm("Bu işlem mevcut devreyi temizleyecek ve K-Map'e göre yeni bir devre oluşturacak. Devam etmek istiyor musunuz?");
-    if (confirmCreate) {
-      this.clearCircuit(); // Mevcut devreyi temizle
-      kmap.createCircuitFromExpression(this); // Yeni devre oluştur
-      document.body.removeChild(modal); // Modalı kapat
-    }
-  };
-  
-  // Resim olarak dışa aktar butonu
-  const exportImageButton = document.createElement("button");
-  exportImageButton.innerText = "K-Map'i Resim Olarak İndir";
-  exportImageButton.style.padding = "8px 16px";
-  exportImageButton.style.backgroundColor = "#2196F3";
-  exportImageButton.style.color = "white";
-  exportImageButton.style.border = "none";
-  exportImageButton.style.borderRadius = "4px";
-  exportImageButton.style.cursor = "pointer";
-  exportImageButton.onclick = () => {
-    
-  };
-  
-  buttonContainer.appendChild(createCircuitButton);
-  buttonContainer.appendChild(exportImageButton);
-  
-  // Tüm öğeleri modala ekle
-  content.appendChild(header);
-  content.appendChild(kmapContainer);
-  content.appendChild(buttonContainer);
-  modal.appendChild(content);
-  
-  // Modalı ekrana ekle
-  document.body.appendChild(modal);
-}
+    const cellSize = Math.min((width - padding * 2) / colCount, (height - padding * 2) / rowCount);
 
+    // Render K-Map table to canvas
+    this.renderKMapToCanvas(tempCtx, kmapTable, padding, yOffset, cellSize);
+
+    // Draw expression if exists
+    if (kmapExpr && kmapExpr.textContent) {
+      yOffset += height - padding;
+      tempCtx.font = "16px monospace";
+      tempCtx.fillStyle = "#4caf50";
+      tempCtx.textAlign = "center";
+      tempCtx.fillText(
+        kmapExpr.textContent.replace("Minimized Boolean Expression:", "").trim(),
+        tempCanvas.width / 2,
+        yOffset + 30
+      );
+    }
+
+    // Export as PNG
+    const dataUrl = tempCanvas.toDataURL("image/png");
+    this.downloadFile(dataUrl, "karnaugh-map.png", "image/png", true);
+  }
+
+  /**
+   * K-Map tablosunu Canvas'a render eder
+   */
+  private renderKMapToCanvas(
+    ctx: CanvasRenderingContext2D,
+    table: HTMLTableElement,
+    xPadding: number,
+    yPadding: number,
+    cellSize: number
+  ): void {
+    // Get table rows
+    const rows = table.rows;
+    const rowCount = rows.length;
+    const colCount = rows[0]?.cells.length || 0;
+
+    const tableWidth = cellSize * colCount;
+    const tableHeight = cellSize * rowCount;
+
+    // Center table horizontally
+    const startX = (ctx.canvas.width - tableWidth) / 2;
+
+    // Draw header row
+    if (rows.length > 0) {
+      const headerRow = rows[0];
+
+      ctx.fillStyle = "#333"; // Header background
+      ctx.fillRect(startX, yPadding, tableWidth, cellSize);
+
+      // Draw header texts
+      ctx.fillStyle = "#fff"; // Header text color
+      ctx.font = "bold 14px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      for (let j = 0; j < headerRow.cells.length; j++) {
+        const cellText = headerRow.cells[j].textContent || "";
+        const cellX = startX + j * cellSize + cellSize / 2;
+        const cellY = yPadding + cellSize / 2;
+        ctx.fillText(cellText, cellX, cellY);
+      }
+    }
+
+    // Draw data rows
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const rowY = yPadding + i * cellSize;
+
+      // Draw row header (first cell)
+      ctx.fillStyle = "#333"; // Row header background
+      ctx.fillRect(startX, rowY, cellSize, cellSize);
+
+      // Draw row header text
+      ctx.fillStyle = "#fff"; // Header text color
+      const rowHeaderText = row.cells[0].textContent || "";
+      ctx.fillText(rowHeaderText, startX + cellSize / 2, rowY + cellSize / 2);
+
+      // Draw data cells
+      for (let j = 1; j < row.cells.length; j++) {
+        const cell = row.cells[j];
+        const cellText = cell.textContent || "";
+        const cellX = startX + j * cellSize;
+        const cellY = rowY;
+
+        // Determine cell background color based on value
+        if (cellText === "1") {
+          ctx.fillStyle = "#2a7340"; // Green for 1s
+        } else {
+          ctx.fillStyle = "#333"; // Dark gray for 0s
+        }
+
+        // Draw cell background
+        ctx.fillRect(cellX, cellY, cellSize, cellSize);
+
+        // Draw cell text
+        ctx.fillStyle = cellText === "1" ? "#fff" : "#aaa";
+        ctx.fillText(cellText, cellX + cellSize / 2, cellY + cellSize / 2);
+      }
+    }
+
+    // Draw grid lines
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 1;
+
+    // Vertical lines
+    for (let j = 0; j <= colCount; j++) {
+      const lineX = startX + j * cellSize;
+      ctx.beginPath();
+      ctx.moveTo(lineX, yPadding);
+      ctx.lineTo(lineX, yPadding + tableHeight);
+      ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let i = 0; i <= rowCount; i++) {
+      const lineY = yPadding + i * cellSize;
+      ctx.beginPath();
+      ctx.moveTo(startX, lineY);
+      ctx.lineTo(startX + tableWidth, lineY);
+      ctx.stroke();
+    }
+
+    // Draw border
+    ctx.lineWidth = 2;
+    ctx.strokeRect(startX, yPadding, tableWidth, tableHeight);
+  }
   /**
    * Dosya indirme yardımcı fonksiyonu
    */
@@ -1849,7 +2031,6 @@ private showKarnaughMapModal(kmap: KarnaughMap): void {
       return;
     }
 
-   
     if (this.draggedComponent && this.selectedComponents.length > 0) {
       const deltaX = mousePos.x - this.dragOffset.x;
       const deltaY = mousePos.y - this.dragOffset.y;
@@ -1920,8 +2101,7 @@ private showKarnaughMapModal(kmap: KarnaughMap): void {
     }
 
     if (this.draggedComponent) {
-      if(this.wires.length < 20){
-
+      if (this.wires.length < 20) {
         this.updateConnectedWires(
           this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent]
         );

@@ -446,13 +446,12 @@ export class KMapImageTool implements Tool {
 
       console.log("Processing K-Map from image...");
 
-      // Use Gemini Vision API to extract the K-Map
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-vision`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt:
-            "Extract the Karnaugh map from this image. Return only a JSON object with format: {variables: [list of variables], rows: number of rows, cols: number of columns, values: [[row 1 values], [row 2 values], ...]}. Only include the actual K-map data, no explanations.",
+            "Extract the Karnaugh map from this image. Identify the '1' values and their positions accurately. Return only a JSON object with format: {variables: [list of variable names], rows: number of rows, cols: number of columns, values: [[row 1 values], [row 2 values], ...]}. The values should be 0 or 1 as they appear in the K-map cells.",
           imageData: context.image,
         }),
       });
@@ -663,31 +662,38 @@ export class KMapImageTool implements Tool {
     circuitBoard: any
   ): Promise<boolean> {
     try {
-      // Find an empty area on the circuit board
-      const startX = 100;
-      const startY = 100;
+      circuitBoard.clearCircuit();
+      const expressions: string[] = [];
 
-      // Create input components
-      const inputs = [];
-      for (let i = 0; i < inputLabels.length; i++) {
-        const toggle = { type: "toggle", x: startX, y: startY + i * 80, label: inputLabels[i] };
-        const toggleId = circuitBoard.addComponentByType("toggle", { x: toggle.x, y: toggle.y });
-        const toggleComp = circuitBoard.getComponentById(toggleId);
-        if (toggleComp && toggleComp.setLabel) {
-          toggleComp.setLabel(inputLabels[i]);
-        }
-        inputs.push(toggleComp);
-      }
-
-      // Create a KarnaughMap instance
+      // Create KarnaughMap instance
       const kmap = new KarnaughMap(truthTable, inputLabels, outputLabels);
 
-      // Generate minimal boolean expression and create circuit
+      // Find minimal groups
       kmap.findMinimalGroups();
-      kmap.createCircuitFromExpression(circuitBoard);
 
-      // Auto arrange the circuit for better visibility
-      circuitBoard.autoArrangeCircuit();
+      // Get boolean expression in Verilog format
+      let expr = "";
+      if (typeof (kmap as any).generateBooleanExpression === "function") {
+        expr = (kmap as any).generateBooleanExpression();
+      } else {
+        expr = "1"; // Default to 1 instead of 0 if function not found
+      }
+
+      // Replace logical symbols with Verilog equivalents
+      expr = expr.replace(/∧/g, "&").replace(/∨/g, "|").replace(/¬/g, "~");
+      expressions.push(`assign ${outputLabels[0]} = ${expr};`);
+
+      if (expressions.length > 0) {
+        // Create Verilog module
+        const inputDecls = inputLabels.length > 0 ? `input ${inputLabels.join(", ")};` : "";
+        const outputDecls = outputLabels.length > 0 ? `output ${outputLabels.join(", ")};` : "";
+        const portList = [...inputLabels, ...outputLabels].join(", ");
+        const verilogModule = `module boolean_circuit(${portList});\n${inputDecls}\n${outputDecls}\n${expressions.join("\n")}\nendmodule`;
+
+        // Import the module
+        const converter = new VerilogCircuitConverter(circuitBoard);
+        converter.importVerilogCode(verilogModule);
+      }
 
       return true;
     } catch (error) {

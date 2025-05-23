@@ -612,88 +612,165 @@ export class KarnaughMap {
   public renderKMap(): HTMLElement {
     const container = document.createElement("div");
     container.className = "kmap-container";
-
+    
+    // Add title with function name
     const title = document.createElement("h3");
     title.textContent = `K-Map for ${this.outputLabels[0]}`;
+    title.style.color = "#ffffff";
+    title.style.marginBottom = "15px";
+    title.style.fontSize = "18px";
     container.appendChild(title);
-
-    const horizontalLabelsDiv = document.createElement("div");
-    horizontalLabelsDiv.className = "kmap-horizontal-labels";
-
-    let horizontalVars: string;
+    
+    // Create variable headers with better styling
+    const headerContainer = document.createElement("div");
+    headerContainer.style.display = "flex";
+    headerContainer.style.marginBottom = "10px";
+    
+    const varsDisplay = document.createElement("div");
+    varsDisplay.style.color = "#4caf50";
+    varsDisplay.style.fontWeight = "bold";
+    varsDisplay.style.marginBottom = "8px";
+    varsDisplay.style.fontSize = "16px";
+    
+    let varsText = "";
     if (this.inputCount <= 2) {
-      horizontalVars = this.inputLabels.join("");
+      varsText = `Variables: ${this.inputLabels.join(", ")} → ${this.outputLabels[0]}`;
     } else {
-      horizontalVars = this.inputLabels.slice(Math.ceil(this.inputCount / 2)).join("");
+      const rowVars = this.inputLabels.slice(0, Math.ceil(this.inputCount/2));
+      const colVars = this.inputLabels.slice(Math.ceil(this.inputCount/2));
+      varsText = `Row Variables: ${rowVars.join(", ")} | Column Variables: ${colVars.join(", ")} → ${this.outputLabels[0]}`;
     }
-
-    const horizontalLabel = document.createElement("div");
-    horizontalLabel.textContent = horizontalVars;
-    horizontalLabelsDiv.appendChild(horizontalLabel);
-    container.appendChild(horizontalLabelsDiv);
+    varsDisplay.textContent = varsText;
+    headerContainer.appendChild(varsDisplay);
+    container.appendChild(headerContainer);
+    
+    // Create the K-Map table with improved styling
+    const tableWrapper = document.createElement("div");
+    tableWrapper.style.position = "relative";
+    tableWrapper.style.marginBottom = "20px";
 
     const table = document.createElement("table");
     table.className = "kmap-table";
-
+    table.style.borderCollapse = "collapse";
+    table.style.margin = "0 auto";
+    table.style.background = "#1e1e1e";
+    table.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
+    
+    // Create header row for column variables
     const headerRow = document.createElement("tr");
-
+    
+    // Add corner cell
     const cornerCell = document.createElement("th");
+    cornerCell.style.width = "40px";
+    cornerCell.style.height = "40px";
+    cornerCell.style.backgroundColor = "#333";
+    cornerCell.style.color = "#fff";
+    cornerCell.style.textAlign = "center";
+    cornerCell.style.fontWeight = "bold";
+    cornerCell.style.border = "1px solid #555";
+    
     if (this.inputCount > 2) {
-      const verticalVars = this.inputLabels.slice(0, Math.ceil(this.inputCount / 2)).join("");
-      cornerCell.textContent = verticalVars;
+      const rowVarsText = this.inputLabels.slice(0, Math.ceil(this.inputCount/2)).join("");
+      const colVarsText = this.inputLabels.slice(Math.ceil(this.inputCount/2)).join("");
+      cornerCell.innerHTML = `${rowVarsText}<br>\\<br>${colVarsText}`;
     }
     headerRow.appendChild(cornerCell);
-
+    
+    // Add column headers
     const cols = this.kmap[0].length;
     for (let c = 0; c < cols; c++) {
       const th = document.createElement("th");
       th.textContent = this.getColumnHeader(c);
+      th.style.width = "40px";
+      th.style.height = "40px";
+      th.style.backgroundColor = "#333";
+      th.style.color = "#fff";
+      th.style.textAlign = "center";
+      th.style.fontWeight = "bold";
+      th.style.border = "1px solid #555";
       headerRow.appendChild(th);
     }
-
+    
     table.appendChild(headerRow);
-
+    
+    // Create K-Map rows
     const rows = this.kmap.length;
     for (let r = 0; r < rows; r++) {
       const tr = document.createElement("tr");
-
+      
+      // Add row header
       const rowHeader = document.createElement("th");
       rowHeader.textContent = this.getRowHeader(r);
+      rowHeader.style.width = "40px";
+      rowHeader.style.backgroundColor = "#333";
+      rowHeader.style.color = "#fff";
+      rowHeader.style.textAlign = "center";
+      rowHeader.style.fontWeight = "bold";
+      rowHeader.style.border = "1px solid #555";
       tr.appendChild(rowHeader);
-
+      
+      // Add cells with values
       for (let c = 0; c < cols; c++) {
         const td = document.createElement("td");
         td.textContent = this.kmap[r][c] ? "1" : "0";
-        td.className = this.kmap[r][c] ? "kmap-cell-true" : "kmap-cell-false";
-
+        td.style.width = "40px";
+        td.style.height = "40px";
+        td.style.textAlign = "center";
+        td.style.fontSize = "18px";
+        td.style.fontWeight = "bold";
+        td.style.border = "1px solid #555";
+        
+        // Set cell background based on value
+        if (this.kmap[r][c]) {
+          td.style.backgroundColor = "#2a7340";
+          td.style.color = "white";
+        } else {
+          td.style.backgroundColor = "#333";
+          td.style.color = "#aaa";
+        }
+        
+        // Highlight cells that belong to groups
         for (let g = 0; g < this.groups.length; g++) {
           if (this.groups[g].cells.some(cell => cell.row === r && cell.col === c)) {
-            td.classList.add("kmap-cell-group-" + (g % 5));
+            const groupColors = ["#ff5252", "#4caf50", "#2196f3", "#ff9800", "#9c27b0"];
+            td.style.border = `2px solid ${groupColors[g % groupColors.length]}`;
           }
         }
-
+        
         tr.appendChild(td);
       }
-
+      
       table.appendChild(tr);
     }
-
-    container.appendChild(table);
-
-    const booleanExprContainer = document.createElement("div");
-    booleanExprContainer.className = "kmap-boolean-expression";
-
-    const expressionPrefix = document.createElement("span");
-    expressionPrefix.textContent = `${this.outputLabels[0]} = `;
-    booleanExprContainer.appendChild(expressionPrefix);
-
-    const expressionValue = document.createElement("span");
-    expressionValue.textContent = this.generateBooleanExpression();
-    expressionValue.className = "kmap-expression-value";
-    booleanExprContainer.appendChild(expressionValue);
-
-    container.appendChild(booleanExprContainer);
-
+    
+    tableWrapper.appendChild(table);
+    container.appendChild(tableWrapper);
+    
+    // Add boolean expression with better styling
+    const exprContainer = document.createElement("div");
+    exprContainer.className = "kmap-boolean-expression";
+    exprContainer.style.margin = "15px 0";
+    exprContainer.style.padding = "12px";
+    exprContainer.style.backgroundColor = "#222";
+    exprContainer.style.borderRadius = "4px";
+    exprContainer.style.color = "white";
+    exprContainer.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
+    
+    const exprLabel = document.createElement("span");
+    exprLabel.textContent = `Minimized Boolean Expression: `;
+    exprLabel.style.fontWeight = "bold";
+    exprContainer.appendChild(exprLabel);
+    
+    const exprValue = document.createElement("span");
+    exprValue.textContent = `${this.outputLabels[0]} = ${this.generateBooleanExpression()}`;
+    exprValue.style.color = "#4caf50";
+    exprValue.style.fontWeight = "bold";
+    exprValue.style.fontFamily = "monospace";
+    exprValue.style.fontSize = "16px";
+    exprContainer.appendChild(exprValue);
+    
+    container.appendChild(exprContainer);
+    
     return container;
   }
 
@@ -759,149 +836,5 @@ export class KarnaughMap {
     return `module boolean_circuit(${inputs}, ${outputs});
       assign ${this.outputLabels[0]} = ${verilogExpr};
     endmodule`;
-  }
-}
-
-/**
- * Boolean ifade ayrıştırıcı
- */
-class BooleanExpressionParser {
-  private expression: string;
-  private inputLabels: string[];
-
-  constructor(expression: string, inputLabels: string[]) {
-    this.expression = expression;
-    this.inputLabels = inputLabels;
-  }
-
-  /**
-   * İfadeyi ayrıştırır ve devre oluşturur
-   */
-  public createCircuit(circuitBoard: any): void {
-    const inputComponents: Map<string, any> = new Map();
-    const inputPositions: Map<string, { x: number; y: number }> = new Map();
-
-    for (let i = 0; i < this.inputLabels.length; i++) {
-      const label = this.inputLabels[i];
-      const position = { x: 100, y: 100 + i * 80 };
-
-      const componentId = circuitBoard.addComponentByType("toggle", position);
-      const component = circuitBoard.getComponentById(componentId);
-
-      inputComponents.set(label, component);
-      inputPositions.set(label, position);
-    }
-
-    if (this.expression === "0") {
-      const position = { x: 300, y: 150 };
-      circuitBoard.addComponentByType("constant0", position);
-    } else if (this.expression === "1") {
-      const position = { x: 300, y: 150 };
-      circuitBoard.addComponentByType("constant1", position);
-    } else {
-      const terms = this.expression.split(" ∨ ");
-
-      let finalOrPosition = { x: 600, y: 200 };
-      let finalOrGate = null;
-
-      if (terms.length > 1) {
-        const orId = circuitBoard.addComponentByType("or", finalOrPosition);
-        finalOrGate = circuitBoard.getComponentById(orId);
-      }
-
-      for (let i = 0; i < terms.length; i++) {
-        let term = terms[i];
-
-        if (term.startsWith("(") && term.endsWith(")")) {
-          term = term.substring(1, term.length - 1);
-        }
-
-        const literals = term.split(" ∧ ");
-
-        if (literals.length === 1) {
-          const literal = literals[0];
-          const isNegated = literal.startsWith("¬");
-          const varName = isNegated ? literal.substring(1) : literal;
-
-          const inputComponent = inputComponents.get(varName);
-
-          if (inputComponent) {
-            if (isNegated) {
-              const notPosition = { x: 300, y: 150 + i * 80 };
-              const notId = circuitBoard.addComponentByType("not", notPosition);
-              const notGate = circuitBoard.getComponentById(notId);
-
-              circuitBoard.createWire(inputComponent.outputs[0], notGate.inputs[0]);
-
-              if (finalOrGate) {
-                circuitBoard.createWire(notGate.outputs[0], finalOrGate.inputs[i]);
-              } else {
-                const outputPosition = { x: 500, y: 150 };
-                const outputId = circuitBoard.addComponentByType("light-bulb", outputPosition);
-                const outputComponent = circuitBoard.getComponentById(outputId);
-
-                circuitBoard.createWire(notGate.outputs[0], outputComponent.inputs[0]);
-              }
-            } else {
-              if (finalOrGate) {
-                circuitBoard.createWire(inputComponent.outputs[0], finalOrGate.inputs[i]);
-              } else {
-                const outputPosition = { x: 500, y: 150 };
-                const outputId = circuitBoard.addComponentByType("light-bulb", outputPosition);
-                const outputComponent = circuitBoard.getComponentById(outputId);
-
-                circuitBoard.createWire(inputComponent.outputs[0], outputComponent.inputs[0]);
-              }
-            }
-          }
-        } else {
-          const andPosition = { x: 400, y: 150 + i * 100 };
-          const andId = circuitBoard.addComponentByType("and", andPosition);
-          const andGate = circuitBoard.getComponentById(andId);
-
-          for (let j = 0; j < literals.length; j++) {
-            const literal = literals[j];
-            const isNegated = literal.startsWith("¬");
-            const varName = isNegated ? literal.substring(1) : literal;
-
-            const inputComponent = inputComponents.get(varName);
-
-            if (inputComponent) {
-              if (isNegated) {
-                const notPosition = { x: 250, y: 120 + i * 100 + j * 40 };
-                const notId = circuitBoard.addComponentByType("not", notPosition);
-                const notGate = circuitBoard.getComponentById(notId);
-
-                circuitBoard.createWire(inputComponent.outputs[0], notGate.inputs[0]);
-                circuitBoard.createWire(notGate.outputs[0], andGate.inputs[j]);
-              } else {
-                circuitBoard.createWire(inputComponent.outputs[0], andGate.inputs[j]);
-              }
-            }
-          }
-
-          if (finalOrGate) {
-            circuitBoard.createWire(andGate.outputs[0], finalOrGate.inputs[i]);
-          } else {
-            const outputPosition = { x: 600, y: 150 };
-            const outputId = circuitBoard.addComponentByType("light-bulb", outputPosition);
-            const outputComponent = circuitBoard.getComponentById(outputId);
-
-            circuitBoard.createWire(andGate.outputs[0], outputComponent.inputs[0]);
-          }
-        }
-      }
-
-      if (finalOrGate) {
-        const outputPosition = { x: 750, y: 200 };
-        const outputId = circuitBoard.addComponentByType("light-bulb", outputPosition);
-        const outputComponent = circuitBoard.getComponentById(outputId);
-
-        circuitBoard.createWire(finalOrGate.outputs[0], outputComponent.inputs[0]);
-      }
-    }
-
-    circuitBoard.autoArrangeCircuit();
-    circuitBoard.simulate();
   }
 }
