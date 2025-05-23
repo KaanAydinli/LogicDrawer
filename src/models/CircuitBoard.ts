@@ -1849,12 +1849,7 @@ private showKarnaughMapModal(kmap: KarnaughMap): void {
       return;
     }
 
-    if (this.draggedComponent) {
-      this.updateConnectedWires(
-        this.selectedComponents.length > 0 ? this.selectedComponents : [this.draggedComponent]
-      );
-    }
-
+   
     if (this.draggedComponent && this.selectedComponents.length > 0) {
       const deltaX = mousePos.x - this.dragOffset.x;
       const deltaY = mousePos.y - this.dragOffset.y;

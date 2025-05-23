@@ -318,12 +318,15 @@ export class TruthTableImageTool implements Tool {
     const headers = data.headers;
     const rows = data.rows;
     // Heuristic for output detection
-    const outputKeywords = ['out', 'output', 'f', 'y', 'z', 'q', 's', 'c'];
+    const outputKeywords = ['out', 'output', 'f', 'y', 'z', 'q', 's', ];
     const outputIndices: number[] = [];
     // 1. Keyword-based detection
     headers.forEach((h, i) => {
       const lower = h.toLowerCase();
-      if (outputKeywords.some(k => lower.includes(k)) || /^f\d+$/i.test(h) || /^[SC]$/.test(h)) {
+      if (
+        outputKeywords.some(k => lower.includes(k)) ||
+        /^f\\d*$/i.test(h) // F, F1, F2, F3...
+      ) {
         outputIndices.push(i);
       }
     });
@@ -372,8 +375,9 @@ export class TruthTableImageTool implements Tool {
   ): Promise<{success: boolean, createdOutputs: string[]}> {
     const createdOutputs: string[] = [];
     let anySuccess = false;
+    const expressions: string[] = [];
+    // For each output, generate minimal boolean expression
     for (let outIdx = 0; outIdx < outputIndices.length; outIdx++) {
-      // Build per-output truth table
       const perOutputTruthTable = truthTable.map(row => ({
         inputs: row.inputs,
         outputs: [row.outputs[outIdx]]
@@ -381,15 +385,31 @@ export class TruthTableImageTool implements Tool {
       try {
         const kmap = new KarnaughMap(perOutputTruthTable, inputLabels, [outputLabels[outIdx]]);
         kmap.findMinimalGroups();
-        kmap.createCircuitFromExpression(circuitBoard);
-        anySuccess = true;
+        // Get boolean expression in Verilog format
+        let expr = "";
+        if (typeof (kmap as any).generateBooleanExpression === "function") {
+          expr = (kmap as any).generateBooleanExpression();
+        } else {
+          expr = "0";
+        }
+        // Replace logical symbols with Verilog equivalents
+        expr = expr.replace(/∧/g, '&').replace(/∨/g, '|').replace(/¬/g, '~');
+        expressions.push(`assign ${outputLabels[outIdx]} = ${expr};`);
         createdOutputs.push(outputLabels[outIdx]);
+        anySuccess = true;
       } catch (err) {
         console.error(`Failed to create circuit for output ${outputLabels[outIdx]}:`, err);
       }
     }
-    // Auto arrange the circuit for better visibility if any succeeded
-    if (anySuccess) {
+    if (anySuccess && expressions.length > 0) {
+      // Create a single Verilog module for all outputs, with explicit input/output declarations
+      const inputDecls = inputLabels.length > 0 ? `input ${inputLabels.join(', ')};` : '';
+      const outputDecls = outputLabels.length > 0 ? `output ${outputLabels.join(', ')};` : '';
+      const portList = [...inputLabels, ...outputLabels].join(', ');
+      const verilogModule = `module boolean_circuit(${portList});\n${inputDecls}\n${outputDecls}\n${expressions.join('\n')}\nendmodule`;
+      // Import this module once
+      const converter = new VerilogCircuitConverter(circuitBoard);
+      converter.importVerilogCode(verilogModule);
       circuitBoard.autoArrangeCircuit();
     }
     return {success: anySuccess, createdOutputs};
