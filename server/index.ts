@@ -21,14 +21,31 @@ app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
 app.use(cookieParser());
 
+// CORS middleware
 app.use(
   cors({
-    origin: ['http://10.202.122.162:4000', 'http://localhost:3000', 'http://localhost:4000'],
+    origin: ['http://10.201.122.215:4000', 'http://localhost:3000', 'http://localhost:4000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
   })
 );
+
+// Şüpheli User-Agent'lar için middleware - BURAYA TAŞIYIN
+app.use((req, res, next) => {
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+  
+  // Şüpheli User-Agent'lar için basit bir kontrol
+  if (userAgent.includes('Hack') || 
+      userAgent.includes('bot') || 
+      userAgent.includes('curl') ||
+      userAgent.length < 10) {
+    
+    console.warn(`\x1b[41m\x1b[97m [UYARI] Şüpheli User-Agent: ${userAgent} | IP: ${req.ip} | Yol: ${req.path} \x1b[0m`);
+  }
+  
+  next();
+});
 
 // MongoDB bağlantısı
 mongoose
