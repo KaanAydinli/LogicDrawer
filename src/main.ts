@@ -64,7 +64,7 @@ export class Queue {
   }
 }
 const queue = new Queue();
-
+var spaceBarPressed = false;
 const repositoryService = new MongoDBCircuitRepository();
 var converter;
 var aiAgent : AIAgent;
@@ -222,6 +222,13 @@ function setupZoomControls() {
       circuitBoard.lastMouseX = event.clientX;
       circuitBoard.lastMouseY = event.clientY;
     }
+    else if (event.button === 0 && spaceBarPressed) {
+      event.preventDefault();
+      circuitBoard.isDraggingCanvas = true;
+      circuitBoard.lastMouseX = event.clientX;
+      circuitBoard.lastMouseY = event.clientY;
+       
+    }
   });
 
   canvas.addEventListener("mousemove", event => {
@@ -237,9 +244,9 @@ function setupZoomControls() {
   });
 
   canvas.addEventListener("mouseup", event => {
-    if (event.button === 1) {
+    
       circuitBoard.isDraggingCanvas = false;
-    }
+    
   });
 
   window.addEventListener("mouseup", () => {
@@ -249,6 +256,16 @@ function setupZoomControls() {
   canvas.addEventListener("mousedown", () => {
     settingsPanel?.classList.remove("active");
   });
+  document.addEventListener("keydown", event => {
+     if (event.key === " ") {
+       spaceBarPressed = true;
+     }
+  });
+  document.addEventListener("keyup", event => {
+  if (event.key === " " || event.code === "Space") {
+    spaceBarPressed = false;
+  }
+});
 }
 
 function initCircuitBoard() {
@@ -442,69 +459,8 @@ function addComponentByType(type: string, position: Point) {
 }
 
 function setupKeyboardShortcuts() {
-  document.addEventListener("keydown", event => {
-    const activeElement = document.activeElement;
-    const tagName = activeElement?.tagName.toLowerCase();
 
-    const isTextInput =
-      tagName === "input" ||
-      tagName === "textarea" ||
-      (activeElement?.getAttribute && activeElement?.getAttribute("role") === "textbox") ||
-      activeElement?.id === "ai-chat-input" ||
-      activeElement?.id === "verilog-editor";
-
-    if (isTextInput) {
-      return;
-    }
-
-    if (event.key === "Delete") {
-      circuitBoard.deleteSelected();
-    }
-
-    if (event.key === "Backspace") {
-      circuitBoard.deleteSelected();
-    }
-    if (event.key === "Escape") {
-      circuitBoard.clearCurrentWire();
-    }
-
-    if (event.key === "Enter") {
-      circuitBoard.simulate();
-      circuitBoard.draw();
-    }
-    if (event.key === "+") {
-      if (circuitBoard.selectedComponent) {
-        const component = circuitBoard.selectedComponent;
-        if (
-          component instanceof LogicGate &&
-          component.type !== "buffer" &&
-          component.type !== "not"
-        ) {
-          component.increaseInputCount();
-          circuitBoard.draw();
-        }
-      }
-    }
-    if (event.key === "-") {
-      if (circuitBoard.selectedComponent) {
-        const component = circuitBoard.selectedComponent;
-        if (
-          component instanceof LogicGate &&
-          component.type !== "buffer" &&
-          component.type !== "not"
-        ) {
-          component.decreaseInputCount();
-          circuitBoard.draw();
-        }
-      }
-    }
-    if (event.key === "a") {
-      circuitBoard.showKarnaughMap();
-    }
-    if (event.key === "d") {
-      circuitBoard.generateTruthTable();
-    }
-  });
+ 
 }
 
 function setUpAI() {

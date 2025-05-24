@@ -1355,7 +1355,7 @@ body {
 
 .settings-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 1.5em;
   font-weight: 500;
   color: var(--text-color);
 }
@@ -1376,13 +1376,14 @@ body {
 
 .settings-content {
   padding: 20px;
-  max-height: 70vh;
-  overflow-y: auto;
+  height: auto;
+  overflow-y: hidden;
   color: var(--text-color);
 }
 
 .settings-section {
   margin-bottom: 25px;
+  height: 60%;
 }
 
 .settings-section h4 {
@@ -1459,23 +1460,37 @@ select {
   font-size: 14px;
   font-family: "Pixelify Sans", sans-serif;
 }
+.shortcut-category {
+  font-size: 0.80em;
+  color: #0B6E4F;
+  margin-top: 12px;
+  margin-bottom: 6px;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(11, 110, 79, 0.3);
+  padding-bottom: 4px;
+}
 
 .shortcut-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-  font-size: 14px;
+  margin-bottom: 6px;
+  padding: 4px 0;
 }
 
 .shortcut-key {
-  background-color: var(--component-bg);
-  color: var(--text-color);
-  padding: 4px 8px;
+  background: rgba(11, 110, 79, 0.2);
+  padding: 2px 8px;
   border-radius: 4px;
   font-family: monospace;
-  font-size: 12px;
-  font-family: "Pixelify Sans", sans-serif;
+  font-size: 0.8em;
+}
+
+.settings-section {
+  margin-bottom: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
 }
 
 .setting-item {

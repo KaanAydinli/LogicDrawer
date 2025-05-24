@@ -139,12 +139,96 @@ export class CircuitBoard {
       }
     }
   }
+  private handleKeyDown(event: KeyboardEvent): void {
+ 
+  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+    return;
+  }
+
+ 
+  if (event.ctrlKey && event.key === 's') {
+    event.preventDefault();
+    this.saveToFile();
+  } else if (event.ctrlKey && event.key === 'o') {
+    event.preventDefault();
+    
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) this.loadFromFile(file);
+    };
+    input.click();
+  } else if (event.ctrlKey && event.key === 'e') {
+    event.preventDefault();
+    const verilogCode = this.extractVerilog();
+    this.saveVerilogToFile(verilogCode);
+  }
+  else if (event.altKey && event.key === 's') {
+    event.preventDefault();
+    this.takeScreenshot();
+  }
+
+  // Editing operations
+  else if (event.key === 'Delete' || event.key === 'Backspace') {
+    this.deleteSelected();
+  } else if (event.ctrlKey && event.key === 'a') {
+    event.preventDefault();
+    this.selectAllComponents();
+  } else if (event.ctrlKey && event.key === 'g') {
+    event.preventDefault();
+    this.toggleGrid();
+  }
+
+  // View controls
+  else if (event.key === '+' || event.key === '=') {
+    this.zoomIn();
+  } else if (event.key === '-') {
+    this.zoomOut();
+  } else if (event.key === '0') {
+    this.resetZoom();
+  }
+
+  // Simulation controls
+  else if (event.key === 'F5') {
+    event.preventDefault();
+    this.simulate();
+  } else if (event.key === 't') {
+    this.generateTruthTable();
+  } else if (event.key === 'k') {
+    this.showKarnaughMap();
+  } else if (event.key === 'a') {
+    this.autoArrangeCircuit();
+  }
+
+  // Component manipulation
+  else if (event.key === 'r' && this.selectedComponent) {
+    const logic = this.selectedComponent as LogicGate;
+    if (typeof logic.rotate === "function") {
+      logic.rotate(1);
+      this.draw();
+    }
+  }
+}
+
+// Add this method to select all components
+private selectAllComponents(): void {
+  this.selectedComponents = [...this.components];
+  this.components.forEach(component => {
+    component.selected = true;
+  });
+  this.draw();
+}
   private setupEvents(): void {
     this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
     this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
     this.canvas.addEventListener("click", this.handleClick.bind(this));
+    
+    // Add keyboard event listener
+    window.addEventListener("keydown", this.handleKeyDown.bind(this));
   }
 
   addComponent(component: Component): void {
@@ -938,9 +1022,7 @@ export class CircuitBoard {
     this.downloadFile(dataUrl, "karnaugh-map.png", "image/png", true);
   }
 
-  /**
-   * K-Map tablosunu Canvas'a render eder
-   */
+ 
   private renderKMapToCanvas(
     ctx: CanvasRenderingContext2D,
     table: HTMLTableElement,
@@ -948,7 +1030,7 @@ export class CircuitBoard {
     yPadding: number,
     cellSize: number
   ): void {
-    // Get table rows
+    
     const rows = table.rows;
     const rowCount = rows.length;
     const colCount = rows[0]?.cells.length || 0;
@@ -956,18 +1038,18 @@ export class CircuitBoard {
     const tableWidth = cellSize * colCount;
     const tableHeight = cellSize * rowCount;
 
-    // Center table horizontally
+    
     const startX = (ctx.canvas.width - tableWidth) / 2;
 
-    // Draw header row
+   
     if (rows.length > 0) {
       const headerRow = rows[0];
 
-      ctx.fillStyle = "#333"; // Header background
+      ctx.fillStyle = "#333"; 
       ctx.fillRect(startX, yPadding, tableWidth, cellSize);
 
-      // Draw header texts
-      ctx.fillStyle = "#fff"; // Header text color
+     
+      ctx.fillStyle = "#fff"; 
       ctx.font = "bold 14px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -980,48 +1062,48 @@ export class CircuitBoard {
       }
     }
 
-    // Draw data rows
+    
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const rowY = yPadding + i * cellSize;
 
-      // Draw row header (first cell)
-      ctx.fillStyle = "#333"; // Row header background
+      
+      ctx.fillStyle = "#333"; 
       ctx.fillRect(startX, rowY, cellSize, cellSize);
 
-      // Draw row header text
-      ctx.fillStyle = "#fff"; // Header text color
+      
+      ctx.fillStyle = "#fff"; 
       const rowHeaderText = row.cells[0].textContent || "";
       ctx.fillText(rowHeaderText, startX + cellSize / 2, rowY + cellSize / 2);
 
-      // Draw data cells
+      
       for (let j = 1; j < row.cells.length; j++) {
         const cell = row.cells[j];
         const cellText = cell.textContent || "";
         const cellX = startX + j * cellSize;
         const cellY = rowY;
 
-        // Determine cell background color based on value
+        
         if (cellText === "1") {
-          ctx.fillStyle = "#2a7340"; // Green for 1s
+          ctx.fillStyle = "#2a7340"; 
         } else {
-          ctx.fillStyle = "#333"; // Dark gray for 0s
+          ctx.fillStyle = "#333"; 
         }
 
-        // Draw cell background
+       
         ctx.fillRect(cellX, cellY, cellSize, cellSize);
 
-        // Draw cell text
+      
         ctx.fillStyle = cellText === "1" ? "#fff" : "#aaa";
         ctx.fillText(cellText, cellX + cellSize / 2, cellY + cellSize / 2);
       }
     }
 
-    // Draw grid lines
+   
     ctx.strokeStyle = "#555";
     ctx.lineWidth = 1;
 
-    // Vertical lines
+   
     for (let j = 0; j <= colCount; j++) {
       const lineX = startX + j * cellSize;
       ctx.beginPath();
@@ -1030,7 +1112,7 @@ export class CircuitBoard {
       ctx.stroke();
     }
 
-    // Horizontal lines
+   
     for (let i = 0; i <= rowCount; i++) {
       const lineY = yPadding + i * cellSize;
       ctx.beginPath();
@@ -1039,13 +1121,11 @@ export class CircuitBoard {
       ctx.stroke();
     }
 
-    // Draw border
+  
     ctx.lineWidth = 2;
     ctx.strokeRect(startX, yPadding, tableWidth, tableHeight);
   }
-  /**
-   * Dosya indirme yardımcı fonksiyonu
-   */
+  
   private downloadFile(
     content: string,
     fileName: string,
@@ -1069,9 +1149,7 @@ export class CircuitBoard {
     }
   }
 
-  /**
-   * Bir kapının sadece giriş bileşenlerinden bağlantı alıp almadığını kontrol eder
-   */
+
   private hasInputsOnlyFromInputComponents(gate: Component): boolean {
     const inputConnections = this.getInputConnections(gate);
 
@@ -1093,9 +1171,7 @@ export class CircuitBoard {
     return true;
   }
 
-  /**
-   * Bir kapının girişlerine bağlı olan bileşenleri bulur
-   */
+
   private getInputConnections(gate: Component): Component[] {
     const connectedComponents: Component[] = [];
 
@@ -1110,9 +1186,7 @@ export class CircuitBoard {
     return connectedComponents;
   }
 
-  /**
-   * Tüm kabloları yeniden yönlendirir
-   */
+
   private rerouteAllWires(): void {
     this.wires.forEach(wire => {
       wire.autoRoute(
@@ -2147,6 +2221,7 @@ export class CircuitBoard {
           // Prevent connecting to the same component
           if (this.currentWire.from?.component === port.component) {
             console.log("Cannot connect to the same component");
+           
             this.currentWire = null;
             this.draw();
             return;
