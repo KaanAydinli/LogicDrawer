@@ -3,19 +3,20 @@ import { MessageClassifier } from './MessageClassifier';
 import { Tool, ToolContext, VerilogImportTool, GeminiQueryTool, CircuitDetectionTool, ImageAnalysisTool, MessageQueue, TruthTableImageTool, KMapImageTool } from './Tools';
 import { ImageUploader } from './ImageUploader';
 import { apiBaseUrl } from '../services/apiConfig';
+import { Queue } from '../main';
 
 export class AIAgent {
   private lastUploadedImage: string | null = null;
   private messageClassifier: MessageClassifier;
   private tools: Map<string, Tool>;
   private circuitBoard: CircuitBoard;
-  private queue: MessageQueue;
+  public queue: Queue;
   private promptAI: string;
   private imageUploader: ImageUploader;
   
   constructor(
     circuitBoard: CircuitBoard, 
-    queue: MessageQueue, 
+    queue: Queue, 
     promptAI: string,
     imageUploader: ImageUploader
   ) {

@@ -67,6 +67,7 @@ const queue = new Queue();
 
 const repositoryService = new MongoDBCircuitRepository();
 var converter;
+var aiAgent : AIAgent;
 
 var imageUploader: ImageUploader;
 
@@ -514,12 +515,7 @@ function setUpAI() {
   const chatInput = document.getElementById("ai-chat-input") as HTMLInputElement;
   const messagesContainer = document.getElementById("ai-chat-messages") as HTMLElement;
 
-  const aiAgent = new AIAgent(
-    circuitBoard,
-    queue as unknown as MessageQueue,
-    promptAI,
-    imageUploader
-  );
+  aiAgent = new AIAgent(circuitBoard, queue as Queue, promptAI, imageUploader);
 
   let lastUploadedImage: string | null = null;
 
@@ -544,73 +540,26 @@ function setUpAI() {
     aiLogo.classList.remove("active");
   });
 
-  async function callMistralAPI(userMessage: string): Promise<string> {
-    try {
-      const loadingMessageDiv = document.createElement("div");
-      loadingMessageDiv.className = "ai-message";
-      loadingMessageDiv.innerHTML = `
-      <svg width = 40px height = 40px xmlns="http:
-            
-          <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
-          
-        </svg>
-      <div class="message-content">Thinking...</div>
-    `;
-      messagesContainer.appendChild(loadingMessageDiv);
-      scrollToBottom();
-
-      const messages = [];
-
-      if (queue.items && Array.isArray(queue.items)) {
-        messages.push(...queue.items);
-      }
-
-      const response = await fetch(`${apiBaseUrl}/api/generate/text`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: userMessage,
-          history: queue.messages,
-          systemPrompt: promptAI,
-        }),
-      });
-
-      messagesContainer.removeChild(loadingMessageDiv);
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.text || "Sorry, I couldn't generate a response at the moment. Please try again.";
-    } catch (error) {
-      console.error("Error calling API:", error);
-      return "I'm having trouble connecting right now. Please try again in a moment.";
-    }
-  }
-
   async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") return;
-    
+
     addUserMessage(message);
-    
+
     // Textarea'yı sıfırlarken daha kapsamlı bir yaklaşım
     chatInput.value = "";
-    
+
     // Textarea'yı style değerlerini tamamen sıfırlayarak resetle
     chatInput.style.cssText = "";
     chatInput.style.height = "24px";
-    
+
     // Scroll değerlerini de sıfırla
     chatInput.scrollTop = 0;
-    
+
     // DOM'un güncellenmesini zorla
     chatInput.blur();
     chatInput.focus();
-    
+
     try {
       // Process the message with our AI agent
       const aiResponse = await aiAgent.processUserInput(message);
@@ -676,7 +625,7 @@ function setUpAI() {
 
   function addUserMessage(text: string) {
     queue.enqueue(text);
-
+   
     circuitBoard.saveToLocalStorage();
     const messageDiv = document.createElement("div");
     messageDiv.className = "user-message";
@@ -720,6 +669,7 @@ function setUpAI() {
       }
     }
     queue.enqueue(aiText);
+    
     saveToLocalStorage();
 
     messageDiv.className = "ai-message";
@@ -899,7 +849,7 @@ function setupSettings() {
   });
 }
 //This method will set the tools for the dropdown similar to setFile it will have components like truth table K Map screenshot and so on
-function setTools(){
+function setTools() {
   const toolsButton = document.querySelector(".tools") as HTMLElement;
   const toolsDropdown = document.querySelector(".tools-dropdown") as HTMLElement;
   const toolsOptions = document.querySelectorAll(".tools-option") as NodeListOf<HTMLElement>;
@@ -1556,9 +1506,8 @@ inputText.addEventListener("keydown", event => {
 });
 function saveToLocalStorage(key: string = "history"): void {
   try {
-    const queueString = JSON.stringify(queue);
+    const queueString = JSON.stringify(aiAgent.queue);
     localStorage.setItem(key, queueString);
-    console.log("Devre local storage'a kaydedildi");
   } catch (error) {
     console.error("Local storage'a kaydetme hatası:", error);
   }

@@ -39,6 +39,7 @@ export class VerilogImportTool implements Tool {
         body: JSON.stringify({
           prompt: verilogPrompt,
           systemPrompt: context.promptAI,
+          history: context.queue.messages,
         }),
       });
 
@@ -91,12 +92,14 @@ export class GeminiQueryTool implements Tool {
       const augmentedMessage = focusInstruction + "\n\n" + context.message;
       console.log("Executing Gemini query with message:", context.message.substring(0, 50) + "...");
 
+      console.log(JSON.stringify(context.queue.messages));
       // Use the text-specific endpoint
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: augmentedMessage,
+          history: context.queue.messages, // Now properly formatted with roles
           systemPrompt: context.promptAI,
         }),
       });
@@ -202,6 +205,7 @@ export class ImageAnalysisTool implements Tool {
         body: JSON.stringify({
           prompt: augmentedMessage,
           imageData: context.image,
+          history: context.queue.messages,
         }),
       });
 

@@ -576,7 +576,7 @@ app.post("/api/generate/gemini-text", async (req, res) => {
   try {
     console.log("Gemini text generation request received");
 
-    const { prompt, systemPrompt } = req.body;
+    const { prompt, systemPrompt , history } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "No prompt provided" });
@@ -597,8 +597,10 @@ app.post("/api/generate/gemini-text", async (req, res) => {
       // Combine system prompt and user prompt if needed
       let fullPrompt = prompt;
       if (systemPrompt) {
-        fullPrompt = `${systemPrompt}\n\n${prompt}`;
+        fullPrompt = `${systemPrompt}\n\n${prompt}\n\n${history ? `Queue: ${history}` : ""}`;
       }
+
+      console.log("Full prompt prepared for Gemini:", fullPrompt);
 
       console.log(`Sending prompt to Gemini (length: ${fullPrompt.length})`);
 
@@ -628,7 +630,7 @@ app.post("/api/generate/gemini-text", async (req, res) => {
 // Image analysis Gemini endpoint
 app.post("/api/generate/gemini-vision", async (req, res) => {
   try {
-    const { prompt, imageData } = req.body;
+    const { prompt, imageData, history } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: "No prompt provided" });
@@ -670,7 +672,7 @@ app.post("/api/generate/gemini-vision", async (req, res) => {
           {
             role: "user",
             parts: [
-              { text: prompt },
+              { text: prompt + (history ? `\n\nQueue: ${history}` : "") },
               {
                 inlineData: {
                   data: base64Data,
