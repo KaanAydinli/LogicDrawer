@@ -12,8 +12,9 @@ import { User } from "./models/User";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { authMiddleware, AuthRequest } from "./middlewares/auth";
-import { spawn } from 'child_process'; // Import spawn
-import path from 'path';  
+import { spawn } from 'child_process';
+import path from 'path';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 
@@ -23,10 +24,11 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/logicd
 
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
+app.use(cookieParser());
 
 app.use(
   cors({
-    origin: '*',  // Tüm kaynaklardan erişime izin ver
+    origin: 'http://10.202.122.162:4000',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -43,23 +45,19 @@ mongoose
     console.error("MongoDB connection error:", err);
     console.error("Connection URI:", MONGODB_URI);
   });
-// Modify the existing endpoint
-// Update the GET /api/circuits endpoint
+
 app.get("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    // Fetch user's own circuits
     const ownCircuits = await Circuit.find({ userId: req.user?.id })
       .populate("userId", "name email")
       .sort({ createdAt: -1 });
       
-    // Fetch circuits shared with the user
     const sharedCircuits = await Circuit.find({ 
       sharedWith: req.user?.id 
     })
     .populate("userId", "name email")
     .sort({ createdAt: -1 });
     
-    // Fetch public circuits (that aren't owned by the user)
     const publicCircuits = await Circuit.find({
       userId: { $ne: req.user?.id },
       isPublic: true
@@ -67,7 +65,6 @@ app.get("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
     .populate("userId", "name email")
     .sort({ createdAt: -1 });
     
-    // Mark shared and public circuits
     const sharedCircuitsWithFlag = sharedCircuits.map(circuit => {
       const circuitObj = circuit.toObject();
       circuitObj.isShared = true;
@@ -80,7 +77,6 @@ app.get("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
       return circuitObj;
     });
     
-    // Combine all sets
     const allCircuits = [...ownCircuits, ...sharedCircuitsWithFlag, ...publicCircuitsWithFlag];
     
     res.json(allCircuits);
@@ -98,25 +94,18 @@ app.get("/api/circuits/search", authMiddleware, async (req: AuthRequest, res) =>
       return res.status(400).json({ error: "Search query is required" });
     }
     
-    // Create a regex pattern that matches beginning of words (prefix match)
-    // This will match strings that start with the query (case insensitive)
     const searchPattern = new RegExp(`^${query}`, 'i');
     
-    // Find circuits that match the search criteria
     const matchingCircuits = await Circuit.find({
       $or: [
         { name: searchPattern },
         { description: searchPattern }
-        // Removed tag matching as it's not prefix-friendly
       ],
       $and: [
         {
           $or: [
-            // User's own circuits
             { userId: req.user?.id },
-            // Circuits shared with the user
             { sharedWith: req.user?.id },
-            // Public circuits
             { isPublic: true }
           ]
         }
@@ -132,23 +121,17 @@ app.get("/api/circuits/search", authMiddleware, async (req: AuthRequest, res) =>
   }
 });
 
+const JWT_SECRET = process.env.JWT_SECRET || "a";
 
-const JWT_SECRET = process.env.JWT_SECRET || "s";
-
-// API endpoint'lerinin üstüne bu endpoint'leri ekleyin
-
-// Kullanıcı kaydı
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // E-posta adresi kontrol et
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: "Email already in use" });
     }
 
-    // Yeni kullanıcı oluştur
     const user = new User({
       name,
       email,
@@ -157,7 +140,6 @@ app.post("/api/auth/register", async (req, res) => {
 
     await user.save();
 
-    // Kullanıcı oluşturuldu, şifre verilmeden kullanıcıyı döndür
     res.status(201).json({
       message: "User registered successfully",
       user: {
@@ -172,30 +154,34 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-// Kullanıcı girişi
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Kullanıcıyı bul
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Şifreyi kontrol et
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // JWT oluştur
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "24h" });
+    const token = jwt.sign({ id: user._id, email: user.email },JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
-    // Kullanıcı girişi başarılı
+    res.cookie('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 1000
+    });
+
     res.json({
       message: "Login successful",
-      token,
       user: {
         id: user._id,
         name: user.name,
@@ -208,23 +194,38 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// Kullanıcı bilgilerini getir
-app.get("/api/auth/me", async (req, res) => {
+app.post("/api/auth/logout", (req, res) => {
+  res.clearCookie('auth_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+  res.json({ message: "Logged out successfully" });
+});
+
+app.get("/api/auth/me", (req, res) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const token = req.cookies.auth_token;
 
     if (!token) {
-      return res.status(401).json({ error: "No token provided" });
+      return res.status(401).json({ error: "No authentication token found" });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
-    const user = await User.findById(decoded.id).select("-password");
-
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    res.json({ user });
+    
+    User.findById(decoded.id).select("-password")
+      .then(user => {
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+        
+        res.json({ user });
+      })
+      .catch(err => {
+        console.error("Database error:", err);
+        res.status(500).json({ error: "Server error fetching user data" });
+      });
   } catch (error) {
     console.error("Auth error:", error);
     res.status(401).json({ error: "Invalid token" });
@@ -232,41 +233,30 @@ app.get("/api/auth/me", async (req, res) => {
 });
 
 app.get("/api/circuits/shared-with-me", authMiddleware, async (req: AuthRequest, res) => {
-  
-  console.log("Fetching circuits shared with user:");
   try {
     if (!req.user?.id) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Kullanıcı bilgilerini bul
     const user = await User.findById(req.user.id);
     if (!user) {
-      console.error("User not found for shared circuits lookup:", req.user.id);
       return res.status(404).json({ error: "User not found" });
     }
-    
-    console.log("Looking for circuits shared with:", user.name);
 
     try {
-      // Kullanıcı ile paylaşılan devreleri bul
       const circuits = await Circuit.find({ sharedWith: user.name })
         .populate("userId", "name email")
         .sort({ dateCreated: -1 });
 
-      console.log(`Found ${circuits.length} circuits shared with ${user.name}`);
       res.json(circuits);
     } catch (queryError) {
-      console.error("Database error in shared-with-me:", queryError);
       return res.status(500).json({ error: "Database query error" });
     }
   } catch (error) {
-    console.error("Error fetching shared circuits:", error);
     res.status(500).json({ error: "Failed to fetch shared circuits" });
   }
 });
 
-// Devre görünürlüğünü değiştirme endpoint'i
 app.put("/api/circuits/:id/visibility", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const { isPublic } = req.body;
@@ -275,7 +265,6 @@ app.put("/api/circuits/:id/visibility", authMiddleware, async (req: AuthRequest,
       return res.status(400).json({ error: "isPublic field is required" });
     }
 
-    // Devreyi güncelle, sadece sahibi değiştirebilir
     const circuit = await Circuit.findOneAndUpdate(
       { _id: req.params.id, userId: req.user?.id },
       { isPublic: Boolean(isPublic) },
@@ -291,23 +280,18 @@ app.put("/api/circuits/:id/visibility", authMiddleware, async (req: AuthRequest,
       message: `Circuit is now ${circuit.isPublic ? 'public' : 'private'}`
     });
   } catch (error) {
-    console.error("Error updating circuit visibility:", error);
     res.status(500).json({ error: "Failed to update circuit visibility" });
   }
 });
 
 app.get("/api/circuits/public", async (req, res) => {
   try {
-    console.log("Fetching public circuits...");
-    
     const circuits = await Circuit.find({ isPublic: true })
       .populate("userId", "name email")
       .sort({ dateCreated: -1 });
 
-    console.log(`Found ${circuits.length} public circuits`);
     res.json(circuits);
   } catch (error) {
-    console.error("Error fetching public circuits:", error);
     res.status(500).json({ error: "Failed to fetch public circuits" });
   }
 });
@@ -321,49 +305,34 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 
 app.post("/api/analyze/roboflow", async (req, res) => {
   try {
-    console.log("Received image analysis request (using local Python script via stdin)");
-
     const { base64Image } = req.body;
     if (!base64Image) {
       return res.status(400).json({ error: "No image provided" });
     }
 
-    // Extract base64 data (remove data URI prefix if present)
-    // IMPORTANT: Ensure the prefix is removed, Python expects only the data part
     const base64Data = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
 
-    // --- 1. Spawn Python Script ---
-    const pythonScriptPath = path.join(__dirname, 'detectCircuit.py'); // Ensure correct script name
-    console.log(`Spawning Python script: ${pythonScriptPath}`);
+    const pythonScriptPath = path.join(__dirname, 'detectCircuit.py');
+    const pythonExecutable = 'python';
 
-    const pythonExecutable = 'python'; // Or 'python3'
-
-    // Spawn the process WITHOUT the base64 data as an argument
     const pythonProcess = spawn(pythonExecutable, [pythonScriptPath]);
 
     let scriptOutput = '';
     let scriptError = '';
 
-    // --- 2. Write base64 data to Python's stdin ---
     pythonProcess.stdin.write(base64Data);
-    pythonProcess.stdin.end(); // Signal end of input
-    console.log("Sent base64 data to Python script via stdin.");
+    pythonProcess.stdin.end();
 
-    // --- 3. Capture stdout and stderr (same as before) ---
     pythonProcess.stdout.on('data', (data) => {
       scriptOutput += data.toString();
     });
 
     pythonProcess.stderr.on('data', (data) => {
       scriptError += data.toString();
-      console.error(`Python stderr: ${data}`);
     });
 
-    // --- 4. Handle Python Script Completion (same as before) ---
     return new Promise((resolve, reject) => {
       pythonProcess.on('close', (code) => {
-        console.log(`Python script exited with code ${code}`);
-
         if (code === 0) {
           try {
             const trimmedOutput = scriptOutput.trim();
@@ -371,12 +340,9 @@ app.post("/api/analyze/roboflow", async (req, res) => {
                 throw new Error("Python script produced empty output.");
             }
             const resultJson = JSON.parse(trimmedOutput);
-            console.log("Successfully parsed output from Python script.");
             res.json(resultJson);
             resolve(undefined);
           } catch (parseError) {
-            console.error("Error parsing JSON output from Python:", parseError);
-            console.error("Python stdout was:", scriptOutput);
             res.status(500).json({
               error: "Failed to parse analysis result from Python script",
               details: scriptError || "Parsing error",
@@ -385,7 +351,6 @@ app.post("/api/analyze/roboflow", async (req, res) => {
             reject(parseError);
           }
         } else {
-          console.error(`Python script failed with code ${code}.`);
           res.status(500).json({
             error: "Circuit analysis script failed",
             details: scriptError || `Script exited with code ${code}`,
@@ -396,14 +361,12 @@ app.post("/api/analyze/roboflow", async (req, res) => {
       });
 
       pythonProcess.on('error', (err) => {
-        console.error('Failed to start Python subprocess:', err);
         res.status(500).json({ error: "Failed to start analysis script", details: err.message });
         reject(err);
       });
     });
 
   } catch (error) {
-    console.error("Error in /api/analyze/roboflow (stdin) endpoint:", error);
     res.status(500).json({
       error: "Failed to analyze image using local script",
       details: error instanceof Error ? error.message : String(error),
@@ -415,12 +378,8 @@ interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
 
-
-// Add this endpoint for message classification
 app.post("/api/classify-message", async (req, res) => {
   try {
-    console.log("Message classification request received");
-    
     const { message, hasImage } = req.body;
     
     if (!message) {
@@ -428,12 +387,10 @@ app.post("/api/classify-message", async (req, res) => {
     }
     
     if (!process.env.MISTRAL_API_KEY) {
-      console.error("Mistral API key not found");
       return res.status(500).json({ error: "Mistral API is not configured" });
     }
     
     try {
-      // System prompt for classification
       const systemPrompt = `You are a classification assistant for a logic circuit design application.
 Analyze the user's message and return ONLY ONE of these categories:
 - VERILOG_IMPORT: If the message contains Verilog code or asks to import/create a circuit from code
@@ -443,13 +400,11 @@ Analyze the user's message and return ONLY ONE of these categories:
 
 Reply with ONLY the category name, nothing else.`;
       
-      // Create messages array for Mistral
       const messages = [
         { role: "system", content: systemPrompt },
         { role: "user", content: message + (hasImage ? " (Note: The user has uploaded an image)" : "") }
       ];
       
-      // Call Mistral API
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -475,49 +430,37 @@ Reply with ONLY the category name, nothing else.`;
       
       const text = data.choices[0].message.content.trim().toUpperCase();
       
-      // Normalize the classification
       let classification = "GENERAL_INFORMATION";
       if (text.includes("VERILOG")) classification = "VERILOG_IMPORT";
       else if (text.includes("CIRCUIT") && (text.includes("DETECT") || text.includes("DRAW"))) classification = "CIRCUIT_DETECTION";
       else if (text.includes("IMAGE")) classification = "IMAGE_ANALYSIS";
       
-      console.log(`Message classified as: ${classification}`);
       return res.json({ classification });
     } catch (error) {
-      console.error("Error calling Mistral API for classification:", error);
       return res.status(500).json({
         error: "Failed to classify message",
         details: error instanceof Error ? error.message : String(error)
       });
     }
   } catch (error) {
-    console.error("Error processing classification request:", error);
     return res.status(500).json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : String(error)
     });
   }
 });
+
 app.post("/api/generate/mistral", async (req, res) => {
   try {
-    console.log("Mistral text generation request received");
-
     const {userPrompt, systemPrompt } = req.body;
 
-
-
-   
     if (!process.env.MISTRAL_API_KEY) {
-      console.error("Mistral API key not found in environment variables");
       return res.status(500).json({ error: "Mistral API key not configured" });
     }
 
     try {
-      console.log("Sending request to Mistral API...");
-
       let messages = [];
       
-    
       if (systemPrompt) {
         messages.push({
           role: "system",
@@ -525,17 +468,12 @@ app.post("/api/generate/mistral", async (req, res) => {
         });
       }
       
-      // Add conversation history
+      const role = "user" ;
+      messages.push({
+        role: role,
+        content: userPrompt
+      });
 
-          const role = "user" ;
-          messages.push({
-            role: role,
-            content: userPrompt
-          });
-        
-
-
-      // Make the API request to Mistral
       const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -560,70 +498,55 @@ app.post("/api/generate/mistral", async (req, res) => {
       }
       
       const text = data.choices[0].message.content;
-      console.log("Response received from Mistral");
 
       res.json({ text });
     } catch (error) {
-      console.error("Error calling Mistral API:", error);
       res.status(500).json({
         error: "Failed to generate text with Mistral",
         details: error instanceof Error ? error.message : String(error),
       });
     }
   } catch (error) {
-    console.error("Error processing request:", error);
     res.status(500).json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : String(error),
     });
   }
 });
+
 app.post("/api/generate/gemini-text", async (req, res) => {
   try {
-    console.log("Gemini text generation request received");
-    
     const { prompt, systemPrompt } = req.body;
     
     if (!prompt) {
       return res.status(400).json({ error: "No prompt provided" });
     }
     
-    // Check if the API key is configured
     const googleApiKey = process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY;
     if (!googleApiKey) {
-      console.error("Google API key not found in environment variables");
       return res.status(500).json({ error: "Google API key not configured" });
     }
 
     try {
-      // Get the model for text generation
-      console.log("Processing text-only query with Gemini Pro");
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       
-      // Combine system prompt and user prompt if needed
       let fullPrompt = prompt;
       if (systemPrompt) {
         fullPrompt = `${systemPrompt}\n\n${prompt}`;
       }
       
-      console.log(`Sending prompt to Gemini (length: ${fullPrompt.length})`);
-      
-      // Using the simplest possible API call to minimize errors
       const result = await model.generateContent(fullPrompt);
       const response = result.response;
       const text = response.text();
       
-      console.log("Received text response from Gemini");
       return res.json({ text });
     } catch (error) {
-      console.error("Error calling Gemini text API:", error);
       return res.status(500).json({
         error: "Failed to generate text with Gemini",
         details: error instanceof Error ? error.message : String(error)
       });
     }
   } catch (error) {
-    console.error("Error processing text request:", error);
     return res.status(500).json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : String(error)
@@ -631,10 +554,8 @@ app.post("/api/generate/gemini-text", async (req, res) => {
   }
 });
 
-// Image analysis Gemini endpoint
 app.post("/api/generate/gemini-vision", async (req, res) => {
   try {
-    
     const { prompt, imageData } = req.body;
     
     if (!prompt) {
@@ -645,12 +566,9 @@ app.post("/api/generate/gemini-vision", async (req, res) => {
       return res.status(400).json({ error: "No image data provided" });
     }
     
-
     try {
-
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       
-
       let base64Data;
       let mimeType = "image/jpeg";
       
@@ -661,7 +579,7 @@ app.post("/api/generate/gemini-vision", async (req, res) => {
             mimeType = matches[1];
             base64Data = matches[2];
           } else {
-            base64Data = imageData.split("base64,")[1]; // Fallback
+            base64Data = imageData.split("base64,")[1];
           }
         } else {
           base64Data = imageData;
@@ -674,7 +592,6 @@ app.post("/api/generate/gemini-vision", async (req, res) => {
         return res.status(400).json({ error: "Invalid image data format" });
       }
       
-      // Generate content with image and text
       const result = await model.generateContent({
         contents: [{ 
           role: "user",
@@ -695,14 +612,12 @@ app.post("/api/generate/gemini-vision", async (req, res) => {
       
       return res.json({ text });
     } catch (error) {
-      console.error("Error calling Gemini vision API:", error);
       return res.status(500).json({
         error: "Failed to analyze image with Gemini",
         details: error instanceof Error ? error.message : String(error)
       });
     }
   } catch (error) {
-    console.error("Error processing image analysis request:", error);
     return res.status(500).json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : String(error)
@@ -710,13 +625,11 @@ app.post("/api/generate/gemini-vision", async (req, res) => {
   }
 });
 
-
 app.post("/api/circuits/:id/like", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const circuitId = req.params.id;
     const userId = req.user?.id;
     
-
     const circuit = await Circuit.findById(circuitId);
     
     if (!circuit) {
@@ -727,7 +640,6 @@ app.post("/api/circuits/:id/like", authMiddleware, async (req: AuthRequest, res)
       circuit.likedBy = [];
     }
     
-
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
     }
@@ -737,7 +649,6 @@ app.post("/api/circuits/:id/like", authMiddleware, async (req: AuthRequest, res)
       return res.status(400).json({ error: "You have already liked this circuit" });
     }
     
-
     circuit.likedBy.push(new mongoose.Types.ObjectId(userId));
     circuit.likes = circuit.likedBy.length;
 
@@ -748,12 +659,9 @@ app.post("/api/circuits/:id/like", authMiddleware, async (req: AuthRequest, res)
       likes: circuit.likes 
     });
   } catch (error) {
-    console.error("Error liking circuit:", error);
     res.status(500).json({ error: "Failed to like circuit" });
   }
 });
-
-
 
 app.get("/api/circuits/:id/download", authMiddleware, async (req: AuthRequest, res) => {
   try {
@@ -772,13 +680,11 @@ app.get("/api/circuits/:id/download", authMiddleware, async (req: AuthRequest, r
 
     res.json(circuit);
   } catch (error) {
-    console.error("Error downloading circuit:", error);
     res.status(500).json({ error: "Failed to download circuit" });
   }
 });
 
 app.post("/api/circuits/:id/share", authMiddleware, async (req: AuthRequest, res) => {
-  
   try {
     const { username } = req.body;
 
@@ -803,11 +709,9 @@ app.post("/api/circuits/:id/share", authMiddleware, async (req: AuthRequest, res
       circuit.sharedWith = [];
     }
 
-
     if (circuit.sharedWith.includes(username)) {
       return res.status(400).json({ error: "Circuit already shared with this user" });
     }
-
 
     circuit.sharedWith.push(username);
     await circuit.save();
@@ -817,27 +721,20 @@ app.post("/api/circuits/:id/share", authMiddleware, async (req: AuthRequest, res
       circuit
     });
   } catch (error) {
-    console.error("Error sharing circuit:", error);
     res.status(500).json({ error: "Failed to share circuit" });
   }
 });
 
-
 app.post("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
   try {
-
     if (!req.user?.id) {
       return res.status(401).json({ error: "User ID not found in token" });
     }
 
-
     const circuitData = {
       ...req.body,
       userId: req.user.id,
-    
     };
-
-    console.log("Saving circuit with data:", JSON.stringify(circuitData, null, 2));
 
     const circuit = new Circuit(circuitData);
 
@@ -845,14 +742,12 @@ app.post("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
       await circuit.save();
       res.status(201).json(circuit);
     } catch (validationError: any) {
-      console.error("Circuit validation error:", validationError);
       return res.status(400).json({
         error: "Invalid circuit data",
         details: validationError.message,
       });
     }
   } catch (error: any) {
-    console.error("Error saving circuit:", error);
     res.status(500).json({
       error: "Failed to save circuit",
       details: error.message,
@@ -860,9 +755,7 @@ app.post("/api/circuits", authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
-
 app.get("/api/auth/check", authMiddleware, (req: AuthRequest, res) => {
-
   res.json({
     authenticated: true,
     user: {
@@ -871,29 +764,26 @@ app.get("/api/auth/check", authMiddleware, (req: AuthRequest, res) => {
     },
   });
 });
+
 app.put("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
     const circuitId = req.params.id;
     const updateData = req.body;
 
-   
     const user = await User.findById(req.user?.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-  
     const circuit = await Circuit.findOne({
       _id: circuitId,
       $or: [
-        { userId: req.user?.id },                   
-        { sharedWith: user.name },                 
-        
+        { userId: req.user?.id },
+        { sharedWith: user.name },
       ]
     });
 
     if (!circuit) {
-   
       const publicCircuit = await Circuit.findOne({
         _id: circuitId,
         isPublic: true
@@ -910,7 +800,6 @@ app.put("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "Circuit not found or you don't have permission" });
     }
 
-
     const updates = {
       name: updateData.name,
       components: updateData.components,
@@ -926,38 +815,30 @@ app.put("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
 
     res.json(updatedCircuit);
   } catch (error) {
-    console.error("Error updating circuit:", error);
     res.status(500).json({ error: "Failed to update circuit" });
   }
 });
+
 app.get("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
   try {
-
     const user = await User.findById(req.user?.id);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
-
-    console.log(`User ${user.name} (${req.user?.id}) is trying to access circuit ${req.params.id}`);
-
 
     let circuit = await Circuit.findOne({
       _id: req.params.id,
       userId: req.user?.id
     });
 
- 
     if (!circuit) {
-      console.log(`Circuit is not owned by user, checking if shared with ${user.name}`);
       circuit = await Circuit.findOne({
         _id: req.params.id,
         sharedWith: user.name 
       });
     }
 
-
     if (!circuit) {
-      console.log("Circuit is not shared with user, checking if public");
       circuit = await Circuit.findOne({
         _id: req.params.id,
         isPublic: true
@@ -965,14 +846,11 @@ app.get("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) => {
     }
 
     if (!circuit) {
-      console.log("Circuit not found or user doesn't have access");
       return res.status(404).json({ error: "Circuit not found or you don't have permission" });
     }
     
-    console.log(`Circuit found, returning to user ${user.name}`);
     res.json(circuit);
   } catch (error) {
-    console.error("Error fetching circuit:", error);
     res.status(500).json({ error: "Failed to fetch circuit" });
   }
 });
@@ -992,6 +870,7 @@ app.delete("/api/circuits/:id", authMiddleware, async (req: AuthRequest, res) =>
     res.status(500).json({ error: "Failed to delete circuit" });
   }
 });
+
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -999,7 +878,6 @@ app.get("/health", (req, res) => {
     ip: req.ip
   });
 });
-
 
 app.post("/api/auth/refresh", async (req, res) => {
   try {
@@ -1022,7 +900,6 @@ app.post("/api/auth/refresh", async (req, res) => {
     
     res.json({ token });
   } catch (error) {
-    console.error("Token refresh error:", error);
     res.status(500).json({ error: "Error refreshing token" });
   }
 });

@@ -9,18 +9,14 @@ export class CircuitService {
       'Content-Type': 'application/json'
     });
     
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      headers.append('Authorization', `Bearer ${token}`);
-    }
-    
     return headers;
   }
 
   async getCircuits(): Promise<CircuitEntry[]> {
     try {
       const response = await fetch(`${this.API_BASE_URL}/circuits`, {
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+        credentials: 'include'
       });
       
       if (!response.ok) {
@@ -44,7 +40,8 @@ export class CircuitService {
   async getCircuitById(id: string): Promise<CircuitEntry> {
     try {
       const response = await fetch(`${this.API_BASE_URL}/circuits/${id}`, {
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+         credentials: 'include'
       });
       
       if (!response.ok) {
@@ -68,7 +65,8 @@ export class CircuitService {
   async getSharedCircuits(): Promise<CircuitEntry[]> {
     try {
       const response = await fetch(`${this.API_BASE_URL}/circuits/shared-with-me`, {
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+         credentials: 'include'
       });
       
       if (!response.ok) {
@@ -97,7 +95,8 @@ export class CircuitService {
       const response = await fetch(`${this.API_BASE_URL}/circuits/${id}/visibility`, {
         method: 'PUT',
         headers: this.getAuthHeaders(),
-        body: JSON.stringify({ isPublic })
+        body: JSON.stringify({ isPublic }),
+        credentials: 'include'
       });
       
       if (!response.ok) {
@@ -114,7 +113,8 @@ export class CircuitService {
       const response = await fetch(`${this.API_BASE_URL}/circuits/${id}/share`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
-        body: JSON.stringify({ username })
+        body: JSON.stringify({ username }),
+         credentials: 'include'
       });
       
       if (!response.ok) {
@@ -130,7 +130,8 @@ export class CircuitService {
     try {
       const encodedQuery = encodeURIComponent(query);
       const response = await fetch(`${this.API_BASE_URL}/circuits/search?q=${encodedQuery}`, {
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+         credentials: 'include'
       });
       
       if (!response.ok) {
@@ -158,7 +159,8 @@ export class CircuitService {
       const response = await fetch(`${this.API_BASE_URL}/circuits`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
-        body: JSON.stringify(circuit)
+        body: JSON.stringify(circuit),
+         credentials: 'include'
       });
       
       if (!response.ok) {
@@ -176,7 +178,8 @@ export class CircuitService {
     try {
       const response = await fetch(`${this.API_BASE_URL}/circuits/${id}/like`, {
         method: 'POST',
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+         credentials: 'include'
       });
       
       if (!response.ok) {
@@ -191,7 +194,8 @@ export class CircuitService {
   async downloadCircuit(id: string): Promise<any> {
     try {
       const response = await fetch(`${this.API_BASE_URL}/circuits/${id}`, {
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+         credentials: 'include'
       });
       
       if (!response.ok) {
@@ -210,7 +214,8 @@ export class CircuitService {
       const response = await fetch(`${this.API_BASE_URL}/circuits/${circuitId}/comments`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
-        body: JSON.stringify(comment)
+        body: JSON.stringify(comment),
+         credentials: 'include'
       });
       
       if (!response.ok) {
@@ -228,7 +233,8 @@ export class CircuitService {
     try {
       const response = await fetch(`${this.API_BASE_URL}/circuits/${id}`, {
         method: 'DELETE',
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+         credentials: 'include'
       });
       
       if (!response.ok) {
