@@ -178,9 +178,6 @@ def get_terminal_regions(gate):
     terminals = {}
 
     
-    
-    
-    
 
     terminal_width = max(10, w // 8) 
     terminal_height = max(10, h // 8) 
