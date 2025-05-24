@@ -77,7 +77,7 @@ export class CircuitBoard {
     this.selectedComponents = [];
     this.truthTableManager = new TruthTableManager(this);
 
-    this.gatePropertiesPanel = new GatePanel("properties-panel-container", () => {
+    this.gatePropertiesPanel = new GatePanel(this,"properties-panel-container", () => {
       this.simulate();
       this.draw();
     });
@@ -1655,7 +1655,28 @@ export class CircuitBoard {
     this.minimapCtx.fillStyle = "rgba(255, 255, 255, 0.1)";
     this.minimapCtx.fillRect(viewLeft, viewTop, viewWidth, viewHeight);
   }
+  public removeWiresByPort(port: Port): void {
+    const wiresToRemove: Wire[] = [];
 
+    // Find all wires connected to this port
+    this.wires.forEach(wire => {
+      if ((wire.from && wire.from.id === port.id) || (wire.to && wire.to.id === port.id)) {
+        wiresToRemove.push(wire);
+      }
+    });
+
+    // Remove each wire
+    wiresToRemove.forEach(wire => {
+      // Disconnect the wire (updates port.isConnected)
+      wire.disconnect();
+
+      // Remove from wires array
+      const index = this.wires.indexOf(wire);
+      if (index !== -1) {
+        this.wires.splice(index, 1);
+      }
+    });
+  }
   draw(): void {
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

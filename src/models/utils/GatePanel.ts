@@ -1,3 +1,4 @@
+import { CircuitBoard } from "../CircuitBoard";
 import { Component } from "../Component";
 import { LogicGate } from "../LogicGate";
 import { Led } from "../components/Led";
@@ -5,12 +6,13 @@ import { Led } from "../components/Led";
 export class GatePanel {
   private panelElement: HTMLElement;
   private selectedComponent: Component | null = null;
+  private circuitBoard : CircuitBoard; // Global circuitBoard instance
   private onPropertiesChanged: () => void;
 
-  constructor(containerId: string, onPropertiesChanged: () => void) {
+  constructor(circuit  : CircuitBoard ,containerId: string, onPropertiesChanged: () => void) {
     this.panelElement = document.getElementById(containerId) || document.createElement("div");
     this.onPropertiesChanged = onPropertiesChanged;
-
+    this.circuitBoard = circuit;
     // FLOATING PANEL stil ayarları - canvas'a bağlı değil
     this.panelElement.style.position = "fixed";
     this.panelElement.style.right = "20px";
@@ -286,21 +288,24 @@ export class GatePanel {
       }
     });
 
-    document.getElementById('rotate-gate')?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        if (this.selectedComponent && isLogicGate) {
-          // rotateGate metodu LogicGate sınıfında olmalı
-          this.selectedComponent.rotate(1);
-          this.render();
-          this.onPropertiesChanged();
-        }
-      });
+    document.getElementById("rotate-gate")?.addEventListener("click", event => {
+      event.stopPropagation();
+      if (this.selectedComponent && isLogicGate) {
+        // rotateGate metodu LogicGate sınıfında olmalı
+        this.selectedComponent.rotate(1);
+        this.render();
+        this.onPropertiesChanged();
+      }
+    });
 
     // Input sayısı düğmeleri - sadece LogicGate için
     if (isLogicGate) {
       document.getElementById("decrease-input-count")?.addEventListener("click", event => {
         event.stopPropagation();
         if (this.selectedComponent) {
+          const portToRemove =
+          this.selectedComponent.inputs[this.selectedComponent.inputs.length - 1];
+          this.circuitBoard.removeWiresByPort(portToRemove);
           this.selectedComponent.decreaseInputCount();
           this.render();
           this.onPropertiesChanged();

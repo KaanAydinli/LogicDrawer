@@ -383,7 +383,10 @@ export class Wire {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
+    
     if (!this.from) return;
+    if(!this.from.position) return;
+    if(this.to && !this.to.position && !this.tempEndPoint) return;
     const startX = this.from.position.x;
     const startY = this.from.position.y;
     
