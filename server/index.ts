@@ -12,7 +12,7 @@ import { User } from "./models/User";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { authMiddleware, AuthRequest } from "./middlewares/auth";
-import { spawn } from "child_process"; // Import spawn
+import { spawn } from "child_process"; 
 import path from "path";
 
 dotenv.config();

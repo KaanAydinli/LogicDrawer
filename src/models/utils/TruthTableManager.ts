@@ -53,7 +53,7 @@ export class TruthTableManager {
   }
   
   /**
-   * Tüm olası giriş kombinasyonlarını oluşturur
+   * Tüm olası giriş kombinasyonlarını oluşturur - Modify to put LSB on right side
    */
   private generateInputCombinations(): boolean[][] {
     const inputCount = this.inputComponents.length;
@@ -63,9 +63,14 @@ export class TruthTableManager {
     for (let i = 0; i < totalCombinations; i++) {
       const combination: boolean[] = [];
       
+      // Reverse the bits so LSB is on the right
+      // Convert i to binary and pad with leading zeros
+      const binaryStr = i.toString(2).padStart(inputCount, '0');
+      
+      // Add each bit to the combination array from MSB to LSB
+      // This way, when displayed in a table, the rightmost column will be LSB
       for (let j = 0; j < inputCount; j++) {
-        // i'nin j. bitinin değerini alıyoruz (0 veya 1)
-        combination.push(((i >> j) & 1) === 1);
+        combination.push(binaryStr[j] === '1');
       }
       
       combinations.push(combination);
@@ -262,17 +267,17 @@ export class TruthTableManager {
     // Başlık satırı
     const headerRow = document.createElement("tr");
     
-    // Giriş başlıkları
+    // Giriş başlıkları - MSB to LSB (left to right)
     for (let i = 0; i < this.inputComponents.length; i++) {
       const th = document.createElement("th");
-      th.innerText = this.getComponentLabel(this.inputComponents[i]);
+      th.textContent = this.getComponentLabel(this.inputComponents[i]);
       headerRow.appendChild(th);
     }
     
     // Çıkış başlıkları
     for (let i = 0; i < this.outputComponents.length; i++) {
       const th = document.createElement("th");
-      th.innerText = this.getComponentLabel(this.outputComponents[i]);
+      th.textContent = this.getComponentLabel(this.outputComponents[i]);
       headerRow.appendChild(th);
     }
     
@@ -282,17 +287,17 @@ export class TruthTableManager {
     for (const row of this.truthTable) {
       const tr = document.createElement("tr");
       
-      // Giriş değerleri
-      for (const input of row.inputs) {
+      // Input values (MSB to LSB, left to right)
+      for (let i = 0; i < row.inputs.length; i++) {
         const td = document.createElement("td");
-        td.innerText = input ? "1" : "0";
+        td.textContent = row.inputs[i] ? "1" : "0";
         tr.appendChild(td);
       }
       
-      // Çıkış değerleri
-      for (const output of row.outputs) {
+      // Output values
+      for (let i = 0; i < row.outputs.length; i++) {
         const td = document.createElement("td");
-        td.innerText = output ? "1" : "0";
+        td.textContent = row.outputs[i] ? "1" : "0";
         tr.appendChild(td);
       }
       

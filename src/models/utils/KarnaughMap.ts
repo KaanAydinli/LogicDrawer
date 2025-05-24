@@ -105,65 +105,193 @@ export class KarnaughMap {
     const rows = this.kmap.length;
     const cols = this.kmap[0].length;
 
-    // If K-Map is empty or has no 1s, handle early
+    // Tüm mintermleri topla
     const allMinterms = this.getAllMinterms();
     if (allMinterms.length === 0) {
-      return this.kmap.length > 0 && this.kmap[0].length > 0 ? "0" : ""; // Return "0" if map exists but no 1s
+      return this.kmap.length > 0 && this.kmap[0].length > 0 ? "0" : "";
     }
 
-    // Check if the map is all 1s - special case
+    // Harita tamamen 1'lerden mi oluşuyor?
     if (this.isAllOnes()) {
       return "1";
     }
 
-    // First check corners - if all four corners are 1s, create a special group
-    if (rows > 1 && cols > 1 && 
-        this.kmap[0][0] && 
-        this.kmap[0][cols-1] && 
-        this.kmap[rows-1][0] && 
-        this.kmap[rows-1][cols-1]) {
-      
-      this.groups.push({
-        cells: [
-          {row: 0, col: 0},
-          {row: 0, col: cols-1},
-          {row: rows-1, col: 0},
-          {row: rows-1, col: cols-1}
-        ],
-        term: this.generateTermForGroup([
-          {row: 0, col: 0},
-          {row: 0, col: cols-1},
-          {row: rows-1, col: 0},
-          {row: rows-1, col: cols-1}
-        ])
-      });
-    }
+    // Tüm potansiyel grupları bul
+    const candidateGroups: { cells: { row: number; col: number }[]; term: string }[] = [];
 
-    // Find all potential groups of different sizes
-    const visited = Array(rows)
-      .fill(null)
-      .map(() => Array(cols).fill(false));
+    // 1. Büyük dikdörtgen blokları arama
+    for (let size = Math.min(16, rows * cols); size >= 1; size /= 2) {
+      if (size < 1) break;
 
-    // Start with the largest possible grouping and work down
-    const possibleSizes = [];
-    let maxSize = 0;
-    if (rows > 0 && cols > 0) {
-      maxSize = Math.min(16, rows * cols); // Max group size
-      
-      for (let size = maxSize; size >= 1; size /= 2) {
-        if (size >= 1) possibleSizes.push(size);
+      // Köşeleri kontrol et - Kmap'teki tüm köşeleri kontrol et (özellikle 2x4 veya 4x4 K-mapte)
+      if (rows > 1 && cols > 1 && size >= 4) {
+        const corners = [
+          { row: 0, col: 0 },
+          { row: 0, col: cols - 1 },
+          { row: rows - 1, col: 0 },
+          { row: rows - 1, col: cols - 1 },
+        ];
+
+        // Tüm köşelerin 1 olup olmadığını kontrol et
+        const allCornersOne = corners.every(c => this.kmap[c.row][c.col]);
+
+        if (allCornersOne) {
+          candidateGroups.push({
+            cells: [...corners],
+            term: this.generateTermForGroup(corners),
+          });
+        }
+      }
+
+      // Yatay ve dikey kenar grupları
+      this.findEdgeWrappingGroups(candidateGroups, rows, cols);
+
+      // Normal dikdörtgen grupları bul
+      for (let height = 1; height <= rows; height++) {
+        if (rows % height !== 0) continue;
+
+        const width = size / height;
+        if (width > cols || width < 1 || Math.floor(width) !== width) continue;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            // Bu konumdan bir grup oluşturabilir miyiz?
+            if (this.canFormRectangularGroup(r, c, height, width)) {
+              const cells: { row: number; col: number }[] = [];
+              for (let dr = 0; dr < height; dr++) {
+                for (let dc = 0; dc < width; dc++) {
+                  cells.push({ row: (r + dr) % rows, col: (c + dc) % cols });
+                }
+              }
+
+              candidateGroups.push({
+                cells: cells,
+                term: this.generateTermForGroup(cells),
+              });
+            }
+          }
+        }
       }
     }
 
-    // Find all potential groups for each size
-    const candidateGroups: { cells: { row: number; col: number }[]; term: string }[] = [];
-    
-    // Check horizontal edge wrapping groups (right to left)
+    // 2. En iyi grup kombinasyonunu seç
+    // Burada Quine-McCluskey algoritmasına benzer bir yaklaşım kullanabiliriz
+    candidateGroups.sort(
+      (a, b) => b.cells.length - a.cells.length || a.term.length - b.term.length
+    );
+
+    // İki grup arasında kesişimler varsa ve bu daha iyi bir sonuç oluşturuyorsa
+    // bunları da dikkate almalıyız
+    this.selectOptimalGroups(candidateGroups, allMinterms);
+
+    return this.generateBooleanExpression();
+  }
+
+  /**
+   * Kesişen grupları da dikkate alarak en iyi grup kombinasyonunu seçer
+   */
+  private selectOptimalGroups(
+    candidateGroups: { cells: { row: number; col: number }[]; term: string }[],
+    allMinterms: { row: number; col: number }[]
+  ): void {
+    // Tüm mintermleri kapsayacak en az sayıda grup seçmeye çalışalım
+    const mintermKeys = allMinterms.map(m => `${m.row},${m.col}`);
+    const mintermSet = new Set(mintermKeys);
+
+    // Her mintermı hangi grupların kapsadığını izleyelim
+    const mintermCoverage = new Map<
+      string,
+      { cells: { row: number; col: number }[]; term: string }[]
+    >();
+    mintermKeys.forEach(key => mintermCoverage.set(key, []));
+
+    // Her grup hangi mintermleri kapsıyor
+    candidateGroups.forEach(group => {
+      group.cells.forEach(cell => {
+        const key = `${cell.row},${cell.col}`;
+        if (mintermSet.has(key)) {
+          const coverage = mintermCoverage.get(key) || [];
+          coverage.push(group);
+          mintermCoverage.set(key, coverage);
+        }
+      });
+    });
+
+    // Essential prime implicant'ları bul (sadece bir grup tarafından kapsanan mintermler)
+    const essentialGroups = new Set<{ cells: { row: number; col: number }[]; term: string }>();
+    mintermCoverage.forEach((groups, mintermKey) => {
+      if (groups.length === 1) {
+        essentialGroups.add(groups[0]);
+      }
+    });
+
+    // Essential implicant'ları seçilen gruplara ekle
+    const selectedGroups = Array.from(essentialGroups);
+
+    // Kapsanan minterm'leri takip et
+    const coveredMinterms = new Set<string>();
+    selectedGroups.forEach(group => {
+      group.cells.forEach(cell => {
+        const key = `${cell.row},${cell.col}`;
+        if (mintermSet.has(key)) {
+          coveredMinterms.add(key);
+        }
+      });
+    });
+
+    // Kapsanmayan mintermler için en iyi grupları seç
+    while (coveredMinterms.size < mintermSet.size) {
+      let bestGroup = null;
+      let maxNewCovered = -1;
+
+      for (const group of candidateGroups) {
+        if (selectedGroups.includes(group)) continue;
+
+        // Bu grup kaç yeni minterm kapsıyor?
+        let newCovered = 0;
+        group.cells.forEach(cell => {
+          const key = `${cell.row},${cell.col}`;
+          if (mintermSet.has(key) && !coveredMinterms.has(key)) {
+            newCovered++;
+          }
+        });
+
+        if (newCovered > maxNewCovered) {
+          maxNewCovered = newCovered;
+          bestGroup = group;
+        }
+      }
+
+      if (bestGroup && maxNewCovered > 0) {
+        selectedGroups.push(bestGroup);
+        bestGroup.cells.forEach(cell => {
+          const key = `${cell.row},${cell.col}`;
+          if (mintermSet.has(key)) {
+            coveredMinterms.add(key);
+          }
+        });
+      } else {
+        break; // Hiçbir grup kapsanmayan minterm kalmadı
+      }
+    }
+
+    this.groups = selectedGroups;
+  }
+
+  /**
+   * Harita kenarlarını kapsayan grupları bulur
+   */
+  private findEdgeWrappingGroups(
+    candidateGroups: { cells: { row: number; col: number }[]; term: string }[],
+    rows: number,
+    cols: number
+  ): void {
+    // Yatay kenar grupları (sağdan sola)
     for (let r = 0; r < rows; r++) {
       for (let size = Math.min(cols, 8); size >= 2; size /= 2) {
         if (size < 2) continue;
-        
-        // Check if we can form a wrapped horizontal group from the right edge
+
+        // Sağ kenardan başlayan yatay grup oluşturma kontrolü
         let canForm = true;
         for (let c = 0; c < size; c++) {
           const colIdx = (cols - 1 + c) % cols;
@@ -172,7 +300,7 @@ export class KarnaughMap {
             break;
           }
         }
-        
+
         if (canForm) {
           const cells: { row: number; col: number }[] = [];
           for (let c = 0; c < size; c++) {
@@ -181,18 +309,18 @@ export class KarnaughMap {
           }
           candidateGroups.push({
             cells: cells,
-            term: this.generateTermForGroup(cells)
+            term: this.generateTermForGroup(cells),
           });
         }
       }
     }
 
-    // Check vertical edge wrapping groups (bottom to top)
+    // Dikey kenar grupları (aşağıdan yukarıya)
     for (let c = 0; c < cols; c++) {
       for (let size = Math.min(rows, 8); size >= 2; size /= 2) {
         if (size < 2) continue;
-        
-        // Check if we can form a wrapped vertical group from the bottom edge
+
+        // Alt kenardan başlayan dikey grup oluşturma kontrolü
         let canForm = true;
         for (let r = 0; r < size; r++) {
           const rowIdx = (rows - 1 + r) % rows;
@@ -201,7 +329,7 @@ export class KarnaughMap {
             break;
           }
         }
-        
+
         if (canForm) {
           const cells: { row: number; col: number }[] = [];
           for (let r = 0; r < size; r++) {
@@ -210,132 +338,32 @@ export class KarnaughMap {
           }
           candidateGroups.push({
             cells: cells,
-            term: this.generateTermForGroup(cells)
+            term: this.generateTermForGroup(cells),
           });
         }
       }
     }
-
-    // Find normal (non-wrapping) rectangular groups
-    for (const size of possibleSizes) {
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          if (!this.kmap[r][c] || visited[r][c]) continue;
-
-          // Try to form rectangular groups of different dimensions for this size
-          for (let height = Math.min(rows, size); height >= 1; height--) {
-            if (size % height !== 0) continue; // Ensure the dimensions make sense
-            const width = size / height;
-            if (width > cols) continue;
-
-            if (this.canFormRectangularGroup(r, c, height, width, visited)) {
-              const cells: { row: number; col: number }[] = [];
-              for (let dr = 0; dr < height; dr++) {
-                for (let dc = 0; dc < width; dc++) {
-                  cells.push({ row: (r + dr) % rows, col: (c + dc) % cols });
-                }
-              }
-              
-              candidateGroups.push({
-                cells: cells,
-                term: this.generateTermForGroup(cells)
-              });
-              
-              // Mark these cells as part of a candidate group
-              for (const cell of cells) {
-                visited[cell.row][cell.col] = true;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Reset visited array for the final selection
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        visited[r][c] = false;
-      }
-    }
-
-    // Sort candidates: larger groups first, then by fewer literals (shorter terms)
-    candidateGroups.sort((a, b) => {
-      if (b.cells.length !== a.cells.length) {
-        return b.cells.length - a.cells.length;
-      }
-      return a.term.length - b.term.length;
-    });
-
-    // Select the best non-overlapping groups using a greedy approach
-    const selectedGroups: { cells: { row: number; col: number }[]; term: string }[] = [];
-    const coveredMinterms = new Set<string>();
-
-    while (coveredMinterms.size < allMinterms.length) {
-      let bestGroup = null;
-      let maxNewCovered = -1;
-      let bestGroupIndex = -1;
-
-      for (let i = 0; i < candidateGroups.length; i++) {
-        const group = candidateGroups[i];
-        let newCovered = 0;
-
-        for (const cell of group.cells) {
-          const key = `${cell.row},${cell.col}`;
-          if (this.kmap[cell.row][cell.col] && !coveredMinterms.has(key)) {
-            newCovered++;
-          }
-        }
-
-        if (newCovered > maxNewCovered) {
-          maxNewCovered = newCovered;
-          bestGroup = group;
-          bestGroupIndex = i;
-        }
-      }
-
-      if (bestGroup && maxNewCovered > 0) {
-        selectedGroups.push(bestGroup);
-        for (const cell of bestGroup.cells) {
-          if (this.kmap[cell.row][cell.col]) {
-            coveredMinterms.add(`${cell.row},${cell.col}`);
-          }
-        }
-        candidateGroups.splice(bestGroupIndex, 1);
-      } else {
-        // If we can't find any group to cover more minterms, add individual 1-cells
-        for (const minterm of allMinterms) {
-          if (!coveredMinterms.has(`${minterm.row},${minterm.col}`)) {
-            const cell = { row: minterm.row, col: minterm.col };
-            const term = this.generateTermForGroup([cell]);
-            selectedGroups.push({ cells: [cell], term: term });
-            coveredMinterms.add(`${minterm.row},${minterm.col}`);
-          }
-        }
-        break;
-      }
-    }
-
-    this.groups = selectedGroups;
-    return this.generateBooleanExpression();
   }
 
+  /**
+   * Belirli bir noktadan dikdörtgen bir grup oluşturulabilir mi kontrol eder
+   */
   private canFormRectangularGroup(
     startRow: number,
     startCol: number,
     height: number,
-    width: number,
-    visited: boolean[][]
+    width: number
   ): boolean {
     const rows = this.kmap.length;
     const cols = this.kmap[0].length;
-    
+
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         const rowIdx = (startRow + r) % rows;
         const colIdx = (startCol + c) % cols;
-        
-        if (!this.kmap[rowIdx][colIdx] || visited[rowIdx][colIdx]) {
-          return false;
+
+        if (!this.kmap[rowIdx][colIdx]) {
+          return false; // Bir hücre 0 ise grup oluşturulamaz
         }
       }
     }
@@ -353,96 +381,6 @@ export class KarnaughMap {
       }
     }
     return minterms;
-  }
-
-  private simplifyGroups(): void {
-    const allMintermsToCover = this.getAllMinterms();
-    if (allMintermsToCover.length === 0) {
-      this.groups = [];
-      return;
-    }
-
-    // Use the groups found by findMinimalGroups as candidates for the set cover
-    let candidateGroups = [...this.groups];
-
-    // Filter out groups that are empty or don't actually cover any 1s (defensive)
-    candidateGroups = candidateGroups.filter(g => g.cells.length > 0 && g.cells.some(cell => this.kmap[cell.row][cell.col]));
-
-    if (candidateGroups.length === 0) {
-      // If findMinimalGroups didn't produce any candidates but there are 1s,
-      // this indicates a deeper issue. For now, this.groups remains empty or as is.
-      // The fallback in findMinimalGroups should ideally prevent this.
-      return;
-    }
-
-    // Sort candidate groups: prioritize larger groups (more cells), then by term length (fewer literals)
-    candidateGroups.sort((a, b) => {
-      if (b.cells.length !== a.cells.length) {
-        return b.cells.length - a.cells.length;
-      }
-      return a.term.length - b.term.length;
-    });
-
-    const selectedGroups: { cells: { row: number; col: number }[]; term: string }[] = [];
-    const uncoveredMinterms = new Set(allMintermsToCover.map(m => `${m.row},${m.col}`));
-
-    while (uncoveredMinterms.size > 0 && candidateGroups.length > 0) {
-      let bestGroup: { cells: { row: number; col: number }[]; term: string } | null = null;
-      let maxCoveredCount = -1;
-      let bestGroupIndex = -1;
-
-      // Find the group that covers the most currently uncovered minterms
-      for (let i = 0; i < candidateGroups.length; i++) {
-        const group = candidateGroups[i];
-        let currentCoveredCount = 0;
-        group.cells.forEach(cell => {
-          if (uncoveredMinterms.has(`${cell.row},${cell.col}`)) {
-            currentCoveredCount++;
-          }
-        });
-
-        if (currentCoveredCount > 0 && currentCoveredCount > maxCoveredCount) {
-          maxCoveredCount = currentCoveredCount;
-          bestGroup = group;
-          bestGroupIndex = i;
-        } else if (currentCoveredCount > 0 && currentCoveredCount === maxCoveredCount) {
-          // Tie-breaking: prefer group with fewer literals (already sorted by this as secondary criteria)
-          // or if bestGroup is null (first group found that covers something)
-          if (!bestGroup) {
-            bestGroup = group;
-            bestGroupIndex = i;
-          }
-        }
-      }
-
-      if (bestGroup && bestGroupIndex !== -1) {
-        selectedGroups.push(bestGroup);
-        bestGroup.cells.forEach(cell => {
-          uncoveredMinterms.delete(`${cell.row},${cell.col}`);
-        });
-        candidateGroups.splice(bestGroupIndex, 1); // Remove chosen group
-      } else {
-        // No group can cover any more minterms, or no groups left that cover anything
-        break;
-      }
-    }
-
-    // If minterms are still uncovered, it means the initial groups were insufficient.
-    // The fallback in findMinimalGroups should have added single-cell groups.
-    if (uncoveredMinterms.size > 0) {
-      console.warn("K-Map simplification: Some minterms remain uncovered after simplifyGroups.", Array.from(uncoveredMinterms));
-      // Add individual terms for any remaining uncovered minterms as a last resort
-      uncoveredMinterms.forEach(mintermStr => {
-        const [rStr, cStr] = mintermStr.split(',');
-        const r = parseInt(rStr);
-        const c = parseInt(cStr);
-        const singleCellGroup = { cells: [{ row: r, col: c }], term: this.generateTermForGroup([{ row: r, col: c }]) };
-        if (!selectedGroups.some(sg => sg.term === singleCellGroup.term)) { // Avoid duplicates
-          selectedGroups.push(singleCellGroup);
-        }
-      });
-    }
-    this.groups = selectedGroups;
   }
 
   private generateTermForGroup(cells: { row: number; col: number }[]): string {
@@ -547,17 +485,20 @@ export class KarnaughMap {
   private generateBooleanExpression(): string {
     if (this.groups.length === 0) {
       // Check if kmap has any 1s. If not, it's "0".
-      if (this.getAllMinterms().length === 0 && this.kmap.length > 0 && this.kmap[0].length > 0) return "0";
+      if (this.getAllMinterms().length === 0 && this.kmap.length > 0 && this.kmap[0].length > 0)
+        return "0";
       // If map is all 1s, it should be "1"
       if (this.isAllOnes()) return "1";
       // Default or if map was empty
-      return (this.kmap.length > 0 && this.kmap[0].length > 0) ? "0" : "";
+      return this.kmap.length > 0 && this.kmap[0].length > 0 ? "0" : "";
     }
 
     // If the map is all 1s, the expression should be "1"
     if (this.isAllOnes()) {
       // Check if any group covers the whole map (term "1")
-      if (this.groups.some(g => g.term === "1" && g.cells.length === this.getAllMinterms().length)) {
+      if (
+        this.groups.some(g => g.term === "1" && g.cells.length === this.getAllMinterms().length)
+      ) {
         return "1";
       }
       // If groups exist but don't simplify to "1" for an all-ones map, it's an issue, but "1" is correct.
@@ -566,7 +507,8 @@ export class KarnaughMap {
 
     const uniqueTerms = new Set<string>();
     this.groups.forEach(group => {
-      if (group.term) { // Ensure term is not empty or null
+      if (group.term) {
+        // Ensure term is not empty or null
         uniqueTerms.add(group.term);
       }
     });
@@ -577,13 +519,16 @@ export class KarnaughMap {
     // For SOP, a term "1" means the group itself covers all minterms.
     // If such a group exists, the expression is just "1".
     if (uniqueTerms.has("1")) {
-      const groupCoveringAll = this.groups.find(g => g.term === "1" && g.cells.length === this.getAllMinterms().length);
+      const groupCoveringAll = this.groups.find(
+        g => g.term === "1" && g.cells.length === this.getAllMinterms().length
+      );
       if (groupCoveringAll) return "1";
       // If "1" is present but doesn't represent full coverage, remove it if other terms exist.
       if (uniqueTerms.size > 1) uniqueTerms.delete("1");
     }
 
-    if (uniqueTerms.size === 0) { // Should be covered by initial checks
+    if (uniqueTerms.size === 0) {
+      // Should be covered by initial checks
       return this.isAllOnes() ? "1" : "0";
     }
 
@@ -594,7 +539,7 @@ export class KarnaughMap {
       if (expression) expression += " ∨ ";
       const term = sortedTerms[i];
       // Add parentheses only if term contains AND and is part of a multi-term OR expression
-      expression += (term.includes(" ∧ ") && sortedTerms.length > 1) ? `(${term})` : term;
+      expression += term.includes(" ∧ ") && sortedTerms.length > 1 ? `(${term})` : term;
     }
 
     return expression;
@@ -612,7 +557,7 @@ export class KarnaughMap {
   public renderKMap(): HTMLElement {
     const container = document.createElement("div");
     container.className = "kmap-container";
-    
+
     // Add title with function name
     const title = document.createElement("h3");
     title.textContent = `K-Map for ${this.outputLabels[0]}`;
@@ -620,30 +565,43 @@ export class KarnaughMap {
     title.style.marginBottom = "15px";
     title.style.fontSize = "18px";
     container.appendChild(title);
-    
+
     // Create variable headers with better styling
     const headerContainer = document.createElement("div");
     headerContainer.style.display = "flex";
     headerContainer.style.marginBottom = "10px";
-    
+
     const varsDisplay = document.createElement("div");
     varsDisplay.style.color = "#4caf50";
     varsDisplay.style.fontWeight = "bold";
     varsDisplay.style.marginBottom = "8px";
     varsDisplay.style.fontSize = "16px";
-    
+
     let varsText = "";
     if (this.inputCount <= 2) {
+      // 1-2 değişken için basit format
       varsText = `Variables: ${this.inputLabels.join(", ")} → ${this.outputLabels[0]}`;
+    } else if (this.inputCount === 3) {
+      // 3 değişken için düzeltme: A satır değişkeni, BC sütun değişkenleri
+      const rowVars = [this.inputLabels[0]];
+      const colVars = [this.inputLabels[1], this.inputLabels[2]];
+      varsText = `Row Variable: ${rowVars[0]} | Column Variables: ${colVars.join(", ")} → ${this.outputLabels[0]}`;
+    } else if (this.inputCount === 4) {
+      // 4 değişken için: AB satır değişkenleri, CD sütun değişkenleri
+      const rowVars = [this.inputLabels[0], this.inputLabels[1]];
+      const colVars = [this.inputLabels[2], this.inputLabels[3]];
+      varsText = `Row Variables: ${rowVars.join(", ")} | Column Variables: ${colVars.join(", ")} → ${this.outputLabels[0]}`;
     } else {
-      const rowVars = this.inputLabels.slice(0, Math.ceil(this.inputCount/2));
-      const colVars = this.inputLabels.slice(Math.ceil(this.inputCount/2));
+      // Daha fazla değişken için genel durum (kullanılmayabilir ama eksiksizlik için)
+      const rowVars = this.inputLabels.slice(0, Math.floor(this.inputCount / 2));
+      const colVars = this.inputLabels.slice(Math.floor(this.inputCount / 2));
       varsText = `Row Variables: ${rowVars.join(", ")} | Column Variables: ${colVars.join(", ")} → ${this.outputLabels[0]}`;
     }
     varsDisplay.textContent = varsText;
+
     headerContainer.appendChild(varsDisplay);
     container.appendChild(headerContainer);
-    
+
     // Create the K-Map table with improved styling
     const tableWrapper = document.createElement("div");
     tableWrapper.style.position = "relative";
@@ -655,27 +613,113 @@ export class KarnaughMap {
     table.style.margin = "0 auto";
     table.style.background = "#1e1e1e";
     table.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
-    
+
     // Create header row for column variables
     const headerRow = document.createElement("tr");
-    
-    // Add corner cell
+
     const cornerCell = document.createElement("th");
     cornerCell.style.width = "40px";
     cornerCell.style.height = "40px";
     cornerCell.style.backgroundColor = "#333";
     cornerCell.style.color = "#fff";
-    cornerCell.style.textAlign = "center";
-    cornerCell.style.fontWeight = "bold";
+    cornerCell.style.position = "relative";
     cornerCell.style.border = "1px solid #555";
-    
-    if (this.inputCount > 2) {
-      const rowVarsText = this.inputLabels.slice(0, Math.ceil(this.inputCount/2)).join("");
-      const colVarsText = this.inputLabels.slice(Math.ceil(this.inputCount/2)).join("");
-      cornerCell.innerHTML = `${rowVarsText}<br>\\<br>${colVarsText}`;
+    cornerCell.style.padding = "0";
+
+    // Diyagonal çizgi ile bölünmüş köşe hücre - ters yönde (sağ üst - sol alt)
+    const diagonal = document.createElement("div");
+    diagonal.style.position = "absolute";
+    diagonal.style.width = "100%";
+    diagonal.style.height = "100%";
+    diagonal.style.top = "0";
+    diagonal.style.left = "0";
+    diagonal.style.overflow = "hidden";
+    cornerCell.appendChild(diagonal);
+
+    // Diyagonal çizgi - YÖN DEĞİŞTİRİLDİ (\)
+    const line = document.createElement("div");
+    line.style.position = "absolute";
+    line.style.width = "150%";
+    line.style.height = "0";
+    line.style.borderBottom = "2px solid #777";
+    line.style.top = "50%";
+    line.style.left = "-25%";
+    line.style.transform = "rotate(45deg)"; // -45deg yerine 45deg yapıldı
+    line.style.transformOrigin = "center center";
+    diagonal.appendChild(line);
+
+    // Sağ üst üçgen - Column değişkenleri için
+    const topTriangle = document.createElement("div");
+    topTriangle.style.position = "absolute";
+    topTriangle.style.width = "50%";
+    topTriangle.style.height = "50%";
+    topTriangle.style.right = "0";
+    topTriangle.style.top = "0";
+    topTriangle.style.display = "flex";
+    topTriangle.style.justifyContent = "center";
+    topTriangle.style.alignItems = "center";
+    topTriangle.style.padding = "2px";
+    topTriangle.style.boxSizing = "border-box";
+
+    // Sol alt üçgen - Row değişkenleri için
+    const bottomTriangle = document.createElement("div");
+    bottomTriangle.style.position = "absolute";
+    bottomTriangle.style.width = "50%";
+    bottomTriangle.style.height = "50%";
+    bottomTriangle.style.left = "0";
+    bottomTriangle.style.bottom = "0";
+    bottomTriangle.style.display = "flex";
+    bottomTriangle.style.justifyContent = "center";
+    bottomTriangle.style.alignItems = "center";
+    bottomTriangle.style.padding = "2px";
+    bottomTriangle.style.boxSizing = "border-box";
+
+    // Değişken metinlerini değişken sayısına göre ayarla
+    if (this.inputCount === 3) {
+      // 3 değişken için: A satır değişkeni, BC sütun değişkenleri
+      const rowVarsText = document.createElement("div");
+      rowVarsText.textContent = this.inputLabels[0];
+      rowVarsText.style.fontSize = "12px";
+      rowVarsText.style.fontWeight = "bold";
+      bottomTriangle.appendChild(rowVarsText);
+
+      const colVarsText = document.createElement("div");
+      colVarsText.textContent = this.inputLabels.slice(1, 3).join("");
+      colVarsText.style.fontSize = "12px";
+      colVarsText.style.fontWeight = "bold";
+      topTriangle.appendChild(colVarsText);
+    } else if (this.inputCount === 4) {
+      // 4 değişken için: AB satır değişkenleri, CD sütun değişkenleri
+      const rowVarsText = document.createElement("div");
+      rowVarsText.textContent = this.inputLabels.slice(0, 2).join("");
+      rowVarsText.style.fontSize = "12px";
+      rowVarsText.style.fontWeight = "bold";
+      bottomTriangle.appendChild(rowVarsText);
+
+      const colVarsText = document.createElement("div");
+      colVarsText.textContent = this.inputLabels.slice(2, 4).join("");
+      colVarsText.style.fontSize = "12px";
+      colVarsText.style.fontWeight = "bold";
+      topTriangle.appendChild(colVarsText);
+    } else if (this.inputCount === 2) {
+      // 2 değişken için: A satır değişkeni, B sütun değişkeni
+      const rowVarsText = document.createElement("div");
+      rowVarsText.textContent = this.inputLabels[0];
+      rowVarsText.style.fontSize = "12px";
+      rowVarsText.style.fontWeight = "bold";
+      bottomTriangle.appendChild(rowVarsText);
+
+      const colVarsText = document.createElement("div");
+      colVarsText.textContent = this.inputLabels[1];
+      colVarsText.style.fontSize = "12px";
+      colVarsText.style.fontWeight = "bold";
+      topTriangle.appendChild(colVarsText);
     }
+
+    cornerCell.appendChild(topTriangle);
+    cornerCell.appendChild(bottomTriangle);
     headerRow.appendChild(cornerCell);
-    
+
     // Add column headers
     const cols = this.kmap[0].length;
     for (let c = 0; c < cols; c++) {
@@ -690,14 +734,14 @@ export class KarnaughMap {
       th.style.border = "1px solid #555";
       headerRow.appendChild(th);
     }
-    
+
     table.appendChild(headerRow);
-    
+
     // Create K-Map rows
     const rows = this.kmap.length;
     for (let r = 0; r < rows; r++) {
       const tr = document.createElement("tr");
-      
+
       // Add row header
       const rowHeader = document.createElement("th");
       rowHeader.textContent = this.getRowHeader(r);
@@ -708,44 +752,199 @@ export class KarnaughMap {
       rowHeader.style.fontWeight = "bold";
       rowHeader.style.border = "1px solid #555";
       tr.appendChild(rowHeader);
-      
+
       // Add cells with values
       for (let c = 0; c < cols; c++) {
         const td = document.createElement("td");
-        td.textContent = this.kmap[r][c] ? "1" : "0";
+        td.style.position = "relative";
+        td.style.alignItems = "center";
+        td.style.justifyContent = "center";
+        td.style.padding = "0";
         td.style.width = "40px";
         td.style.height = "40px";
-        td.style.textAlign = "center";
-        td.style.fontSize = "18px";
-        td.style.fontWeight = "bold";
         td.style.border = "1px solid #555";
-        
-        // Set cell background based on value
-        if (this.kmap[r][c]) {
-          td.style.backgroundColor = "#2a7340";
-          td.style.color = "white";
-        } else {
-          td.style.backgroundColor = "#333";
-          td.style.color = "#aaa";
-        }
-        
-        // Highlight cells that belong to groups
+
+        // Kare hücre
+        const square = document.createElement("div");
+        square.textContent = this.kmap[r][c] ? "1" : "0";
+        square.style.width = "96%";
+        square.style.height = "96%";
+        square.style.display = "flex";
+        square.style.alignItems = "center";
+        square.style.justifyContent = "center";
+        square.style.fontSize = "18px";
+        square.style.fontWeight = "bold";
+        square.style.backgroundColor = this.kmap[r][c] ? "#2a7340" : "#333";
+        square.style.color = this.kmap[r][c] ? "white" : "#aaa";
+        square.style.boxSizing = "border-box";
+
+        // Hücrenin hangi gruplara ait olduğunu bul
+        const groupsForThisCell = [];
         for (let g = 0; g < this.groups.length; g++) {
           if (this.groups[g].cells.some(cell => cell.row === r && cell.col === c)) {
-            const groupColors = ["#ff5252", "#4caf50", "#2196f3", "#ff9800", "#9c27b0"];
-            td.style.border = `2px solid ${groupColors[g % groupColors.length]}`;
+            groupsForThisCell.push(g);
           }
         }
-        
+
+        // Her grup için ayrı bir border elementi oluştur
+        const groupColors = ["#ff5252", "#4caf50", "#2196f3", "#ff9800", "#9c27b0"];
+        const borderStyles = ["solid", "dashed", "dotted", "double", "groove"];
+
+        if (groupsForThisCell.length > 0) {
+          // Border kalınlığı
+          const borderWidth = 3;
+
+          if (groupsForThisCell.length === 1) {
+            // Tek grup için standart görünüm
+            const groupIndex = groupsForThisCell[0];
+            const borderElement = document.createElement("div");
+            borderElement.style.position = "absolute";
+            borderElement.style.top = "-" + borderWidth + "px";
+            borderElement.style.left = "-" + borderWidth + "px";
+            borderElement.style.width = "calc(100% + " + borderWidth * 2 + "px)";
+            borderElement.style.height = "calc(100% + " + borderWidth * 2 + "px)";
+            borderElement.style.borderRadius = "15%";
+            borderElement.style.border =
+              borderWidth +
+              "px " +
+              borderStyles[0] +
+              " " +
+              groupColors[groupIndex % groupColors.length];
+            borderElement.style.boxSizing = "border-box";
+            borderElement.style.pointerEvents = "none"; // Tıklamaları engellememesi için
+            borderElement.style.zIndex = "1";
+            td.appendChild(borderElement);
+          } else {
+            // Birden fazla grup için bölünmüş border
+            // Her bir grup için farklı kenarlarda border göster
+            const borders = ["top", "right", "bottom", "left"];
+
+            for (let i = 0; i < groupsForThisCell.length; i++) {
+              const groupIndex = groupsForThisCell[i];
+              const color = groupColors[groupIndex % groupColors.length];
+
+              // Her bir kenara farklı bir grup için border ekle
+              const borderIndex = i % 4; // En fazla 4 kenara border ekleyebiliriz
+
+              const borderElement = document.createElement("div");
+              borderElement.style.position = "absolute";
+              borderElement.style.boxSizing = "border-box";
+              borderElement.style.pointerEvents = "none";
+              borderElement.style.zIndex = (i + 1).toString();
+
+              // Kenara göre border stilini ayarla
+              switch (borders[borderIndex]) {
+                case "top":
+                  borderElement.style.top = "-" + borderWidth + "px";
+                  borderElement.style.left = "-" + borderWidth + "px";
+                  borderElement.style.width = "calc(100% + " + borderWidth * 2 + "px)";
+                  borderElement.style.height = borderWidth * 3 + "px";
+                  borderElement.style.borderTop =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderLeft =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderRight =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderTopLeftRadius = "15%";
+                  borderElement.style.borderTopRightRadius = "15%";
+                  break;
+                case "right":
+                  borderElement.style.top = "-" + borderWidth + "px";
+                  borderElement.style.right = "-" + borderWidth + "px";
+                  borderElement.style.width = borderWidth * 3 + "px";
+                  borderElement.style.height = "calc(100% + " + borderWidth * 2 + "px)";
+                  borderElement.style.borderRight =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderTop =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderBottom =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderTopRightRadius = "15%";
+                  borderElement.style.borderBottomRightRadius = "15%";
+                  break;
+                case "bottom":
+                  borderElement.style.bottom = "-" + borderWidth + "px";
+                  borderElement.style.left = "-" + borderWidth + "px";
+                  borderElement.style.width = "calc(100% + " + borderWidth * 2 + "px)";
+                  borderElement.style.height = borderWidth * 3 + "px";
+                  borderElement.style.borderBottom =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderLeft =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderRight =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderBottomLeftRadius = "15%";
+                  borderElement.style.borderBottomRightRadius = "15%";
+                  break;
+                case "left":
+                  borderElement.style.top = "-" + borderWidth + "px";
+                  borderElement.style.left = "-" + borderWidth + "px";
+                  borderElement.style.width = borderWidth * 3 + "px";
+                  borderElement.style.height = "calc(100% + " + borderWidth * 2 + "px)";
+                  borderElement.style.borderLeft =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderTop =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderBottom =
+                    borderWidth + "px " + borderStyles[i % borderStyles.length] + " " + color;
+                  borderElement.style.borderTopLeftRadius = "15%";
+                  borderElement.style.borderBottomLeftRadius = "15%";
+                  break;
+              }
+
+              td.appendChild(borderElement);
+            }
+
+            // Eğer 4'ten fazla grup varsa, geri kalanlar için köşelere mini border'lar ekle
+            if (groupsForThisCell.length > 4) {
+              for (let i = 4; i < groupsForThisCell.length; i++) {
+                const groupIndex = groupsForThisCell[i];
+                const color = groupColors[groupIndex % groupColors.length];
+
+                const cornerIndex = (i - 4) % 4;
+                const cornerElement = document.createElement("div");
+                cornerElement.style.position = "absolute";
+                cornerElement.style.width = "10px";
+                cornerElement.style.height = "10px";
+                cornerElement.style.backgroundColor = color;
+                cornerElement.style.zIndex = (i + 1).toString();
+
+                // Köşe pozisyonunu ayarla
+                switch (cornerIndex) {
+                  case 0: // sol üst
+                    cornerElement.style.top = "0";
+                    cornerElement.style.left = "0";
+                    break;
+                  case 1: // sağ üst
+                    cornerElement.style.top = "0";
+                    cornerElement.style.right = "0";
+                    break;
+                  case 2: // sağ alt
+                    cornerElement.style.bottom = "0";
+                    cornerElement.style.right = "0";
+                    break;
+                  case 3: // sol alt
+                    cornerElement.style.bottom = "0";
+                    cornerElement.style.left = "0";
+                    break;
+                }
+
+                td.appendChild(cornerElement);
+              }
+            }
+          }
+        }
+
+        td.appendChild(square);
         tr.appendChild(td);
       }
-      
+
       table.appendChild(tr);
     }
-    
+
     tableWrapper.appendChild(table);
     container.appendChild(tableWrapper);
-    
+
     // Add boolean expression with better styling
     const exprContainer = document.createElement("div");
     exprContainer.className = "kmap-boolean-expression";
@@ -755,12 +954,12 @@ export class KarnaughMap {
     exprContainer.style.borderRadius = "4px";
     exprContainer.style.color = "white";
     exprContainer.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
-    
+
     const exprLabel = document.createElement("span");
     exprLabel.textContent = `Minimized Boolean Expression: `;
     exprLabel.style.fontWeight = "bold";
     exprContainer.appendChild(exprLabel);
-    
+
     const exprValue = document.createElement("span");
     exprValue.textContent = `${this.outputLabels[0]} = ${this.generateBooleanExpression()}`;
     exprValue.style.color = "#4caf50";
@@ -768,9 +967,9 @@ export class KarnaughMap {
     exprValue.style.fontFamily = "monospace";
     exprValue.style.fontSize = "16px";
     exprContainer.appendChild(exprValue);
-    
+
     container.appendChild(exprContainer);
-    
+
     return container;
   }
 
@@ -811,10 +1010,10 @@ export class KarnaughMap {
    */
   public createCircuitFromExpression(circuitBoard: any): void {
     const booleanExpr = this.generateBooleanExpression();
-    
+
     // Boolean ifadeyi Verilog formatına dönüştür
     const verilogCode = this.convertBooleanToVerilog(booleanExpr);
-    
+
     // VerilogCircuitConverter kullan
     const converter = new VerilogCircuitConverter(circuitBoard);
     converter.importVerilogCode(verilogCode);
@@ -823,15 +1022,15 @@ export class KarnaughMap {
   // Boolean ifadeyi Verilog modül formatına dönüştürür
   private convertBooleanToVerilog(expr: string): string {
     // K-Map etiketlerini module portları olarak tanımla
-    const inputs = this.inputLabels.map(label => `input ${label}`).join(', ');
-    const outputs = this.outputLabels.map(label => `output ${label}`).join(', ');
-    
+    const inputs = this.inputLabels.map(label => `input ${label}`).join(", ");
+    const outputs = this.outputLabels.map(label => `output ${label}`).join(", ");
+
     // Boolean operatörleri Verilog operatörlerine dönüştür
     let verilogExpr = expr
-      .replace(/∧/g, '&')   // AND
-      .replace(/∨/g, '|')   // OR
-      .replace(/¬/g, '~');  // NOT
-    
+      .replace(/∧/g, "&") // AND
+      .replace(/∨/g, "|") // OR
+      .replace(/¬/g, "~"); // NOT
+
     // Verilog modülü oluştur
     return `module boolean_circuit(${inputs}, ${outputs});
       assign ${this.outputLabels[0]} = ${verilogExpr};
