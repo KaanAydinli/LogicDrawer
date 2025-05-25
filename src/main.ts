@@ -822,7 +822,6 @@ function createExampleCircuit() {
 
 const fileInput = document.getElementById("loadFile") as HTMLInputElement;
 fileInput?.addEventListener("change", handleFileSelect);
-
 function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files.length > 0) {
@@ -831,31 +830,18 @@ function handleFileSelect(event: Event) {
   }
 }
 
-async function readJSONFile(file: File) {
+function readJSONFile(file: File) {
   const reader = new FileReader();
 
-  reader.onload = async function (event) {
+  reader.onload = function (event) {
     try {
       const jsonContent = event.target?.result as string;
-      const circuitData = JSON.parse(jsonContent);
-
-      circuitData.userId = "current-user-id";
-
-      const response = await fetch(`${apiBaseUrl}/api/circuits`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(circuitData),
-      });
-
-      if (response.ok) {
-        console.log("Circuit saved successfully!");
-        alert("Circuit saved successfully!");
-      } else {
-        console.error("Failed to save circuit.");
-        alert("Failed to save circuit.");
-      }
+      
+      // Use the importCircuit method directly since we already have the file content
+      circuitBoard.importCircuit(jsonContent);
+      
+      console.log("Circuit loaded successfully!");
+      alert("Circuit loaded successfully!");
     } catch (error) {
       console.error("Error reading JSON file:", error);
       alert("Error reading JSON file.");
