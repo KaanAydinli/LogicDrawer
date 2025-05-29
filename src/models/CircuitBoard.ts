@@ -1522,7 +1522,18 @@ private selectAllComponents(): void {
 
     this.draw();
   }
-
+  public removeWire(wire: Wire): void {
+    const index = this.wires.indexOf(wire);
+    if (index !== -1) {
+      this.wires.splice(index, 1);
+    }
+  }
+  public removeComponent(component: Component): void {
+    const index = this.components.indexOf(component);
+    if (index !== -1) {
+      this.components.splice(index, 1);
+    }
+  }
   public resetZoom() {
     this.scale = 1;
     this.offsetX = 0;

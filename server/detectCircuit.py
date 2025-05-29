@@ -10,29 +10,69 @@ import base64
 
 
 MODEL_PATH = "best.pt" 
-SAVE_DEBUG_IMAGES = True
+SAVE_DEBUG_IMAGES = False
 
 
 BILATERAL_D = 9; BILATERAL_SIGMA = 75
 ADAPTIVE_BLOCK_SIZE = 15; ADAPTIVE_C = 12
 DILATE_KERNEL_SIZE = (3, 3); DILATE_ITERATIONS = 2
-OPEN_KERNEL_SIZE = (3, 3); GATE_MASK_PADDING = 2
+OPEN_KERNEL_SIZE = (3, 3); GATE_MASK_PADDING = 1
 ERODE_KERNEL_SIZE = (2, 2)
-CONNECTION_THRESHOLD = 20
+CONNECTION_THRESHOLD = 35
 MIN_SEGMENT_AREA = 1
 
+GRAPH_PAPER_MODE = True  
+DARKNESS_THRESHOLD = 105  
 
+def create_wire_mask(gray_img, gate_boxes, graph_paper_mode=True, darkness_threshold=150):
 
-
-def create_wire_mask(gray_img, gate_boxes):
     
-    filtered = cv2.bilateralFilter(gray_img, BILATERAL_D, BILATERAL_SIGMA, BILATERAL_SIGMA)
-    edges = cv2.Canny(filtered, 50, 150)  
+    if graph_paper_mode:
+        
+        
+        _, dark_components = cv2.threshold(gray_img, darkness_threshold, 255, cv2.THRESH_BINARY_INV)
+        
+        
+        close_kernel = np.ones((3, 3), np.uint8)
+        dark_components = cv2.morphologyEx(dark_components, cv2.MORPH_CLOSE, close_kernel)
+
+        if SAVE_DEBUG_IMAGES:
+            cv2.imwrite("debug_graph_paper_threshold.png", dark_components)
+            print("✅ Debug image 'debug_graph_paper_threshold.png' saved.", file=sys.stderr)
+        
+        
+        combined = dark_components
+    else:
+        
+        filtered = cv2.bilateralFilter(gray_img, BILATERAL_D, BILATERAL_SIGMA, BILATERAL_SIGMA)
+        
+        
+        adaptive = cv2.adaptiveThreshold(
+            filtered, 
+            255, 
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+            cv2.THRESH_BINARY_INV, 
+            ADAPTIVE_BLOCK_SIZE, 
+            ADAPTIVE_C
+        )
+        
+        if SAVE_DEBUG_IMAGES:
+            cv2.imwrite("debug_adaptive_threshold.png", adaptive)
+            print("✅ Debug image 'debug_adaptive_threshold.png' saved.", file=sys.stderr)
+        
+        
+        edges = cv2.Canny(filtered, 50, 150)  
+        
+        
+        combined = cv2.bitwise_or(adaptive, edges)
+        
+        if SAVE_DEBUG_IMAGES:
+            cv2.imwrite("debug_combined_mask.png", combined)
+            print("✅ Debug image 'debug_combined_mask.png' saved.", file=sys.stderr)
     
     
     kernel_dilate = np.ones(DILATE_KERNEL_SIZE, np.uint8)
-    dilated = cv2.dilate(edges, kernel_dilate, iterations=DILATE_ITERATIONS)
-    
+    dilated = cv2.dilate(combined, kernel_dilate, iterations=DILATE_ITERATIONS)
     
     kernel_open = np.ones(OPEN_KERNEL_SIZE, np.uint8)
     opened = cv2.morphologyEx(dilated, cv2.MORPH_OPEN, kernel_open)
@@ -40,10 +80,11 @@ def create_wire_mask(gray_img, gate_boxes):
     
     gate_mask = np.zeros_like(gray_img)
     for box in gate_boxes:
-        x1, y1, x2, y2 = map(int, box); p = GATE_MASK_PADDING
-        cv2.rectangle(gate_mask, (x1, y1), (x2, y2), 255, -1)
+        x1, y1, x2, y2 = map(int, box)
+        p = GATE_MASK_PADDING
+        
+        cv2.rectangle(gate_mask, (x1+p, y1+p), (x2-p, y2-p), 255, -1)
     
-
     if SAVE_DEBUG_IMAGES:
         cv2.imwrite("debug_gate_mask.png", gate_mask)
         print("✅ Debug image 'debug_gate_mask.png' saved.", file=sys.stderr)
@@ -51,13 +92,15 @@ def create_wire_mask(gray_img, gate_boxes):
     wire_mask_no_gates = opened.copy()
     wire_mask_no_gates[gate_mask == 255] = 0
     
+    
+    wire_expansion_kernel = np.ones((2,2), np.uint8)
+    wire_mask_expanded = cv2.dilate(wire_mask_no_gates, wire_expansion_kernel, iterations=1)
+    
     if SAVE_DEBUG_IMAGES:
-        cv2.imwrite("debug_wire_mask_no_gates.png", wire_mask_no_gates)
+        cv2.imwrite("debug_wire_mask_no_gates.png", wire_mask_expanded)
         print("✅ Debug image 'debug_wire_mask_no_gates.png' saved.", file=sys.stderr)
- 
     
-    
-    return wire_mask_no_gates
+    return wire_mask_expanded
 
 def get_gate_info(yolo_results):
    
@@ -106,9 +149,21 @@ def get_terminal_regions(gate):
     return {'input': input_region, 'output': output_region}
 
 def is_point_near_region(point_xy, region_xywh, threshold):
-    
     px, py = point_xy
     rx, ry, rx2, ry2 = region_xywh
+    
+    
+    
+    expanded_rx = rx - threshold
+    expanded_ry = ry - threshold
+    expanded_rx2 = rx2 + threshold
+    expanded_ry2 = ry2 + threshold
+    
+    
+    if (expanded_rx <= px <= expanded_rx2 and expanded_ry <= py <= expanded_ry2):
+        return True
+    
+    
     region_poly = np.array([[rx,ry],[rx2,ry],[rx2,ry2],[rx,ry2]], dtype=np.float32)
     dist = cv2.pointPolygonTest(region_poly, (float(px), float(py)), True)
     return abs(dist) <= threshold
@@ -122,9 +177,6 @@ def get_terminal_regions(gate):
     gate_type = gate['type'].upper()  
     terminals = {}
 
-    
-    
-    
     
 
     terminal_width = max(10, w // 8) 
@@ -383,7 +435,9 @@ if __name__ == "__main__":
 
     
     try:
-        wire_mask = create_wire_mask(gray, gate_boxes)
+        wire_mask = create_wire_mask(gray, gate_boxes, 
+                                graph_paper_mode=GRAPH_PAPER_MODE, 
+                                darkness_threshold=DARKNESS_THRESHOLD)
         print("✅ Wire mask created.", file=sys.stderr)
     except Exception as e:
         print(f"Error creating wire mask: {e}", file=sys.stderr)
@@ -415,4 +469,4 @@ if __name__ == "__main__":
 
     print(json.dumps(output_data, indent=None)) 
 
-    print(f"✅ Analysis complete.", file=sys.stderr) 
+    print(f"✅ Analysis complete.", file=sys.stderr)

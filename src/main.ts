@@ -548,11 +548,15 @@ function setUpAI() {
   async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") return;
-
+    
     addUserMessage(message);
+    
+    chatInput.value = ""; 
+    
+    chatInput.style.height = "auto"; // Reset height to auto before setting new height
 
-    // Textarea'yı sıfırlarken daha kapsamlı bir yaklaşım
-    chatInput.value = "";
+
+
 
     // Textarea'yı style değerlerini tamamen sıfırlayarak resetle
     chatInput.style.cssText = "";
@@ -580,7 +584,6 @@ function setUpAI() {
 
   chatInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
-      // Enter tuşuna basıldığında yeni satır eklenmesini engelle
       event.preventDefault();
       sendMessage();
     }
@@ -590,10 +593,13 @@ function setUpAI() {
       circuitBoard.selectedComponents = [];
     }
   });
-  chatInput.addEventListener("input", function () {
-    this.style.height = "auto";
+  chatInput.addEventListener('input', function() {
+    // Önce yüksekliği sıfırla
 
-    this.style.height = this.scrollHeight + "px";
+    this.style.height = 'auto';
+    
+    // Sonra içeriğin yüksekliğine göre ayarla
+    this.style.height = (this.scrollHeight) + 'px';
   });
 
   fileUpload.addEventListener("change", function (event) {
@@ -738,7 +744,6 @@ function createExampleCircuit() {
 }
 const fileInput = document.getElementById("loadFile") as HTMLInputElement;
 fileInput?.addEventListener("change", handleFileSelect);
-
 function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files.length > 0) {
@@ -750,21 +755,15 @@ function handleFileSelect(event: Event) {
 function readJSONFile(file: File) {
   const reader = new FileReader();
 
-  reader.onload = function(event) {
+  reader.onload = function (event) {
     try {
       const jsonContent = event.target?.result as string;
-      const circuitData = JSON.parse(jsonContent);
       
-      // Use CircuitBoard's import method instead of sending to API
-      circuitBoard.importCircuit(circuitData);
+      // Use the importCircuit method directly since we already have the file content
+      circuitBoard.importCircuit(jsonContent);
       
-      // Update input text with filename (without extension)
-      const filename = file.name.replace(/\.[^/.]+$/, "");
-      if (inputText) {
-        inputText.value = filename;
-      }
-      
-      console.log("Circuit loaded successfully");
+      console.log("Circuit loaded successfully!");
+      alert("Circuit loaded successfully!");
     } catch (error) {
       console.error("Error reading or importing JSON file:", error);
       alert("Error loading circuit file. Please check if it's a valid circuit JSON.");
