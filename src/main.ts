@@ -3,6 +3,7 @@ declare global {
     circuitBoard: CircuitBoard;
   }
 }
+
 import { AIAgent } from "./ai/AIAgent";
 import { CircuitBoard } from "./models/CircuitBoard";
 import { AndGate } from "./models/gates/AndGate";
@@ -39,10 +40,11 @@ import { HalfSubtractor } from "./models/gates/HalfSubtractor";
 import { FullSubtractor } from "./models/gates/FullSubtractor";
 import { Led } from "./models/components/Led";
 import { GoogleGenAI } from "@google/genai";
-import { MongoDBCircuitRepository } from "./Repository/MongoDBCircuitRepository";
 import { apiBaseUrl } from "./services/apiConfig";
 import { MultiBit } from "./models/components/MultiBit";
 import { SmartDisplay } from "./models/components/SmartDisplay";
+import { CircuitService } from "./services/CircuitService";
+import { AuthService } from "./services/AuthService";
 
 export class Queue {
   public items: string[] = [];
@@ -63,15 +65,15 @@ export class Queue {
   }
 }
 const queue = new Queue();
-var spaceBarPressed = false;
-const repositoryService = new MongoDBCircuitRepository();
+
+const circuitService = new CircuitService();
 var converter;
 var aiAgent : AIAgent;
 
 var imageUploader: ImageUploader;
 
 const fileUpload = document.getElementById("file-upload") as HTMLInputElement;
-
+var spaceBarPressed = false;
 let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
@@ -84,9 +86,14 @@ const sidebarClose = document.querySelector(".closeSide") as HTMLElement;
 var repository: CircuitRepositoryController;
 var minimap: HTMLCanvasElement;
 
-function initApp() {
+const authService = AuthService.getInstance();
+
+async function initApp() {
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
   minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
+
+  await authService.waitForInitialization();
+  console.log("Auth initialization completed:", authService.isAuthenticated);
 
   initCircuitBoard();
   window.circuitBoard = circuitBoard;
@@ -96,9 +103,13 @@ function initApp() {
     circuitBoard.takeScreenshot();
   });
 
-  repository = new CircuitRepositoryController(repositoryService, converter, document.body);
+  repository = new CircuitRepositoryController(circuitService, converter, document.body);
   storage.addEventListener("click", () => {
-    repository.open();
+    if (authService.isAuthenticated) {
+      repository.open();
+    } else {
+      alert("Please sign in to access the circuit repository");
+    }
   });
 
   imageUploader = new ImageUploader(circuitBoard);
@@ -136,30 +147,22 @@ function initApp() {
   setTools();
 
   async function verifyAuthToken() {
-    const token = localStorage.getItem("auth_token");
-    if (!token) return false;
-
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/check`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        credentials: "include",
       });
 
       if (response.ok) {
         const data = await response.json();
-        const userInfo = localStorage.getItem("user_info");
-        const user = userInfo ? JSON.parse(userInfo) : null;
-
-        return true;
-      } else {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user_info");
-
-        return false;
+        if (data.authenticated) {
+          return true;
+        }
       }
+
+      return false;
     } catch (error) {
-      console.error("Error verifying token:", error);
+      console.error("Auth check error:", error);
+
       return false;
     }
   }
@@ -495,6 +498,53 @@ function setUpAI() {
     aiLogo.classList.remove("active");
   });
 
+  async function callMistralAPI(userMessage: string): Promise<string> {
+    try {
+      const loadingMessageDiv = document.createElement("div");
+      loadingMessageDiv.className = "ai-message";
+      loadingMessageDiv.innerHTML = `
+      <svg width = 40px height = 40px xmlns="http:
+            
+          <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+          
+        </svg>
+      <div class="message-content">Thinking...</div>
+    `;
+      messagesContainer.appendChild(loadingMessageDiv);
+      scrollToBottom();
+
+      const messages = [];
+
+      if (queue.items && Array.isArray(queue.items)) {
+        messages.push(...queue.items);
+      }
+
+      const response = await fetch(`${apiBaseUrl}/api/generate/text`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: userMessage,
+          history: queue.messages,
+          systemPrompt: promptAI,
+        }),
+      });
+
+      messagesContainer.removeChild(loadingMessageDiv);
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.text || "Sorry, I couldn't generate a response at the moment. Please try again.";
+    } catch (error) {
+      console.error("Error calling API:", error);
+      return "I'm having trouble connecting right now. Please try again in a moment.";
+    }
+  }
+
   async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") return;
@@ -516,11 +566,12 @@ function setUpAI() {
     chatInput.focus();
 
     try {
-      // Process the message with our AI agent
       const aiResponse = await aiAgent.processUserInput(message);
+
       addAIMessage(aiResponse);
     } catch (error) {
       console.error("Error getting AI response:", error);
+
       addAIMessage("I'm having trouble processing your request right now. Please try again later.");
     }
   }
@@ -900,7 +951,34 @@ function setFile() {
     });
   });
 }
+function updateUserInterface(isLoggedIn: boolean, userName?: string) {
+    const authButton = document.getElementById("auth-button");
 
+    if (!authButton) return;
+
+    const existingDropdown = document.getElementById("profile-dropdown");
+    if (existingDropdown) {
+      existingDropdown.remove();
+    }
+
+    const newAuthButton = authButton.cloneNode(true) as HTMLElement;
+    authButton.parentNode?.replaceChild(newAuthButton, authButton);
+
+    if (isLoggedIn) {
+      newAuthButton.textContent = userName || "My Account";
+      newAuthButton.classList.add("logged-in");
+
+      newAuthButton.addEventListener("click", toggleProfileDropdown);
+    } else {
+      newAuthButton.textContent = "Sign In";
+      newAuthButton.classList.remove("logged-in");
+
+      newAuthButton.addEventListener("click", showAuthModal);
+    }
+  }
+async function getUserProfile() {
+  return authService.currentUser;
+}
 function setUpLoginAndSignup() {
   const authModal = document.getElementById("auth-modal");
   const loginForm = document.getElementById("login-form") as HTMLFormElement;
@@ -981,30 +1059,32 @@ function setUpLoginAndSignup() {
     }
   }
 
-  function toggleProfileDropdown(event: MouseEvent) {
+  async function toggleProfileDropdown(event: MouseEvent) {
     event.stopPropagation();
 
     let profileDropdown = document.getElementById("profile-dropdown");
-
     if (profileDropdown) {
       profileDropdown.remove();
       return;
     }
 
-    const userInfo = localStorage.getItem("user_info");
-    const user = userInfo ? JSON.parse(userInfo) : { name: "User", email: "" };
+    const user = await getUserProfile();
+    if (!user) {
+      handleLogout();
+      return;
+    }
 
     profileDropdown = document.createElement("div");
     profileDropdown.id = "profile-dropdown";
     profileDropdown.className = "profile-dropdown";
 
     profileDropdown.innerHTML = `
-      <div class="profile-header">
-        <div class="profile-name">${user.name}</div>
-        <div class="profile-email">${user.email}</div>
-      </div>
-      <div class="profile-option" id="logout-option">Sign Out</div>
-    `;
+    <div class="profile-header">
+      <div class="profile-name">${user.name}</div>
+      <div class="profile-email">${user.email}</div>
+    </div>
+    <div class="profile-option" id="logout-option">Sign Out</div>
+  `;
 
     const authButton = document.getElementById("auth-button");
     if (authButton) {
@@ -1044,40 +1124,19 @@ function setUpLoginAndSignup() {
       loginBtn.disabled = true;
       loginBtn.textContent = "Giriş yapılıyor...";
 
-      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const success = await authService.login(email, password);
 
       loginBtn.disabled = false;
       loginBtn.textContent = "Sign In";
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Login failed");
+
+      if (success) {
+        updateUserInterface(true, authService.currentUser?.name);
+        hideAuthModal();
+        repository.refresh();
+        alert("Login successful!");
+      } else {
+        alert("Login failed. Please check your credentials and try again.");
       }
-
-      const data = await response.json();
-
-      console.log("Login successful, received data:", {
-        token: data.token ? "Token received" : "No token!",
-        user: data.user ? "User data received" : "No user data!",
-      });
-
-      localStorage.setItem("auth_token", data.token);
-      localStorage.setItem("user_info", JSON.stringify(data.user));
-
-      updateUserInterface(true, data.user.name);
-      hideAuthModal();
-
-      repository.refresh();
-
-      const savedToken = localStorage.getItem("auth_token");
-      console.log("Token saved to localStorage:", savedToken ? "Yes" : "No");
-
-      alert("Login successful!");
     } catch (error) {
       console.error("Login error:", error);
       let e = error as Error;
@@ -1142,18 +1201,28 @@ function setUpLoginAndSignup() {
     }
   }
 
-  function handleLogout() {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_info");
+  async function handleLogout() {
+    try {
+      const success = await authService.logout();
 
-    const profileDropdown = document.getElementById("profile-dropdown");
-    if (profileDropdown) {
-      profileDropdown.remove();
+      if (success) {
+        updateUserInterface(false);
+
+        const profileDropdown = document.getElementById("profile-dropdown");
+        if (profileDropdown) {
+          profileDropdown.remove();
+        }
+
+        repository.refresh();
+
+        alert("You have been logged out successfully");
+      } else {
+        alert("Logout failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Error during logout. Please try again.");
     }
-
-    updateUserInterface(false);
-
-    alert("Successfully logged out!");
   }
 
   function setupAuthListeners() {
@@ -1297,16 +1366,13 @@ async function saveToMongoDB(name: string, circuitData: any) {
 
 async function loadSavedCircuits() {
   try {
-    const token = localStorage.getItem("auth_token");
-    if (!token) {
-      console.log("User not authenticated");
+    if (!authService.isAuthenticated) {
+      console.log("User not authenticated via AuthService");
       return;
     }
 
     const response = await fetch(`${apiBaseUrl}/api/circuits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      credentials: "include",
     });
 
     if (response.ok) {
@@ -1331,7 +1397,116 @@ async function loadSavedCircuits() {
     console.error("Error loading circuits:", error);
   }
 }
+  async function handleLogout() {
+    try {
+      const success = await authService.logout();
 
+      if (success) {
+        updateUserInterface(false);
+
+        const profileDropdown = document.getElementById("profile-dropdown");
+        if (profileDropdown) {
+          profileDropdown.remove();
+        }
+
+        repository.refresh();
+
+        alert("You have been logged out successfully");
+      } else {
+        alert("Logout failed. Please try again.");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Error during logout. Please try again.");
+    }
+  }
+function toggleProfileDropdown(event: MouseEvent) {
+  event.stopPropagation();
+
+  let profileDropdown = document.getElementById("profile-dropdown");
+  if (profileDropdown) {
+    profileDropdown.remove();
+    return;
+  }
+
+  // Get user from AuthService
+  const user = authService.currentUser;
+  if (!user) {
+    authService.logout();
+    const authButton = document.getElementById("auth-button");
+    if (authButton) {
+      authButton.textContent = "Sign In";
+      authButton.classList.remove("logged-in");
+      authButton.onclick = showAuthModal;
+    }
+    return;
+  }
+
+  // Create dropdown
+  profileDropdown = document.createElement("div");
+  profileDropdown.id = "profile-dropdown";
+  profileDropdown.className = "profile-dropdown";
+
+  profileDropdown.innerHTML = `
+    <div class="profile-header">
+      <div class="profile-name">${user.name}</div>
+      <div class="profile-email">${user.email}</div>
+    </div>
+    <div class="profile-option" id="my-circuits-option">My Circuits</div>
+    <div class="profile-option" id="logout-option">Sign Out</div>
+  `;
+
+  // Position dropdown
+  const authButton = document.getElementById("auth-button");
+  if (authButton) {
+    const rect = authButton.getBoundingClientRect();
+    profileDropdown.style.position = "absolute";
+    profileDropdown.style.top = rect.bottom + "px";
+    profileDropdown.style.right = window.innerWidth - rect.right + "px";
+  }
+  profileDropdown.style.cursor = "pointer";
+
+  document.body.appendChild(profileDropdown);
+
+  // Add event listeners
+  document.getElementById("logout-option")?.addEventListener("click", handleLogout);
+  
+  document.getElementById("my-circuits-option")?.addEventListener("click", function() {
+    repository.open();
+    const tabs = document.querySelectorAll(".tab");
+    tabs.forEach(tab => {
+      if (tab.getAttribute("data-tab") === "my-circuits") {
+        (tab as HTMLElement).click();
+      }
+    });
+    profileDropdown?.remove();
+  });
+
+  // Close dropdown when clicking elsewhere
+  document.addEventListener("click", function closeDropdownOnClick(e) {
+    if (!profileDropdown?.contains(e.target as Node) && e.target !== authButton) {
+      profileDropdown?.remove();
+      document.removeEventListener("click", closeDropdownOnClick);
+    }
+  });
+}
+
+// And add a global showAuthModal function for reference elsewhere
+function showAuthModal() {
+  const authModal = document.getElementById("auth-modal");
+  if (authModal) {
+    authModal.classList.add("active");
+    // Show login view by default
+    const loginForm = document.getElementById("login-form");
+    if (loginForm) {
+      loginForm.classList.add("active");
+    }
+    const signupForm = document.getElementById("signup-form");
+    if (signupForm) {
+      signupForm.classList.remove("active");
+    }
+  }
+}
 function setTheme() {
   const themeButton = document.querySelector(".Theme") as HTMLElement;
   const themeDropdown = document.querySelector(".theme-dropdown") as HTMLElement;
@@ -1461,6 +1636,23 @@ function saveToLocalStorage(key: string = "history"): void {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  initApp();
+   initApp().then(() => {
+    // Ensure UI reflects current auth state
+    if (authService.isAuthenticated && authService.currentUser) {
+      const authButton = document.getElementById("auth-button");
+      if (authButton) {
+        authButton.textContent = authService.currentUser.name;
+        authButton.classList.add("logged-in");
+        
+        // Replace click event
+        const newAuthButton = authButton.cloneNode(true) as HTMLElement;
+        newAuthButton.onclick = (e) => {
+          e.stopPropagation();
+          toggleProfileDropdown(e as MouseEvent);
+        };
+        authButton.parentNode?.replaceChild(newAuthButton, authButton);
+      }
+    }
+  });
   loadSavedCircuits();
 });

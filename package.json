@@ -47,8 +47,13 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.5.0",
     "hdl-js": "^0.0.72",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "mongoose": "^8.2.0",
-    "multer": "^1.4.5-lts.2"
+    "multer": "^1.4.5-lts.2",
+    "xss-filters": "^1.2.7"
   }
 }
