@@ -1,5 +1,5 @@
 import { Component, Point } from '../Component';
-import { BitArray, BitwiseOperations } from '../MultibitTypes';
+import { BitArray } from '../MultibitTypes';
 
 export class DFlipFlop extends Component {
   private qValue: BitArray | boolean = false;

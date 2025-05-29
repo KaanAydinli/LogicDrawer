@@ -77,7 +77,7 @@ export class CircuitBoard {
     this.selectedComponents = [];
     this.truthTableManager = new TruthTableManager(this);
 
-    this.gatePropertiesPanel = new GatePanel(this,"properties-panel-container", () => {
+    this.gatePropertiesPanel = new GatePanel(this, "properties-panel-container", () => {
       this.simulate();
       this.draw();
     });
@@ -140,93 +140,90 @@ export class CircuitBoard {
     }
   }
   private handleKeyDown(event: KeyboardEvent): void {
- 
-  if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-    return;
-  }
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
 
- 
-  if (event.ctrlKey && event.key === 's') {
-    event.preventDefault();
-    this.saveToFile();
-  } else if (event.ctrlKey && event.key === 'o') {
-    event.preventDefault();
-    
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) this.loadFromFile(file);
-    };
-    input.click();
-  } else if (event.ctrlKey && event.key === 'e') {
-    event.preventDefault();
-    const verilogCode = this.extractVerilog();
-    this.saveVerilogToFile(verilogCode);
-  }
-  else if (event.altKey && event.key === 's') {
-    event.preventDefault();
-    this.takeScreenshot();
-  }
+    if (event.ctrlKey && event.key === "s") {
+      event.preventDefault();
+      this.saveToFile();
+    } else if (event.ctrlKey && event.key === "o") {
+      event.preventDefault();
 
-  // Editing operations
-  else if (event.key === 'Delete' || event.key === 'Backspace') {
-    this.deleteSelected();
-  } else if (event.ctrlKey && event.key === 'a') {
-    event.preventDefault();
-    this.selectAllComponents();
-  } else if (event.ctrlKey && event.key === 'g') {
-    event.preventDefault();
-    this.toggleGrid();
-  }
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.onchange = e => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (file) this.loadFromFile(file);
+      };
+      input.click();
+    } else if (event.ctrlKey && event.key === "e") {
+      event.preventDefault();
+      const verilogCode = this.extractVerilog();
+      this.saveVerilogToFile(verilogCode);
+    } else if (event.altKey && event.key === "s") {
+      event.preventDefault();
+      this.takeScreenshot();
+    }
 
-  // View controls
-  else if (event.key === '+' || event.key === '=') {
-    this.zoomIn();
-  } else if (event.key === '-') {
-    this.zoomOut();
-  } else if (event.key === '0') {
-    this.resetZoom();
-  }
+    // Editing operations
+    else if (event.key === "Delete" || event.key === "Backspace") {
+      this.deleteSelected();
+    } else if (event.ctrlKey && event.key === "a") {
+      event.preventDefault();
+      this.selectAllComponents();
+    } else if (event.ctrlKey && event.key === "g") {
+      event.preventDefault();
+      this.toggleGrid();
+    }
 
-  // Simulation controls
-  else if (event.key === 'F5') {
-    event.preventDefault();
-    this.simulate();
-  } else if (event.key === 't') {
-    this.generateTruthTable();
-  } else if (event.key === 'k') {
-    this.showKarnaughMap();
-  } else if (event.key === 'a') {
-    this.autoArrangeCircuit();
-  }
+    // View controls
+    else if (event.key === "+" || event.key === "=") {
+      this.zoomIn();
+    } else if (event.key === "-") {
+      this.zoomOut();
+    } else if (event.key === "0") {
+      this.resetZoom();
+    }
 
-  // Component manipulation
-  else if (event.key === 'r' && this.selectedComponent) {
-    const logic = this.selectedComponent as LogicGate;
-    if (typeof logic.rotate === "function") {
-      logic.rotate(1);
-      this.draw();
+    // Simulation controls
+    else if (event.key === "F5") {
+      event.preventDefault();
+      this.simulate();
+    } else if (event.key === "t") {
+      this.generateTruthTable();
+    } else if (event.key === "k") {
+      this.showKarnaughMap();
+    } else if (event.key === "a") {
+      this.autoArrangeCircuit();
+    }
+
+    // Component manipulation
+    else if (event.key === "r" && this.selectedComponent) {
+      const logic = this.selectedComponent as LogicGate;
+      if (typeof logic.rotate === "function") {
+        logic.rotate(1);
+        this.draw();
+      }
     }
   }
-}
 
-// Add this method to select all components
-private selectAllComponents(): void {
-  this.selectedComponents = [...this.components];
-  this.components.forEach(component => {
-    component.selected = true;
-  });
-  this.draw();
-}
+  // Add this method to select all components
+  private selectAllComponents(): void {
+    this.selectedComponents = [...this.components];
+    this.components.forEach(component => {
+      component.selected = true;
+    });
+    this.draw();
+  }
   private setupEvents(): void {
     this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
     this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
     this.canvas.addEventListener("click", this.handleClick.bind(this));
-    
+
     // Add keyboard event listener
     window.addEventListener("keydown", this.handleKeyDown.bind(this));
   }
@@ -505,15 +502,14 @@ private selectAllComponents(): void {
     table: HTMLTableElement,
     padding: number
   ): void {
-    // Stil bilgilerini al
-    const computedStyle = window.getComputedStyle(table);
+    
 
-    // Tablo başlık ve hücre stillerini ayarla
+    
     ctx.font = "14px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Tablo satırlarını al
+    
     const rows = table.rows;
     const headerHeight = 40; // Başlık satır yüksekliği
     const rowHeight = 30; // Normal satır yüksekliği
@@ -1002,7 +998,7 @@ private selectAllComponents(): void {
     const cellSize = Math.min((width - padding * 2) / colCount, (height - padding * 2) / rowCount);
 
     // Render K-Map table to canvas
-    this.renderKMapToCanvas(tempCtx, kmapTable, padding, yOffset, cellSize);
+    this.renderKMapToCanvas(tempCtx, kmapTable,  yOffset, cellSize);
 
     // Draw expression if exists
     if (kmapExpr && kmapExpr.textContent) {
@@ -1022,15 +1018,13 @@ private selectAllComponents(): void {
     this.downloadFile(dataUrl, "karnaugh-map.png", "image/png", true);
   }
 
- 
   private renderKMapToCanvas(
     ctx: CanvasRenderingContext2D,
     table: HTMLTableElement,
-    xPadding: number,
+   
     yPadding: number,
     cellSize: number
   ): void {
-    
     const rows = table.rows;
     const rowCount = rows.length;
     const colCount = rows[0]?.cells.length || 0;
@@ -1038,18 +1032,15 @@ private selectAllComponents(): void {
     const tableWidth = cellSize * colCount;
     const tableHeight = cellSize * rowCount;
 
-    
     const startX = (ctx.canvas.width - tableWidth) / 2;
 
-   
     if (rows.length > 0) {
       const headerRow = rows[0];
 
-      ctx.fillStyle = "#333"; 
+      ctx.fillStyle = "#333";
       ctx.fillRect(startX, yPadding, tableWidth, cellSize);
 
-     
-      ctx.fillStyle = "#fff"; 
+      ctx.fillStyle = "#fff";
       ctx.font = "bold 14px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -1062,48 +1053,39 @@ private selectAllComponents(): void {
       }
     }
 
-    
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const rowY = yPadding + i * cellSize;
 
-      
-      ctx.fillStyle = "#333"; 
+      ctx.fillStyle = "#333";
       ctx.fillRect(startX, rowY, cellSize, cellSize);
 
-      
-      ctx.fillStyle = "#fff"; 
+      ctx.fillStyle = "#fff";
       const rowHeaderText = row.cells[0].textContent || "";
       ctx.fillText(rowHeaderText, startX + cellSize / 2, rowY + cellSize / 2);
 
-      
       for (let j = 1; j < row.cells.length; j++) {
         const cell = row.cells[j];
         const cellText = cell.textContent || "";
         const cellX = startX + j * cellSize;
         const cellY = rowY;
 
-        
         if (cellText === "1") {
-          ctx.fillStyle = "#2a7340"; 
+          ctx.fillStyle = "#2a7340";
         } else {
-          ctx.fillStyle = "#333"; 
+          ctx.fillStyle = "#333";
         }
 
-       
         ctx.fillRect(cellX, cellY, cellSize, cellSize);
 
-      
         ctx.fillStyle = cellText === "1" ? "#fff" : "#aaa";
         ctx.fillText(cellText, cellX + cellSize / 2, cellY + cellSize / 2);
       }
     }
 
-   
     ctx.strokeStyle = "#555";
     ctx.lineWidth = 1;
 
-   
     for (let j = 0; j <= colCount; j++) {
       const lineX = startX + j * cellSize;
       ctx.beginPath();
@@ -1112,7 +1094,6 @@ private selectAllComponents(): void {
       ctx.stroke();
     }
 
-   
     for (let i = 0; i <= rowCount; i++) {
       const lineY = yPadding + i * cellSize;
       ctx.beginPath();
@@ -1121,11 +1102,10 @@ private selectAllComponents(): void {
       ctx.stroke();
     }
 
-  
     ctx.lineWidth = 2;
     ctx.strokeRect(startX, yPadding, tableWidth, tableHeight);
   }
-  
+
   private downloadFile(
     content: string,
     fileName: string,
@@ -1149,7 +1129,6 @@ private selectAllComponents(): void {
     }
   }
 
-
   private hasInputsOnlyFromInputComponents(gate: Component): boolean {
     const inputConnections = this.getInputConnections(gate);
 
@@ -1171,7 +1150,6 @@ private selectAllComponents(): void {
     return true;
   }
 
-
   private getInputConnections(gate: Component): Component[] {
     const connectedComponents: Component[] = [];
 
@@ -1186,13 +1164,9 @@ private selectAllComponents(): void {
     return connectedComponents;
   }
 
-
   private rerouteAllWires(): void {
     this.wires.forEach(wire => {
-      wire.autoRoute(
-        this.components,
-        this.wires.filter(w => w !== wire)
-      );
+      wire.autoRoute(this.components);
     });
 
     console.log("Tüm kablolar yeniden yönlendirildi.");
@@ -2232,7 +2206,7 @@ private selectAllComponents(): void {
           // Prevent connecting to the same component
           if (this.currentWire.from?.component === port.component) {
             console.log("Cannot connect to the same component");
-           
+
             this.currentWire = null;
             this.draw();
             return;
@@ -2263,7 +2237,7 @@ private selectAllComponents(): void {
             console.log("Connection successful! Adding wire to list.");
             port.isConnected = true;
             this.wires.push(this.currentWire);
-            this.currentWire.autoRoute(this.components, this.wires);
+            this.currentWire.autoRoute(this.components);
             this.currentWire = null;
             this.simulate();
           } else {
@@ -2379,10 +2353,7 @@ private selectAllComponents(): void {
             (wire.to && wire.to.component === component)) &&
           !updatedWires.includes(wire)
         ) {
-          wire.autoRoute(
-            this.components,
-            this.wires.filter(w => w !== wire)
-          );
+          wire.autoRoute(this.components);
           updatedWires.push(wire);
         }
       }

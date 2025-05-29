@@ -76,12 +76,12 @@ window.initAceEditor = function () {
 
     // Başlangıç kodunu ayarla
     window.editor.setValue(`module if_test(
-  input a, b, c,
-  output out
-);
-  assign out = (a & b) | c;
+          input [1:0] a,
+          output out
+        );
+          assign out = a[0] | a[1];
 
-endmodule`);
+        endmodule`);
 
     // İmleç pozisyonunu başa getir
     window.editor.clearSelection();

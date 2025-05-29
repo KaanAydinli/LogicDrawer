@@ -50,9 +50,9 @@ export class VerilogCircuitConverter {
         this.feedbackWires = feedbackEdges;
       }
 
-      const { signalLayers, signalDependencies } = this.analyzeCircuitStructure(module);
+      const { signalLayers } = this.analyzeCircuitStructure(module);
 
-      this.organizeAndPositionComponents(module, signalLayers, signalDependencies);
+      this.organizeAndPositionComponents(module, signalLayers);
       this.buildCircuit(module);
 
       this.circuitBoard.simulate();
@@ -169,21 +169,7 @@ export class VerilogCircuitConverter {
       signalDependencies.set(input.name, []);
     });
 
-    const processedFeedbackWires = new Set<string>();
-
     module.gates.forEach(gate => {
-      const nonFeedbackInputs = gate.inputs.filter(input => {
-        const isPartOfFeedback = this.feedbackWires.some(
-          fw => fw.source === gate.output && fw.target === input
-        );
-
-        if (isPartOfFeedback) {
-          processedFeedbackWires.add(`${gate.output}:${input}`);
-        }
-
-        return !isPartOfFeedback;
-      });
-
       signalDependencies.set(gate.output, [...gate.inputs]);
     });
 
@@ -233,8 +219,7 @@ export class VerilogCircuitConverter {
 
   private organizeAndPositionComponents(
     module: VerilogModule,
-    signalLayers: Map<string, number>,
-    signalDependencies: Map<string, string[]>
+    signalLayers: Map<string, number>
   ): void {
     const inputGroups = this.groupRelatedSignals(module.inputs);
 
@@ -785,18 +770,31 @@ export class VerilogCircuitConverter {
     inputIndex: number
   ): void {
     // Sayısal sabit değer mi kontrol et (0, 1, 2'b00, vb.)
-    if (this.isConstant(inputName)) {
-      this.connectConstantValue(inputName, component, inputIndex);
+    var trimmedInputName = inputName.trim();
+    if (this.isConstant(trimmedInputName)) {
+      this.connectConstantValue(trimmedInputName, component, inputIndex);
       return;
     }
 
     // Normal sinyal bağlantısı
-    let sourcePort = this.outputPorts[inputName];
+    let sourcePort = this.outputPorts[trimmedInputName];
 
-    // Eğer sinyal adı "sel[0]" gibi ise ve outputPorts'ta yoksa,
-    // otomatik toggle oluşturulacaktır. Bu genellikle istenmeyen durumdur
-    // eğer "sel" çok-bitli bir giriş olarak tanımlandıysa.
-    // setupMultiBitSignals'ın bu bitleri outputPorts'a eklediğinden emin olun.
+    if (!sourcePort) {
+      // For bit selections like a[0], a[1], etc.
+      const bitSelectionMatch = trimmedInputName.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
+      if (bitSelectionMatch) {
+        // Try again with exact match (trim to be safe)
+        const exactBitName = trimmedInputName.trim();
+        sourcePort = this.outputPorts[exactBitName];
+
+        // If still not found, try with normalized name
+        if (!sourcePort) {
+          const [, baseName, bitIndex] = bitSelectionMatch;
+          const normalizedName = `${baseName.trim()}[${bitIndex.trim()}]`;
+          sourcePort = this.outputPorts[normalizedName];
+        }
+      }
+    }
 
     if (sourcePort) {
       const wire = new Wire(sourcePort);
@@ -825,7 +823,7 @@ export class VerilogCircuitConverter {
         x: position.x - 80,
         y: position.y + 20,
       };
-      const label = new Text(labelPosition, inputName, 20);
+      const label = new Text(labelPosition, trimmedInputName, 20);
       this.circuitBoard.addComponent(label);
     }
   }
@@ -1155,14 +1153,7 @@ export class VerilogCircuitConverter {
 
   private setupMultiBitSignals(module: VerilogModule): void {
     const multiBitInputs = module.inputs.filter(input => input.bitWidth && input.bitWidth > 1);
-    const multiBitWires = module.wires.filter(wire => wire.bitWidth && wire.bitWidth > 1);
     const multiBitOutputs = module.outputs.filter(output => output.bitWidth && output.bitWidth > 1);
-
-    const maxBitWidth = Math.max(
-      ...multiBitInputs.map(s => s.bitWidth || 0),
-      ...multiBitWires.map(s => s.bitWidth || 0),
-      ...multiBitOutputs.map(s => s.bitWidth || 0)
-    );
 
     var horizontalSpacing = 100;
 
@@ -1219,30 +1210,13 @@ export class VerilogCircuitConverter {
       const baseX = outputBaseX + signalIndex * horizontalSpacing;
       const baseY = outputBaseY;
       this.componentPositions.set(output.name, { x: baseX, y: baseY });
-
-      for (let i = 0; i < output.bitWidth; i++) {
-        const bitName = `${output.name}[${i}]`;
-      }
     });
 
     module.wires.forEach(wire => {
       if (wire.bitWidth && wire.bitWidth > 1) {
         console.log(`Registered multi-bit wire: ${wire.name} (${wire.bitWidth} bits)`);
-
-        for (let i = 0; i < wire.bitWidth; i++) {
-          const bitName = `${wire.name}[${i}]`;
-        }
       }
     });
-  }
-
-  private findBitPosition(baseName: string, bitIndex: number, totalBits: number): Point {
-    const basePosition = this.componentPositions.get(baseName) || { x: 50, y: 100 };
-
-    return {
-      x: basePosition.x + bitIndex * 120,
-      y: basePosition.y + 100,
-    };
   }
 
   private isPositionUsed(x: number, y: number): boolean {
@@ -1367,10 +1341,7 @@ export class VerilogCircuitConverter {
 
     return undefined;
   }
-  private getBaseSignalName(signal: string): string {
-    const match = signal.match(/^(\w+)(?:\[.+\])?$/);
-    return match ? match[1] : signal;
-  }
+
   private detectAndHandleUndeclaredSignals(module: VerilogModule): void {
     const definedSignals = new Set<string>();
     const definedMultiBitSignals = new Map<string, VerilogPort>();

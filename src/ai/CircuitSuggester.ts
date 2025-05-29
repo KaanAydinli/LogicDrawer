@@ -1,5 +1,5 @@
 import { CircuitBoard } from "../models/CircuitBoard";
-import { Component, Point } from "../models/Component";
+import { Component } from "../models/Component";
 import { Wire } from "../models/Wire";
 
 export interface CircuitPattern {
@@ -18,7 +18,7 @@ export class CircuitSuggester {
   private changeTimeout: number | null = null;
   private similarityThreshold: number = 0.6; // 0-1 similarity threshold
   private ghostComponents: Component[] = [];
-  private ghostWires: Wire[] = [];
+
 
   constructor(circuitBoard: CircuitBoard) {
     this.circuitBoard = circuitBoard;
@@ -204,7 +204,7 @@ export class CircuitSuggester {
   private createGhostCircuit(pattern: CircuitPattern): void {
     // Clear any existing ghost components
     this.ghostComponents = [];
-    this.ghostWires = [];
+    
     
     // Get the current circuit data
     const currentCircuit  = JSON.parse(this.circuitBoard.exportCircuit());
@@ -373,7 +373,7 @@ export class CircuitSuggester {
    */
   private clearSuggestion(): void {
     this.ghostComponents = [];
-    this.ghostWires = [];
+    
     this.currentSuggestion = null;
     this.suggestionVisible = false;
     

@@ -1,6 +1,6 @@
 import { Point } from "../Component";
 import { LogicGate } from "../LogicGate";
-import { BitArray, BitwiseOperations, bitsToNumber, numberToBits } from '../MultibitTypes';
+import { BitArray,  bitsToNumber, numberToBits } from '../MultibitTypes';
 
 export class HalfAdder extends LogicGate {
   constructor(position: Point) {

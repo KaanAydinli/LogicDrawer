@@ -1,6 +1,5 @@
 import { Point } from '../Component';
 import { LogicGate } from '../LogicGate';
-import { BitArray } from '../MultibitTypes';
 
 export class BufferGate extends LogicGate {
   constructor(position: Point) {

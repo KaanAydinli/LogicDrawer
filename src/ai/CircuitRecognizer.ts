@@ -324,9 +324,7 @@ export class CircuitRecognizer {
             console.log(`Distance from ${component.id} (${component.type}) output to ${inputComponent.id} (${inputComponent.type}) input: ${distance}`);
             
             
-            const isNotGateConnection = 
-              component.type === 'not' || inputComponent.type === 'not';
-            
+      
             
             const thresholdToUse = 250;
             
@@ -436,7 +434,6 @@ export class CircuitRecognizer {
     console.log(`Added ${directConnectionsAdded} direct connections`);
 
     const remainingOutputs = unconnectedOutputs.filter(o => !o.isConnected);
-    const remainingInputs = unconnectedInputs.filter(i => !i.isConnected);
 
     console.log("Step 2: Looking for toggle inputs for remaining outputs...");
     let toggleConnectionsAdded = 0;

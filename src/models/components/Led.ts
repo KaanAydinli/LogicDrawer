@@ -114,7 +114,7 @@ export class Led extends Component {
     // Girişlerin herhangi birinin aktif olup olmadığını kontrol et
     const isOn = this.checkAnyInputActive();
     
-    const bulbRadius = Math.min(width, height) / 2 - 5;
+    
     const bulbX = x + width / 2;
     const bulbY = y + height / 2;
 

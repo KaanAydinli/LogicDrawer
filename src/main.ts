@@ -32,43 +32,42 @@ import { Decoder } from "./models/gates/Decoder";
 import { BufferGate } from "./models/gates/BufferGate";
 import { HexDigit } from "./models/components/HexDigit";
 import { Text } from "./models/other/Text";
-import { LogicGate } from "./models/LogicGate";
 import { State } from "./models/other/State";
 import { HalfAdder } from "./models/gates/HalfAdder";
 import { FullAdder } from "./models/gates/FullAdder";
 import { HalfSubtractor } from "./models/gates/HalfSubtractor";
 import { FullSubtractor } from "./models/gates/FullSubtractor";
 import { Led } from "./models/components/Led";
-import { GoogleGenAI } from "@google/genai";
 import { apiBaseUrl } from "./services/apiConfig";
 import { MultiBit } from "./models/components/MultiBit";
 import { SmartDisplay } from "./models/components/SmartDisplay";
 import { CircuitService } from "./services/CircuitService";
 import { AuthService } from "./services/AuthService";
-
 export class Queue {
-  public items: string[] = [];
+  public items: {role: string, content: string}[] = [];
 
-  enqueue(item: string) {
-    this.items.push(item);
+  enqueue(content: string , role: string) {
+    this.items.push({role, content});
   }
 
-  dequeue(): string | undefined {
+  dequeue() {
     return this.items.shift();
   }
 
   isEmpty(): boolean {
     return this.items.length === 0;
   }
-  get messages(): string[] {
+  
+  get messages(): {role: string, content: string}[] {
     return [...this.items];
   }
 }
+
 const queue = new Queue();
 
 const circuitService = new CircuitService();
 var converter;
-var aiAgent : AIAgent;
+var aiAgent: AIAgent;
 
 var imageUploader: ImageUploader;
 
@@ -223,13 +222,11 @@ function setupZoomControls() {
       circuitBoard.isDraggingCanvas = true;
       circuitBoard.lastMouseX = event.clientX;
       circuitBoard.lastMouseY = event.clientY;
-    }
-    else if (event.button === 0 && spaceBarPressed) {
+    } else if (event.button === 0 && spaceBarPressed) {
       event.preventDefault();
       circuitBoard.isDraggingCanvas = true;
       circuitBoard.lastMouseX = event.clientX;
       circuitBoard.lastMouseY = event.clientY;
-       
     }
   });
 
@@ -245,10 +242,8 @@ function setupZoomControls() {
     }
   });
 
-  canvas.addEventListener("mouseup", event => {
-    
-      circuitBoard.isDraggingCanvas = false;
-    
+  canvas.addEventListener("mouseup", () => {
+    circuitBoard.isDraggingCanvas = false;
   });
 
   window.addEventListener("mouseup", () => {
@@ -259,15 +254,15 @@ function setupZoomControls() {
     settingsPanel?.classList.remove("active");
   });
   document.addEventListener("keydown", event => {
-     if (event.key === " ") {
-       spaceBarPressed = true;
-     }
+    if (event.key === " ") {
+      spaceBarPressed = true;
+    }
   });
   document.addEventListener("keyup", event => {
-  if (event.key === " " || event.code === "Space") {
-    spaceBarPressed = false;
-  }
-});
+    if (event.key === " " || event.code === "Space") {
+      spaceBarPressed = false;
+    }
+  });
 }
 
 function initCircuitBoard() {
@@ -460,10 +455,7 @@ function addComponentByType(type: string, position: Point) {
   circuitBoard.addComponent(component);
 }
 
-function setupKeyboardShortcuts() {
-
- 
-}
+function setupKeyboardShortcuts() {}
 
 function setUpAI() {
   const aiLogo = document.querySelector(".aiLogo") as HTMLElement;
@@ -498,74 +490,21 @@ function setUpAI() {
     aiLogo.classList.remove("active");
   });
 
-  async function callMistralAPI(userMessage: string): Promise<string> {
-    try {
-      const loadingMessageDiv = document.createElement("div");
-      loadingMessageDiv.className = "ai-message";
-      loadingMessageDiv.innerHTML = `
-      <svg width = 40px height = 40px xmlns="http:
-            
-          <text x="0" y="18" font-family="Pixelify Sans" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
-          
-        </svg>
-      <div class="message-content">Thinking...</div>
-    `;
-      messagesContainer.appendChild(loadingMessageDiv);
-      scrollToBottom();
-
-      const messages = [];
-
-      if (queue.items && Array.isArray(queue.items)) {
-        messages.push(...queue.items);
-      }
-
-      const response = await fetch(`${apiBaseUrl}/api/generate/text`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: userMessage,
-          history: queue.messages,
-          systemPrompt: promptAI,
-        }),
-      });
-
-      messagesContainer.removeChild(loadingMessageDiv);
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.text || "Sorry, I couldn't generate a response at the moment. Please try again.";
-    } catch (error) {
-      console.error("Error calling API:", error);
-      return "I'm having trouble connecting right now. Please try again in a moment.";
-    }
-  }
-
   async function sendMessage() {
     const message = chatInput.value.trim();
     if (message === "") return;
-    
+
     addUserMessage(message);
-    
-    chatInput.value = ""; 
-    
-    chatInput.style.height = "auto"; // Reset height to auto before setting new height
 
+    chatInput.value = "";
 
+    chatInput.style.height = "auto";
 
-
-    // Textarea'yı style değerlerini tamamen sıfırlayarak resetle
     chatInput.style.cssText = "";
     chatInput.style.height = "24px";
 
-    // Scroll değerlerini de sıfırla
     chatInput.scrollTop = 0;
 
-    // DOM'un güncellenmesini zorla
     chatInput.blur();
     chatInput.focus();
 
@@ -593,13 +532,10 @@ function setUpAI() {
       circuitBoard.selectedComponents = [];
     }
   });
-  chatInput.addEventListener('input', function() {
-    // Önce yüksekliği sıfırla
+  chatInput.addEventListener("input", function () {
+    this.style.height = "auto";
 
-    this.style.height = 'auto';
-    
-    // Sonra içeriğin yüksekliğine göre ayarla
-    this.style.height = (this.scrollHeight) + 'px';
+    this.style.height = this.scrollHeight + "px";
   });
 
   fileUpload.addEventListener("change", function (event) {
@@ -620,7 +556,7 @@ function setUpAI() {
 
           lastUploadedImage = imageSrc;
 
-          aiAgent.setCurrentImage(imageSrc);
+          aiAgent.setCurrentImage(lastUploadedImage);
 
           addUserImageMessage(imageSrc);
 
@@ -636,8 +572,8 @@ function setUpAI() {
   });
 
   function addUserMessage(text: string) {
-    queue.enqueue(text);
-   
+    queue.enqueue(text,"User");
+
     circuitBoard.saveToLocalStorage();
     const messageDiv = document.createElement("div");
     messageDiv.className = "user-message";
@@ -680,8 +616,8 @@ function setUpAI() {
         console.error("Verilog import failed!");
       }
     }
-    queue.enqueue(aiText);
-    
+    queue.enqueue(aiText,"AI");
+
     saveToLocalStorage();
 
     messageDiv.className = "ai-message";
@@ -758,10 +694,9 @@ function readJSONFile(file: File) {
   reader.onload = function (event) {
     try {
       const jsonContent = event.target?.result as string;
-      
-      // Use the importCircuit method directly since we already have the file content
+
       circuitBoard.importCircuit(jsonContent);
-      
+
       console.log("Circuit loaded successfully!");
       alert("Circuit loaded successfully!");
     } catch (error) {
@@ -770,7 +705,7 @@ function readJSONFile(file: File) {
     }
   };
 
-  reader.onerror = function() {
+  reader.onerror = function () {
     console.error("Failed to read file");
     alert("Failed to read circuit file");
   };
@@ -845,7 +780,7 @@ function setupSettings() {
     circuitBoard.draw();
   });
 }
-//This method will set the tools for the dropdown similar to setFile it will have components like truth table K Map screenshot and so on
+
 function setTools() {
   const toolsButton = document.querySelector(".tools") as HTMLElement;
   const toolsDropdown = document.querySelector(".tools-dropdown") as HTMLElement;
@@ -862,10 +797,10 @@ function setTools() {
   document.addEventListener("click", function () {
     toolsDropdown.classList.remove("show");
   });
-  toolsButton.addEventListener("mouseenter", (event: MouseEvent) => {
+  toolsButton.addEventListener("mouseenter", () => {
     toolsDropdown.classList.toggle("show");
   });
-  toolsDropdown.addEventListener("mouseleave", (event: MouseEvent) => {
+  toolsDropdown.addEventListener("mouseleave", () => {
     toolsDropdown.classList.remove("show");
   });
   toolsDropdown.addEventListener("click", function (e) {
@@ -908,10 +843,10 @@ function setFile() {
   document.addEventListener("click", function () {
     fileDropdown.classList.remove("show");
   });
-  fileButton.addEventListener("mouseenter", (event: MouseEvent) => {
+  fileButton.addEventListener("mouseenter", () => {
     fileDropdown.classList.toggle("show");
   });
-  fileDropdown.addEventListener("mouseleave", (event: MouseEvent) => {
+  fileDropdown.addEventListener("mouseleave", () => {
     fileDropdown.classList.remove("show");
   });
   fileDropdown.addEventListener("click", function (e) {
@@ -951,30 +886,30 @@ function setFile() {
   });
 }
 function updateUserInterface(isLoggedIn: boolean, userName?: string) {
-    const authButton = document.getElementById("auth-button");
+  const authButton = document.getElementById("auth-button");
 
-    if (!authButton) return;
+  if (!authButton) return;
 
-    const existingDropdown = document.getElementById("profile-dropdown");
-    if (existingDropdown) {
-      existingDropdown.remove();
-    }
-
-    const newAuthButton = authButton.cloneNode(true) as HTMLElement;
-    authButton.parentNode?.replaceChild(newAuthButton, authButton);
-
-    if (isLoggedIn) {
-      newAuthButton.textContent = userName || "My Account";
-      newAuthButton.classList.add("logged-in");
-
-      newAuthButton.addEventListener("click", toggleProfileDropdown);
-    } else {
-      newAuthButton.textContent = "Sign In";
-      newAuthButton.classList.remove("logged-in");
-
-      newAuthButton.addEventListener("click", showAuthModal);
-    }
+  const existingDropdown = document.getElementById("profile-dropdown");
+  if (existingDropdown) {
+    existingDropdown.remove();
   }
+
+  const newAuthButton = authButton.cloneNode(true) as HTMLElement;
+  authButton.parentNode?.replaceChild(newAuthButton, authButton);
+
+  if (isLoggedIn) {
+    newAuthButton.textContent = userName || "My Account";
+    newAuthButton.classList.add("logged-in");
+
+    newAuthButton.addEventListener("click", toggleProfileDropdown);
+  } else {
+    newAuthButton.textContent = "Sign In";
+    newAuthButton.classList.remove("logged-in");
+
+    newAuthButton.addEventListener("click", showAuthModal);
+  }
+}
 async function getUserProfile() {
   return authService.currentUser;
 }
@@ -1187,7 +1122,7 @@ function setUpLoginAndSignup() {
         throw new Error(errorData.error || "Registration failed");
       }
 
-      const data = await response.json();
+      
 
       showLoginView();
 
@@ -1396,29 +1331,29 @@ async function loadSavedCircuits() {
     console.error("Error loading circuits:", error);
   }
 }
-  async function handleLogout() {
-    try {
-      const success = await authService.logout();
+async function handleLogout() {
+  try {
+    const success = await authService.logout();
 
-      if (success) {
-        updateUserInterface(false);
+    if (success) {
+      updateUserInterface(false);
 
-        const profileDropdown = document.getElementById("profile-dropdown");
-        if (profileDropdown) {
-          profileDropdown.remove();
-        }
-
-        repository.refresh();
-
-        alert("You have been logged out successfully");
-      } else {
-        alert("Logout failed. Please try again.");
+      const profileDropdown = document.getElementById("profile-dropdown");
+      if (profileDropdown) {
+        profileDropdown.remove();
       }
-    } catch (error) {
-      console.error("Logout error:", error);
-      alert("Error during logout. Please try again.");
+
+      repository.refresh();
+
+      alert("You have been logged out successfully");
+    } else {
+      alert("Logout failed. Please try again.");
     }
+  } catch (error) {
+    console.error("Logout error:", error);
+    alert("Error during logout. Please try again.");
   }
+}
 function toggleProfileDropdown(event: MouseEvent) {
   event.stopPropagation();
 
@@ -1428,7 +1363,6 @@ function toggleProfileDropdown(event: MouseEvent) {
     return;
   }
 
-  // Get user from AuthService
   const user = authService.currentUser;
   if (!user) {
     authService.logout();
@@ -1441,7 +1375,6 @@ function toggleProfileDropdown(event: MouseEvent) {
     return;
   }
 
-  // Create dropdown
   profileDropdown = document.createElement("div");
   profileDropdown.id = "profile-dropdown";
   profileDropdown.className = "profile-dropdown";
@@ -1455,7 +1388,6 @@ function toggleProfileDropdown(event: MouseEvent) {
     <div class="profile-option" id="logout-option">Sign Out</div>
   `;
 
-  // Position dropdown
   const authButton = document.getElementById("auth-button");
   if (authButton) {
     const rect = authButton.getBoundingClientRect();
@@ -1467,10 +1399,9 @@ function toggleProfileDropdown(event: MouseEvent) {
 
   document.body.appendChild(profileDropdown);
 
-  // Add event listeners
   document.getElementById("logout-option")?.addEventListener("click", handleLogout);
-  
-  document.getElementById("my-circuits-option")?.addEventListener("click", function() {
+
+  document.getElementById("my-circuits-option")?.addEventListener("click", function () {
     repository.open();
     const tabs = document.querySelectorAll(".tab");
     tabs.forEach(tab => {
@@ -1481,7 +1412,6 @@ function toggleProfileDropdown(event: MouseEvent) {
     profileDropdown?.remove();
   });
 
-  // Close dropdown when clicking elsewhere
   document.addEventListener("click", function closeDropdownOnClick(e) {
     if (!profileDropdown?.contains(e.target as Node) && e.target !== authButton) {
       profileDropdown?.remove();
@@ -1490,12 +1420,11 @@ function toggleProfileDropdown(event: MouseEvent) {
   });
 }
 
-// And add a global showAuthModal function for reference elsewhere
 function showAuthModal() {
   const authModal = document.getElementById("auth-modal");
   if (authModal) {
     authModal.classList.add("active");
-    // Show login view by default
+
     const loginForm = document.getElementById("login-form");
     if (loginForm) {
       loginForm.classList.add("active");
@@ -1520,10 +1449,10 @@ function setTheme() {
     e.stopPropagation();
     themeDropdown.classList.toggle("show");
   });
-  themeButton.addEventListener("mouseenter", (event: MouseEvent) => {
+  themeButton.addEventListener("mouseenter", () => {
     themeDropdown.classList.toggle("show");
   });
-  themeDropdown.addEventListener("mouseleave", (event: MouseEvent) => {
+  themeDropdown.addEventListener("mouseleave", () => {
     themeDropdown.classList.remove("show");
   });
 
@@ -1635,17 +1564,15 @@ function saveToLocalStorage(key: string = "history"): void {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-   initApp().then(() => {
-    // Ensure UI reflects current auth state
+  initApp().then(() => {
     if (authService.isAuthenticated && authService.currentUser) {
       const authButton = document.getElementById("auth-button");
       if (authButton) {
         authButton.textContent = authService.currentUser.name;
         authButton.classList.add("logged-in");
-        
-        // Replace click event
+
         const newAuthButton = authButton.cloneNode(true) as HTMLElement;
-        newAuthButton.onclick = (e) => {
+        newAuthButton.onclick = e => {
           e.stopPropagation();
           toggleProfileDropdown(e as MouseEvent);
         };

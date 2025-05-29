@@ -1,15 +1,14 @@
 import { CircuitBoard } from "../CircuitBoard";
 import { Component } from "../Component";
 import { LogicGate } from "../LogicGate";
-import { Led } from "../components/Led";
 
 export class GatePanel {
   private panelElement: HTMLElement;
   private selectedComponent: Component | null = null;
-  private circuitBoard : CircuitBoard; // Global circuitBoard instance
+  private circuitBoard: CircuitBoard; // Global circuitBoard instance
   private onPropertiesChanged: () => void;
 
-  constructor(circuit  : CircuitBoard ,containerId: string, onPropertiesChanged: () => void) {
+  constructor(circuit: CircuitBoard, containerId: string, onPropertiesChanged: () => void) {
     this.panelElement = document.getElementById(containerId) || document.createElement("div");
     this.onPropertiesChanged = onPropertiesChanged;
     this.circuitBoard = circuit;
@@ -292,9 +291,11 @@ export class GatePanel {
       event.stopPropagation();
       if (this.selectedComponent && isLogicGate) {
         // rotateGate metodu LogicGate sınıfında olmalı
-        this.selectedComponent.rotate(1);
-        this.render();
-        this.onPropertiesChanged();
+        if (this.selectedComponent instanceof LogicGate) {
+          this.selectedComponent.rotate(1);
+          this.render();
+          this.onPropertiesChanged();
+        }
       }
     });
 
@@ -304,7 +305,7 @@ export class GatePanel {
         event.stopPropagation();
         if (this.selectedComponent) {
           const portToRemove =
-          this.selectedComponent.inputs[this.selectedComponent.inputs.length - 1];
+            this.selectedComponent.inputs[this.selectedComponent.inputs.length - 1];
           this.circuitBoard.removeWiresByPort(portToRemove);
           this.selectedComponent.decreaseInputCount();
           this.render();

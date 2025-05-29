@@ -1,6 +1,6 @@
 import { Point } from "../Component";
 import { LogicGate } from "../LogicGate";
-import { BitArray, BitwiseOperations, bitsToNumber, numberToBits } from '../MultibitTypes';
+import { BitArray, bitsToNumber, numberToBits } from '../MultibitTypes';
 
 export class HalfSubtractor extends LogicGate {
   constructor(position: Point) {
@@ -27,8 +27,6 @@ export class HalfSubtractor extends LogicGate {
       // Determine max width for the result
       const maxWidth = Math.max(valueA.length, valueB.length);
 
-      // Calculate maximum value that can be represented by this bit width
-      const maxValue = Math.pow(2, maxWidth) - 1;
 
       if (result >= 0) {
         // Result is positive or zero, can fit within the bit width

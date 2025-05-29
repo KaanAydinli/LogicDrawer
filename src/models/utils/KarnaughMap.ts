@@ -1,10 +1,10 @@
-import { Component } from "../Component";
+
 import { VerilogCircuitConverter } from "./VerilogCircuitConverter";
 
 export class KarnaughMap {
   private truthTable: { inputs: boolean[]; outputs: boolean[] }[];
   private inputCount: number;
-  private outputCount: number;
+  
   private kmap: boolean[][];
   private groups: { cells: { row: number; col: number }[]; term: string }[] = [];
   private inputLabels: string[] = [];
@@ -20,7 +20,6 @@ export class KarnaughMap {
     this.inputLabels = inputLabels;
     this.outputLabels = outputLabels;
     this.inputCount = truthTable[0]?.inputs.length || 0;
-    this.outputCount = truthTable[0]?.outputs.length || 0;
 
     this.kmap = this.createKMap(outputIndex);
   }
@@ -79,19 +78,19 @@ export class KarnaughMap {
     } else if (this.inputCount === 3) {
       return {
         row: inputs[0] ? 1 : 0,
-        col: this.getBinaryToGrayIndex((inputs[1] ? 2 : 0) + (inputs[2] ? 1 : 0), 2),
+        col: this.getBinaryToGrayIndex((inputs[1] ? 2 : 0) + (inputs[2] ? 1 : 0)),
       };
     } else if (this.inputCount === 4) {
       return {
-        row: this.getBinaryToGrayIndex((inputs[0] ? 2 : 0) + (inputs[1] ? 1 : 0), 2),
-        col: this.getBinaryToGrayIndex((inputs[2] ? 2 : 0) + (inputs[3] ? 1 : 0), 2),
+        row: this.getBinaryToGrayIndex((inputs[0] ? 2 : 0) + (inputs[1] ? 1 : 0)),
+        col: this.getBinaryToGrayIndex((inputs[2] ? 2 : 0) + (inputs[3] ? 1 : 0)),
       };
     }
 
     return { row: 0, col: 0 };
   }
 
-  private getBinaryToGrayIndex(binary: number, bits: number): number {
+  private getBinaryToGrayIndex(binary: number): number {
     const grayCodeIndices = [0, 1, 3, 2];
     return grayCodeIndices[binary];
   }
@@ -219,7 +218,7 @@ export class KarnaughMap {
 
     // Essential prime implicant'ları bul (sadece bir grup tarafından kapsanan mintermler)
     const essentialGroups = new Set<{ cells: { row: number; col: number }[]; term: string }>();
-    mintermCoverage.forEach((groups, mintermKey) => {
+    mintermCoverage.forEach((groups) => {
       if (groups.length === 1) {
         essentialGroups.add(groups[0]);
       }

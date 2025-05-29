@@ -1,14 +1,9 @@
+import { Queue } from "../main";
 import { CircuitBoard } from "../models/CircuitBoard";
 import { KarnaughMap } from "../models/utils/KarnaughMap";
 import { VerilogCircuitConverter } from "../models/utils/VerilogCircuitConverter";
 import { apiBaseUrl } from "../services/apiConfig";
 import { ImageUploader } from "./ImageUploader"; // Import directly
-
-// Clear interface for message history
-export interface MessageQueue {
-  messages: string[];
-  enqueue: (item: string) => void;
-}
 
 // Base tool interface
 export interface Tool {
@@ -20,9 +15,9 @@ export interface ToolContext {
   message: string;
   image?: string | null;
   circuitBoard: CircuitBoard;
-  queue: MessageQueue; // Using the interface
+  queue: Queue;
   promptAI: string;
-  imageUploader: ImageUploader; // Added image uploader
+  imageUploader: ImageUploader;
 }
 
 export class VerilogImportTool implements Tool {
@@ -99,7 +94,7 @@ export class GeminiQueryTool implements Tool {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: augmentedMessage,
-          history: context.queue.messages, // Now properly formatted with roles
+          history: context.queue.messages,
           systemPrompt: context.promptAI,
         }),
       });
@@ -278,14 +273,14 @@ export class TruthTableImageTool implements Tool {
       }
 
       // Use improved heuristic and multi-output support
-      const { truthTable, inputLabels, outputLabels, inputIndices, outputIndices } =
+      const { truthTable, inputLabels, outputLabels, outputIndices } =
         this.convertToTruthTableFormat(extractedTableData);
       const { success, createdOutputs } = await this.createCircuitFromTruthTable(
         truthTable,
         inputLabels,
         outputLabels,
         context.circuitBoard,
-        inputIndices,
+
         outputIndices
       );
       if (success && createdOutputs.length > 0) {
@@ -394,7 +389,7 @@ export class TruthTableImageTool implements Tool {
     inputLabels: string[],
     outputLabels: string[],
     circuitBoard: CircuitBoard,
-    inputIndices: number[],
+
     outputIndices: number[]
   ): Promise<{ success: boolean; createdOutputs: string[] }> {
     const createdOutputs: string[] = [];

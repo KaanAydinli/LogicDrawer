@@ -1,7 +1,9 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
-import dotenv from "dotenv";
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { configureSecurityMiddleware } from './middlewares/security';
@@ -10,7 +12,7 @@ import authRoutes from './routes/authRoutes';
 import circuitRoutes from './routes/circuitRoutes';
 import aiRoutes from './routes/aiRoutes';
 
-dotenv.config();
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;

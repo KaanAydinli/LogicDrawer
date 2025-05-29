@@ -3,7 +3,6 @@ import { VerilogCircuitConverter } from "../models/utils/VerilogCircuitConverter
 import { Wire } from "../models/Wire";
 import { apiBaseUrl } from "../services/apiConfig";
 import { CircuitService } from "../services/CircuitService";
-import { CircuitBoard } from "../models/CircuitBoard";
 import { AuthService } from "../services/AuthService";
 
 export interface Comment {
@@ -752,7 +751,6 @@ export class CircuitRepositoryController {
   private uploadFormElement: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
   private currentUserId: string = "unknown-user";
-  private currentUserName: string = "";
 
   private currentCircuits: CircuitEntry[] = [];
   private currentTab: "browse" | "my-circuits" | "shared-me" = "browse";
@@ -770,7 +768,7 @@ export class CircuitRepositoryController {
 
     if (authService.isAuthenticated && authService.currentUser) {
       this.currentUserId = authService.currentUser.id;
-      this.currentUserName = authService.currentUser.name;
+      
       console.log("User ID set from AuthService:", this.currentUserId);
     } else {
     }
@@ -786,7 +784,7 @@ export class CircuitRepositoryController {
         const data = await response.json();
         if (data.user) {
           this.currentUserId = data.user._id || data.user.id;
-          this.currentUserName = data.user.name;
+          
           console.log("User ID set from API:", this.currentUserId);
         }
       } else {

@@ -1,5 +1,5 @@
 import { Component, Point } from '../Component';
-import { BitArray, numberToBits, bitsToNumber } from '../MultibitTypes';
+import { BitArray, bitsToNumber } from '../MultibitTypes';
 
 export class HexDigit extends Component {
   state: boolean;

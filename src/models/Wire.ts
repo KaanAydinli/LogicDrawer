@@ -133,7 +133,7 @@ export class Wire {
     this.controlPoints = [];
   }
 
-  public autoRoute(components: Component[] = [], wires: Wire[] = []): void {
+  public autoRoute(components: Component[] = []): void {
     this.controlPoints = [];
 
     if (!this.to || !this.from) return;
@@ -165,8 +165,6 @@ export class Wire {
       };
     }
 
-    const centerX = bounds.x + bounds.width / 2;
-    const centerY = bounds.y + bounds.height / 2;
     const portX = port.position.x;
     const portY = port.position.y;
 
@@ -214,7 +212,7 @@ export class Wire {
     
   ): Point[] {
     const GRID_SIZE = 20;
-    const MIN_SEGMENT_LENGTH = 40;
+   
 
     const snapToGrid = (point: Point): Point => ({
       x: Math.round(point.x / GRID_SIZE) * GRID_SIZE,
@@ -279,7 +277,7 @@ export class Wire {
     
   ): Point[] {
     const CLEARANCE = 30;
-    const GRID_SIZE = 20;
+ 
 
     const start = startInfo.connectionPoint;
     const end = endInfo.connectionPoint;
@@ -416,7 +414,7 @@ export class Wire {
     startInfo: any,
     endInfo: any
   ): Point[] | null {
-    const waypoints = this.generateWaypoints(start, end, obstacles);
+    const waypoints = this.generateWaypoints( obstacles);
 
     if (waypoints.length === 0) {
       return this.createDirectRoute(startInfo, endInfo);
@@ -425,7 +423,7 @@ export class Wire {
     return this.findOptimalWaypointRoute(start, end, waypoints, obstacles);
   }
 
-  private generateWaypoints(start: Point, end: Point, obstacles: any[]): Point[] {
+  private generateWaypoints( obstacles: any[]): Point[] {
     const waypoints: Point[] = [];
     const CLEARANCE = 20;
 

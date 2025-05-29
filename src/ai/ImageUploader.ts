@@ -12,7 +12,6 @@ export class ImageUploader {
   // Remove roboflowService property
   // private roboflowService: RoboflowService;
   private circuitRecognizer: CircuitRecognizer;
-  private circuitBoard: CircuitBoard;
   private hasUI: boolean = false;
   private originalDimensions: ImageDimensions = { originalWidth: 0, originalHeight: 0 }; // Store dimensions here
 
@@ -25,8 +24,7 @@ export class ImageUploader {
     circuitBoard: CircuitBoard,
     containerId?: string
   ) {
-    // this.roboflowService = roboflowService; // Remove this line
-    this.circuitBoard = circuitBoard;
+   
     this.circuitRecognizer = new CircuitRecognizer(circuitBoard);
 
 

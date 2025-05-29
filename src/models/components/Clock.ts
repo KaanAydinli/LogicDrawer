@@ -6,7 +6,7 @@ export class Clock extends Component {
   private isOn: boolean = false;
   private timerId: number | null = null;
   private editMode: boolean = false;
-  private tempIntervalText: string = '';
+  
   private circuitBoard: CircuitBoard | null = null;
   private editor: HTMLTextAreaElement | null = null;
   private isEditing: boolean = false;

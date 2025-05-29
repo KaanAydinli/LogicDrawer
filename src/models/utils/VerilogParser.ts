@@ -172,13 +172,6 @@ export class VerilogParser {
     inputs.push(...bodyInputs);
     outputs.push(...bodyOutputs);
 
-    var temp = [];
-
-    temp.push(...inputs);
-    temp.push(...outputs);
-    temp.push(...wires);
-
-    temp = this.removeDuplicatePorts(temp);
 
     if (inputs.length === 0) {
       console.warn("No input ports defined or detected in the module.");
@@ -191,33 +184,15 @@ export class VerilogParser {
     return { inputs: inputs, outputs: outputs, wires: wires };
   }
 
-  private removeDuplicatePorts(ports: VerilogPort[]): VerilogPort[] {
-    const uniquePorts: VerilogPort[] = [];
-    const portNames = new Set<string>();
-
-    for (const port of ports) {
-      
-      if (port && port.name) {
-        if (portNames.has(port.name)) {
-          
-          throw new Error(`Duplicate port name found: ${port.name}`);
-        }
-        portNames.add(port.name);
-        uniquePorts.push(port);
-      } else {
-        console.warn("Encountered an invalid port/wire object during deduplication:", port);
-      }
-    }
-    return uniquePorts;
-  }
-
+  
   private collectPortsWithBitWidths(source: string, regex: RegExp): VerilogPort[] {
     const results: VerilogPort[] = [];
     let match;
     regex.lastIndex = 0;
 
     while ((match = regex.exec(source)) !== null) {
-      const [, bitRange, msbStr, lsbStr, identifiers] = match;
+      // bitRange (match[1]) was unused and has been removed from destructuring
+      const [, , msbStr, lsbStr, identifiers] = match;
       if (!identifiers || identifiers.trim() === "") continue;
 
       const defaultMsb = msbStr ? parseInt(msbStr, 10) : undefined;
@@ -227,12 +202,12 @@ export class VerilogParser {
           ? Math.abs(defaultMsb - defaultLsb) + 1
           : undefined;
 
-      var parts = identifiers
+      const parts = identifiers
         .split(",")
         .map(s => s.trim())
         .filter(Boolean);
-      for (var part of parts) {
-        part;
+      for (const part of parts) {
+        // Redundant 'part;' line removed
         const nameMatch = part.match(/(?:\[\s*(\d+)\s*:\s*(\d+)\s*\]\s*)?(\w+)/);
         if (nameMatch) {
           const [, partMsbStr, partLsbStr, name] = nameMatch;
@@ -272,7 +247,6 @@ export class VerilogParser {
     const gates: VerilogGate[] = [];
     let gateCounter = 0;
 
-    
     const alwaysRegex =
       /always\s*@\s*\(([^)]*?)\)\s*begin([\s\S]*?)end(?=\s*(?:always|assign|endmodule|$))/g;
     let alwaysMatch;
@@ -285,24 +259,20 @@ export class VerilogParser {
       console.log("Found always block with sensitivity:", sensitivity);
       console.log("Always body:", alwaysBody);
 
-      
       const isSequential = /(pos|neg)edge\s+(\w+)/.test(sensitivity);
       const clockMatch = sensitivity.match(/(pos|neg)edge\s+(\w+)/);
       const clockSignal = clockMatch ? clockMatch[2] : null;
 
       if (isSequential) {
         console.log(`Sequential logic detected with clock signal: ${clockSignal}`);
-        
+
         const sequentialGates = this.extractSequentialLogic(alwaysBody, clockSignal, gateCounter);
         gates.push(...sequentialGates);
       } else {
-        
         const currentBlockGates: VerilogGate[] = [];
 
-        
         this.processNestedIfStatements(alwaysBody, currentBlockGates, gateCounter);
 
-        
         this.extractCaseStatements(alwaysBody, currentBlockGates, gateCounter + 100);
 
         gates.push(...currentBlockGates);
@@ -327,28 +297,25 @@ export class VerilogParser {
       return gates;
     }
 
-    
     if (alwaysBody.includes("if") && alwaysBody.includes("else")) {
       return this.extractSequentialIfElse(alwaysBody, clockSignal, gateCounter);
     }
 
-    
     const assignmentRegex = /(\w+(?:\[\d+\])?)\s*<=\s*([^;]+);/g;
     let assignmentMatch;
 
     while ((assignmentMatch = assignmentRegex.exec(alwaysBody)) !== null) {
-      const [fullMatch, target, expression] = assignmentMatch;
+      const [ target, expression] = assignmentMatch;
       const cleanTarget = this.cleanSignalName(target);
       const cleanExpression = expression.trim();
 
       console.log(`Found sequential assignment: ${cleanTarget} <= ${cleanExpression}`);
 
-      
       const dffGate: VerilogGate = {
         type: "dflipflop",
         name: `dff_${cleanTarget}_${gateCounter++}`,
         output: cleanTarget,
-        inputs: [cleanExpression, clockSignal], 
+        inputs: [cleanExpression, clockSignal],
       };
 
       gates.push(dffGate);
@@ -357,7 +324,6 @@ export class VerilogParser {
     return gates;
   }
 
-  
   private extractSequentialIfElse(
     alwaysBody: string,
     clockSignal: string | null,
@@ -365,32 +331,28 @@ export class VerilogParser {
   ): VerilogGate[] {
     const gates: VerilogGate[] = [];
 
-    
     const ifRegex = /if\s*\(([^)]+)\)\s*([^;]+?)\s*<=\s*([^;]+);\s*else\s*([^;]+?)\s*<=\s*([^;]+);/;
     const match = alwaysBody.match(ifRegex);
 
     if (match) {
       const [, condition, targetIf, valueIf, targetElse, valueElse] = match;
 
-      
       if (this.cleanSignalName(targetIf) === this.cleanSignalName(targetElse)) {
         const target = this.cleanSignalName(targetIf);
 
-        
         const muxGate: VerilogGate = {
           type: "mux2",
           name: `mux_${target}_${gateCounter}`,
           output: `_mux_${target}_${gateCounter}`,
-          inputs: [valueElse, valueIf], 
-          controlSignal: condition, 
+          inputs: [valueElse, valueIf],
+          controlSignal: condition,
         };
 
-        
         const dffGate: VerilogGate = {
           type: "dflipflop",
           name: `dff_${target}_${gateCounter + 1}`,
           output: target,
-          inputs: [muxGate.output, clockSignal!], 
+          inputs: [muxGate.output, clockSignal!],
         };
 
         gates.push(muxGate);
@@ -400,7 +362,6 @@ export class VerilogParser {
       }
     }
 
-    
     return this.extractSequentialLogic(alwaysBody, clockSignal, gateCounter);
   }
 
@@ -409,7 +370,6 @@ export class VerilogParser {
     gates: VerilogGate[],
     gateCounter: number
   ): string | null {
-    
     const ifRegex = /\bif\s*\(([\s\S]+?)\)/;
     const ifMatch = alwaysBody.match(ifRegex);
 
@@ -421,7 +381,6 @@ export class VerilogParser {
     const afterIfIndex = ifMatch.index + ifMatch[0].length;
     let remainingText = alwaysBody.substring(afterIfIndex).trim();
 
-    
     const thenResult = this.extractStatementOrBlock(remainingText);
     if (!thenResult) {
       return null;
@@ -430,7 +389,6 @@ export class VerilogParser {
     const thenBlock = thenResult.content;
     remainingText = thenResult.remaining.trim();
 
-    
     let elseBlock = null;
     if (remainingText.startsWith("else")) {
       remainingText = remainingText.substring(4).trim();
@@ -441,7 +399,6 @@ export class VerilogParser {
       }
     }
 
-    
     let finalOutputTarget: string | null = null;
 
     const thenAssign = thenBlock.match(/(\w+)\s*=\s*([^;]+);/);
@@ -458,23 +415,17 @@ export class VerilogParser {
       return null;
     }
 
-    
-    
-    
     const isOuterMostIf = gateCounter === 0;
     const outputName = isOuterMostIf ? finalOutputTarget : `temp_if_${gateCounter}`;
 
-    
     let thenValue: string;
     const hasThenNestedIf = thenBlock.includes("if (") || thenBlock.includes("if(");
 
     if (hasThenNestedIf) {
-      
       const nestedOutput = this.processNestedIfStatements(thenBlock, gates, gateCounter + 1);
       thenValue = nestedOutput || "1'b0";
       console.log(`Nested if (THEN branch) output: ${thenValue}`);
     } else {
-      
       const assignMatch = thenBlock.match(/(\w+)\s*=\s*([^;]+);/);
       if (assignMatch) {
         thenValue = this.cleanSignalName(assignMatch[2]);
@@ -483,17 +434,14 @@ export class VerilogParser {
       }
     }
 
-    
     let elseValue: string;
     const hasElseNestedIf = elseBlock && (elseBlock.includes("if (") || elseBlock.includes("if("));
 
     if (hasElseNestedIf && elseBlock) {
-      
       const nestedOutput = this.processNestedIfStatements(elseBlock, gates, gateCounter + 100);
       elseValue = nestedOutput || "1'b0";
       console.log(`Nested if (ELSE branch) output: ${elseValue}`);
     } else if (elseBlock) {
-      
       const assignMatch = elseBlock.match(/(\w+)\s*=\s*([^;]+);/);
       if (assignMatch) {
         elseValue = this.cleanSignalName(assignMatch[2]);
@@ -504,13 +452,12 @@ export class VerilogParser {
       elseValue = "1'b0";
     }
 
-    
     const muxGate: VerilogGate = {
       type: "mux2",
       name: `if_mux_${gateCounter}`,
-      
+
       output: outputName,
-      inputs: [elseValue, thenValue], 
+      inputs: [elseValue, thenValue],
       controlSignal: condition,
     };
 
@@ -519,12 +466,10 @@ export class VerilogParser {
     );
     gates.push(muxGate);
 
-    
     if (remainingText.includes("if (") || remainingText.includes("if(")) {
       this.processNestedIfStatements(remainingText, gates, gateCounter + 200);
     }
 
-    
     return outputName;
   }
 
@@ -674,28 +619,30 @@ export class VerilogParser {
     }
   }
   private extractAndProcessAssignments(body: string): VerilogGate[] {
-    const assignRegex = /assign\s+(\w+(?:\[\d+:\d+\]|\[\d+\])?)\s*=\s*([\w\s&|~^()\[\]<>!?:+\-*\/'"]+);?/g;
+    const assignRegex =
+      /assign\s+(\w+(?:\[\d+:\d+\]|\[\d+\])?)\s*=\s*([\w\s&|~^()\[\]<>!?:+\-*\/'"]+);?/g;
     const gates: VerilogGate[] = [];
     let match;
     let gateCounter = 0;
-  
+
     while ((match = assignRegex.exec(body)) !== null) {
       const [, outputRaw, expression] = match;
       const output = outputRaw.replace(/\[.*\]/, "");
       const trimmedExpr = expression.trim();
-  
+
       // Check for Verilog literals: 1'b0, 1'b1, 8'h2A, etc.
-      const literalPattern = /^\d+'[bB][01xXzZ_]+$|^\d+'[hH][0-9a-fA-FxXzZ_]+$|^\d+'[dD][0-9_]+$|^\d+'[oO][0-7xXzZ_]+$|^1'b[01xXzZ]$/;
-      
+      const literalPattern =
+        /^\d+'[bB][01xXzZ_]+$|^\d+'[hH][0-9a-fA-FxXzZ_]+$|^\d+'[dD][0-9_]+$|^\d+'[oO][0-7xXzZ_]+$|^1'b[01xXzZ]$/;
+
       if (literalPattern.test(trimmedExpr)) {
         // Direct constant assignment
         const constantGate: VerilogGate = {
-          type: 'buf',
+          type: "buf",
           name: `constant_${output}_${gateCounter++}`,
           output: output,
-          inputs: [trimmedExpr]
+          inputs: [trimmedExpr],
         };
-        
+
         console.log(`Created constant assignment: ${output} = ${trimmedExpr}`);
         gates.push(constantGate);
         continue;
@@ -864,7 +811,7 @@ export class VerilogParser {
     const parts = this.splitTernary(expr);
     if (parts.length !== 3) {
       console.error(`Could not properly split ternary expression: ${expr}`);
-      return; 
+      return;
     }
 
     const [condition, trueExpr, falseExpr] = parts;
@@ -980,53 +927,46 @@ export class VerilogParser {
     let currentIndex = startIndex;
     const beginKeyword = "begin";
     const endKeyword = "end";
-    let inBegin = false; 
+    let inBegin = false;
 
-    
     while (currentIndex < text.length && /\s/.test(text[currentIndex])) {
       currentIndex++;
     }
     if (text.substring(currentIndex, currentIndex + beginKeyword.length) === beginKeyword) {
       currentIndex += beginKeyword.length;
-      balance = 1; 
+      balance = 1;
       inBegin = true;
     } else {
-      
       return -1;
     }
 
     while (currentIndex < text.length) {
-      
       if (text.substring(currentIndex, currentIndex + beginKeyword.length) === beginKeyword) {
         balance++;
         currentIndex += beginKeyword.length;
-        
       } else if (text.substring(currentIndex, currentIndex + endKeyword.length) === endKeyword) {
         balance--;
         if (balance === 0 && inBegin) {
-          
-          return currentIndex + endKeyword.length; 
+          return currentIndex + endKeyword.length;
         }
-        if (balance < 0) return -1; 
+        if (balance < 0) return -1;
         currentIndex += endKeyword.length;
       } else {
         currentIndex++;
       }
     }
-    return -1; 
+    return -1;
   }
 
-  
   private extractStatementOrBlock(text: string): { content: string; remaining: string } | null {
     text = text.trim();
     if (!text) return null;
 
     if (text.startsWith("begin")) {
-      const endBlockIndex = this.findMatchingEnd(text, 0); 
+      const endBlockIndex = this.findMatchingEnd(text, 0);
       if (endBlockIndex !== -1) {
-        
         const beginContentStart = text.indexOf("begin") + "begin".length;
-        const endContentEnd = endBlockIndex - "end".length; 
+        const endContentEnd = endBlockIndex - "end".length;
         const content = text.substring(beginContentStart, endContentEnd).trim();
         const remaining = text.substring(endBlockIndex).trim();
         return { content, remaining };
@@ -1035,11 +975,9 @@ export class VerilogParser {
           "Syntax error: Missing 'end' for 'begin' block starting near:",
           text.substring(0, 50) + "..."
         );
-        return null; 
+        return null;
       }
     } else {
-      
-      
       let semicolonIndex = -1;
       let parenDepth = 0;
       for (let i = 0; i < text.length; i++) {
@@ -1052,7 +990,7 @@ export class VerilogParser {
       }
 
       if (semicolonIndex !== -1) {
-        const content = text.substring(0, semicolonIndex + 1).trim(); 
+        const content = text.substring(0, semicolonIndex + 1).trim();
         const remaining = text.substring(semicolonIndex + 1).trim();
         return { content, remaining };
       } else {
@@ -1060,7 +998,7 @@ export class VerilogParser {
           "Syntax error: Expected single statement ending with ';' near:",
           text.substring(0, 50) + "..."
         );
-        return null; 
+        return null;
       }
     }
   }
@@ -1076,101 +1014,104 @@ export class VerilogParser {
   ): void {
     // First, tokenize the expression
     const tokens = this.tokenizeExpression(expr);
-    
+
     // Convert to postfix notation (Reverse Polish Notation)
     const postfix = this.infixToPostfix(tokens);
-    
+
     // Process the postfix expression to create gates
     this.processPostfixExpression(postfix, output, gates, gateCounter);
   }
 
   private tokenizeExpression(expr: string): string[] {
     const tokens: string[] = [];
-    let current = '';
-    let inIdentifier = false;
-    let inNumber = false;
-    let inBitSelect = false;
+    let current = "";
     let parenDepth = 0;
 
     for (let i = 0; i < expr.length; i++) {
       const char = expr[i];
-      
-      if (char === '(') {
+
+      if (char === "(") {
         if (current) {
-          tokens.push(current);
-          current = '';
+          tokens.push(current.trim()); // Add trim here
+          current = "";
         }
         tokens.push(char);
         parenDepth++;
         continue;
       }
-      
-      if (char === ')') {
+
+      if (char === ")") {
         if (current) {
-          tokens.push(current);
-          current = '';
+          tokens.push(current.trim()); // Add trim here
+          current = "";
         }
         tokens.push(char);
         parenDepth--;
         continue;
       }
-      
-      if (char === '&' || char === '|' || char === '^' || char === '~') {
+
+      if (char === "&" || char === "|" || char === "^" || char === "~") {
         if (current) {
-          tokens.push(current);
-          current = '';
+          tokens.push(current.trim()); // Add trim here
+          current = "";
         }
         tokens.push(char);
         continue;
       }
-      
+
       if (/\s/.test(char)) {
-        if (current) {
-          tokens.push(current);
-          current = '';
+        // Only push current token if it's not empty
+        if (current.trim()) {
+          tokens.push(current.trim()); // Add trim here
+          current = "";
         }
         continue;
       }
-      
+
       current += char;
     }
-    
+
     if (current) {
-      tokens.push(current);
+      tokens.push(current.trim()); // Add trim here
     }
-    
+
     return tokens;
   }
-
   private getOperatorPrecedence(op: string): number {
     switch (op) {
-      case '~': return 3;
-      case '&': return 2;
-      case '^': return 1;
-      case '|': return 0;
-      default: return -1;
+      case "~":
+        return 3;
+      case "&":
+        return 2;
+      case "^":
+        return 1;
+      case "|":
+        return 0;
+      default:
+        return -1;
     }
   }
 
   private infixToPostfix(tokens: string[]): string[] {
     const output: string[] = [];
     const operators: string[] = [];
-    
+
     for (const token of tokens) {
-      if (token === '(') {
+      if (token === "(") {
         operators.push(token);
-      } else if (token === ')') {
-        while (operators.length > 0 && operators[operators.length - 1] !== '(') {
+      } else if (token === ")") {
+        while (operators.length > 0 && operators[operators.length - 1] !== "(") {
           output.push(operators.pop()!);
         }
-        if (operators.length > 0 && operators[operators.length - 1] === '(') {
+        if (operators.length > 0 && operators[operators.length - 1] === "(") {
           operators.pop();
         }
       } else if (this.isOperator(token)) {
         while (
           operators.length > 0 &&
-          operators[operators.length - 1] !== '(' &&
-          this.getOperatorPrecedence(operators[operators.length - 1]) >= this.getOperatorPrecedence(token)
+          operators[operators.length - 1] !== "(" &&
+          this.getOperatorPrecedence(operators[operators.length - 1]) >=
+            this.getOperatorPrecedence(token)
         ) {
           output.push(operators.pop()!);
         }
@@ -1179,16 +1120,16 @@ export class VerilogParser {
         output.push(token);
       }
     }
-    
+
     while (operators.length > 0) {
       output.push(operators.pop()!);
     }
-    
+
     return output;
   }
 
   private isOperator(token: string): boolean {
-    return ['~', '&', '|', '^'].includes(token);
+    return ["~", "&", "|", "^"].includes(token);
   }
 
   private processPostfixExpression(
@@ -1199,69 +1140,65 @@ export class VerilogParser {
   ): void {
     const stack: string[] = [];
     let tempCounter = 0;
-    
+
     const generateTempName = (op: string): string => `_temp_${op}_${gateCounter}_${tempCounter++}`;
-    
+
     for (const token of postfix) {
       if (this.isOperator(token)) {
-        if (token === '~') {
+        if (token === "~") {
           // Unary operator
           const operand = stack.pop()!;
-          const tempOut = generateTempName('not');
-          
+          const tempOut = generateTempName("not");
+
           gates.push({
-            type: 'not',
+            type: "not",
             name: `not_${tempOut}`,
             output: tempOut,
-            inputs: [this.cleanSignalName(operand)]
+            inputs: [this.cleanSignalName(operand)],
           });
-          
+
           stack.push(tempOut);
         } else {
           // Binary operator
           const right = stack.pop()!;
           const left = stack.pop()!;
           const tempOut = generateTempName(token);
-          
+
           gates.push({
-            type: token === '&' ? 'and' : token === '|' ? 'or' : 'xor',
+            type: token === "&" ? "and" : token === "|" ? "or" : "xor",
             name: `${token}_${tempOut}`,
             output: tempOut,
-            inputs: [
-              this.cleanSignalName(left),
-              this.cleanSignalName(right)
-            ]
+            inputs: [this.cleanSignalName(left), this.cleanSignalName(right)],
           });
-          
+
           stack.push(tempOut);
         }
       } else {
         stack.push(token);
       }
     }
-    
+
     // Connect final result to output
     const finalResult = stack.pop()!;
     if (finalResult !== output) {
       gates.push({
-        type: 'buf',
+        type: "buf",
         name: `buf_${output}`,
         output: output,
-        inputs: [this.cleanSignalName(finalResult)]
+        inputs: [this.cleanSignalName(finalResult)],
       });
     }
   }
 
-  /**
-   * Sinyal adındaki boşluk ve bit aralıklarını temizler
-   */
+
   private cleanSignalName(name: string): string {
-    // If it's a Verilog constant (e.g., 1'b0, 4'hF, etc.), return it as is
-    if (/^\d+'[bdh][0-9a-fA-F_xzXZ]*$/.test(name.trim())) {
-      return name.trim();
+    const trimmedName = name.trim(); // Trim upfront
+    // If it's a Verilog constant (e.g., 1'b0, 4'hF, etc.), return it as is but trimmed
+    if (/^\d+'[bdh][0-9a-fA-F_xzXZ]*$/.test(trimmedName)) {
+      return trimmedName;
     }
-    // Otherwise clean up arrays/vector notation as before
-    return name.trim().replace(/\[.*\]/, "");
+    // For all other signal names, return the trimmed version.
+    return trimmedName;
   }
 
   private extractBasicGates(body: string): VerilogGate[] {
