@@ -4,7 +4,6 @@ declare global {
   }
 }
 import { AIAgent } from "./ai/AIAgent";
-import { MessageQueue } from "./ai/Tools";
 import { CircuitBoard } from "./models/CircuitBoard";
 import { AndGate } from "./models/gates/AndGate";
 import { OrGate } from "./models/gates/OrGate";
@@ -686,7 +685,6 @@ function createExampleCircuit() {
   circuitBoard.addComponent(andGate);
   circuitBoard.addComponent(lightBulb);
 }
-
 const fileInput = document.getElementById("loadFile") as HTMLInputElement;
 fileInput?.addEventListener("change", handleFileSelect);
 
@@ -698,40 +696,33 @@ function handleFileSelect(event: Event) {
   }
 }
 
-async function readJSONFile(file: File) {
+function readJSONFile(file: File) {
   const reader = new FileReader();
 
-  reader.onload = async function (event) {
+  reader.onload = function(event) {
     try {
       const jsonContent = event.target?.result as string;
       const circuitData = JSON.parse(jsonContent);
-
-      circuitData.userId = "current-user-id";
-
-      const response = await fetch(`${apiBaseUrl}/api/circuits`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(circuitData),
-      });
-
-      if (response.ok) {
-        console.log("Circuit saved successfully!");
-        alert("Circuit saved successfully!");
-      } else {
-        console.error("Failed to save circuit.");
-        alert("Failed to save circuit.");
+      
+      // Use CircuitBoard's import method instead of sending to API
+      circuitBoard.importCircuit(circuitData);
+      
+      // Update input text with filename (without extension)
+      const filename = file.name.replace(/\.[^/.]+$/, "");
+      if (inputText) {
+        inputText.value = filename;
       }
+      
+      console.log("Circuit loaded successfully");
     } catch (error) {
-      console.error("Error reading JSON file:", error);
-      alert("Error reading JSON file.");
+      console.error("Error reading or importing JSON file:", error);
+      alert("Error loading circuit file. Please check if it's a valid circuit JSON.");
     }
   };
 
-  reader.onerror = function () {
-    console.error("Failed to read file.");
-    alert("Failed to read file.");
+  reader.onerror = function() {
+    console.error("Failed to read file");
+    alert("Failed to read circuit file");
   };
 
   reader.readAsText(file);

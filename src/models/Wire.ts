@@ -1,5 +1,5 @@
-import { Component, Point, Port } from './Component';
-import { BitArray } from './MultibitTypes';
+import { Component, Point, Port } from "./Component";
+import { BitArray } from "./MultibitTypes";
 
 export class Wire {
   from: Port | null;
@@ -11,14 +11,13 @@ export class Wire {
   bitWidth: number = 1;
 
   constructor(fromPort: Port, which: boolean = true) {
-    if(which){
+    if (which) {
       this.from = fromPort;
       this.to = null;
       if (fromPort.bitWidth) {
         this.bitWidth = fromPort.bitWidth;
       }
-    }
-    else{
+    } else {
       this.to = fromPort;
       this.from = null;
       if (fromPort.bitWidth) {
@@ -28,7 +27,7 @@ export class Wire {
     console.log("Wire created from port: ", this.from?.type);
     this.tempEndPoint = null;
     this.selected = false;
-    this.controlPoints = []; 
+    this.controlPoints = [];
     this.selectedPointIndex = null;
   }
 
@@ -40,47 +39,44 @@ export class Wire {
 
     if (this.from && this.from.bitWidth !== toPort.bitWidth) {
       console.log(`Bit width mismatch: ${this.from.bitWidth} vs ${toPort.bitWidth}`);
-      
     }
 
-    const isOutputToInput = this.from && this.from.type === 'output' && toPort.type === 'input';
-    const isInputToOutput = this.from && this.from.type === 'input' && toPort.type === 'output';
+    const isOutputToInput = this.from && this.from.type === "output" && toPort.type === "input";
+    const isInputToOutput = this.from && this.from.type === "input" && toPort.type === "output";
 
     if (isOutputToInput) {
       this.to = toPort;
-      
-      if (toPort.type === 'input') {
+
+      if (toPort.type === "input") {
         toPort.isConnected = true;
       }
       this.tempEndPoint = null;
-      
+
       this.autoRoute();
-      
-      if(this.from && this.to)
-        this.from.value = this.to.value;
-      
+
+      if (this.from && this.to) this.from.value = this.to.value;
+
       console.log("Connected from output to input");
       this.transferValue();
       return true;
     }
-    
+
     if (isInputToOutput) {
       const temp = this.from;
       this.from = toPort;
       this.to = temp;
-      
-      
-      if (this.to && this.to.type === 'input') {
+
+      if (this.to && this.to.type === "input") {
         this.to.isConnected = true;
       }
       this.tempEndPoint = null;
       this.transferValue();
       this.autoRoute();
-      
+
       if (this.to) {
         this.from.value = this.to.value;
       }
-      
+
       console.log("Connected from output to input (after swap)");
       return true;
     }
@@ -88,308 +84,524 @@ export class Wire {
     console.log("Invalid connection type");
     return false;
   }
+
   transferValue(): void {
     if (!this.from || !this.to) return;
 
-    
     const sourceValue = this.from.value;
 
-    
     if (Array.isArray(sourceValue)) {
       if (this.to.bitWidth === 1) {
-        
         this.to.value = sourceValue.length > 0 ? sourceValue[0] : false;
       } else {
-        
         const targetArray: BitArray = [];
-        
-        
+
         for (let i = 0; i < this.to.bitWidth; i++) {
           if (i < sourceValue.length) {
             targetArray.push(sourceValue[i]);
           } else {
-            targetArray.push(false); 
+            targetArray.push(false);
           }
         }
-        
+
         this.to.value = targetArray;
       }
     } else {
-      
       if (this.to.bitWidth === 1) {
-        
         this.to.value = sourceValue;
       } else {
-        
         this.to.value = Array(this.to.bitWidth).fill(sourceValue);
       }
     }
   }
 
   disconnect(): void {
-
     console.log("Disconnected wire");
-    
-    if (this.to && this.to.type === 'input') {
+
+    if (this.to && this.to.type === "input") {
       this.to.isConnected = false;
       this.to = null;
     } else if (this.to) {
       this.to = null;
     }
-    
-    if (this.from) {
 
+    if (this.from) {
       this.from.isConnected = false;
       this.from = null;
     }
-    
+
     this.controlPoints = [];
   }
+
   public autoRoute(components: Component[] = [], wires: Wire[] = []): void {
     this.controlPoints = [];
-    
+
     if (!this.to || !this.from) return;
-    
-    const start = this.from.position;
-    const end = this.to.position;
+
   
-    // Use simple routing for short distances or when few components
-    if (components.length < 10 || this.getDistance(start, end) < 100) {
-      this.simpleRoute(start, end);
-      return;
-    }
-    
-    const gridSize = 20;
-    
-    const gridStart = {
-      x: Math.round(start.x / gridSize),
-      y: Math.round(start.y / gridSize)
-    };
-    
-    const gridEnd = {
-      x: Math.round(end.x / gridSize),
-      y: Math.round(end.y / gridSize)
-    };
-  
-    const path = this.findPath(gridStart, gridEnd, components, wires);
-    
-    this.controlPoints = path.slice(1, -1).map(p => ({
-      x: p.x * gridSize,
-      y: p.y * gridSize
-    }));
-    
-    this.optimizeControlPoints();
+
+    const startInfo = this.getPortConnectionInfo(this.from);
+    const endInfo = this.getPortConnectionInfo(this.to);
+
+    const route = this.calculateOptimalRoute(startInfo, endInfo, components);
+    this.controlPoints = route;
   }
-  
-  private simpleRoute(start: Point, end: Point): void {
-    // Create a simple L or Z shaped path
-    // L-shape: one horizontal segment, one vertical segment
-    const midPoint = {
-      x: end.x,
-      y: start.y
-    };
-    
-    // Only add the mid point if it would create a significant bend
-    if (Math.abs(start.x - end.x) > 20 && Math.abs(start.y - end.y) > 20) {
-      this.controlPoints = [midPoint];
-    } else {
-      this.controlPoints = [];
-    }
-  }
-  
-  private getDistance(p1: Point, p2: Point): number {
-    return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y); // Manhattan distance
-  }
-  
-  private findPath(start: {x: number, y: number}, end: {x: number, y: number}, 
-                  components: Component[], wires: Wire[]): {x: number, y: number}[] {
-    
-    const openSet: {point: {x: number, y: number}, f: number, g: number, parent: any}[] = [];
-    const closedSet = new Set<string>();
-    const gridSize = 20;
-    
-    
-    openSet.push({
-      point: start,
-      f: this.heuristic(start, end),
-      g: 0,
-      parent: null
-    });
-    
-    while (openSet.length > 0) {
-      
-      openSet.sort((a, b) => a.f - b.f);
-      const current = openSet.shift()!;
-      
-      
-      const key = `${current.point.x},${current.point.y}`;
-      if (current.point.x === end.x && current.point.y === end.y) {
-        
-        return this.reconstructPath(current);
-      }
-      
-      closedSet.add(key);
-      
-      
-      const directions = [
-        {x: 0, y: -1}, 
-        {x: 1, y: 0},  
-        {x: 0, y: 1},  
-        {x: -1, y: 0}  
-      ];
-      
-      for (const dir of directions) {
-        const neighbor = {
-          x: current.point.x + dir.x,
-          y: current.point.y + dir.y
-        };
-        
-        const neighborKey = `${neighbor.x},${neighbor.y}`;
-        
-        
-        if (closedSet.has(neighborKey)) continue;
-        
-        
-        const g = current.g + 1;
-        
-        
-        let penalty = 0;
-        
-        
-        const worldPos = {x: neighbor.x * gridSize, y: neighbor.y * gridSize};
-        
-        
-        components.forEach(component => {
-          if (this.intersectsComponent(worldPos, component)) {
-            penalty += 100; 
-          }
-        });
-        
-        
-        wires.forEach(wire => {
-          if (wire !== this && this.intersectsWire(worldPos, wire)) {
-            penalty += 10; 
-          }
-        });
-        
-        
-        const h = this.heuristic(neighbor, end);
-        const f = g + h + penalty;
-        
-        
-        const existing = openSet.find(item => 
-          item.point.x === neighbor.x && item.point.y === neighbor.y);
-        
-        if (!existing || g < existing.g) {
-          
-          if (existing) {
-            existing.g = g;
-            existing.f = f;
-            existing.parent = current;
-          } else {
-            openSet.push({
-              point: neighbor,
-              f,
-              g,
-              parent: current
-            });
-          }
-        }
-      }
-    }
-    
-    
-    const midpoint = {
-      x: Math.round((start.x + end.x) / 2),
-      y: Math.round((start.y + end.y) / 2)
-    };
-    
-    return [start, midpoint, end];
-  }
-  
-  private heuristic(a: {x: number, y: number}, b: {x: number, y: number}): number {
-    
-    return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-  }
-  
-  private reconstructPath(node: any): {x: number, y: number}[] {
-    const path: {x: number, y: number}[] = [];
-    let current = node;
-    
-    while (current) {
-      path.unshift(current.point);
-      current = current.parent;
-    }
-    
-    return path;
-  }
-  
-  private intersectsComponent(point: Point, component: Component): boolean {
-    
+
+  private getPortConnectionInfo(port: Port): {
+    position: Point;
+    direction: Point;
+    connectionPoint: Point;
+    orientation: "left" | "right" | "top" | "bottom";
+  } {
+    const component = port.component;
     const bounds = component.getBoundingBox();
-    if (!bounds) return false;
-    
-    return (
-      point.x >= bounds.x &&
-      point.x <= bounds.x + bounds.width &&
-      point.y >= bounds.y &&
-      point.y <= bounds.y + bounds.height
-    );
+
+    if (!bounds) {
+      return {
+        position: port.position,
+        direction: { x: 1, y: 0 },
+        connectionPoint: port.position,
+        orientation: "right",
+      };
+    }
+
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+    const portX = port.position.x;
+    const portY = port.position.y;
+
+    let orientation: "left" | "right" | "top" | "bottom";
+    let direction: Point;
+    let connectionPoint: Point;
+
+    const distToLeft = Math.abs(portX - bounds.x);
+    const distToRight = Math.abs(portX - (bounds.x + bounds.width));
+    const distToTop = Math.abs(portY - bounds.y);
+    const distToBottom = Math.abs(portY - (bounds.y + bounds.height));
+
+    const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
+
+    if (minDist === distToLeft) {
+      orientation = "left";
+      direction = { x: -1, y: 0 };
+      connectionPoint = { x: portX - 20, y: portY };
+    } else if (minDist === distToRight) {
+      orientation = "right";
+      direction = { x: 1, y: 0 };
+      connectionPoint = { x: portX + 20, y: portY };
+    } else if (minDist === distToTop) {
+      orientation = "top";
+      direction = { x: 0, y: -1 };
+      connectionPoint = { x: portX, y: portY - 20 };
+    } else {
+      orientation = "bottom";
+      direction = { x: 0, y: 1 };
+      connectionPoint = { x: portX, y: portY + 20 };
+    }
+
+    return {
+      position: port.position,
+      direction,
+      connectionPoint,
+      orientation,
+    };
   }
-  
-  private intersectsWire(point: Point, wire: Wire): boolean {
+
+  private calculateOptimalRoute(
+    startInfo: any,
+    endInfo: any,
+    components: Component[],
     
-    const wirePoints = wire.getAllPoints();
+  ): Point[] {
+    const GRID_SIZE = 20;
+    const MIN_SEGMENT_LENGTH = 40;
+
+    const snapToGrid = (point: Point): Point => ({
+      x: Math.round(point.x / GRID_SIZE) * GRID_SIZE,
+      y: Math.round(point.y / GRID_SIZE) * GRID_SIZE,
+    });
+
+    let start = snapToGrid(startInfo.connectionPoint);
+    let end = snapToGrid(endInfo.connectionPoint);
+
+    if (this.isDirectConnectionPossible(start, end, components)) {
+      return this.createDirectRoute(startInfo, endInfo);
+    }
+
+    return this.calculateSmartRoute(startInfo, endInfo, components);
+  }
+
+  private isDirectConnectionPossible(start: Point, end: Point, components: Component[]): boolean {
+    const midPoint1 = { x: end.x, y: start.y };
+    const midPoint2 = { x: start.x, y: end.y };
+
+    const route1 = [start, midPoint1, end];
+    const route2 = [start, midPoint2, end];
+
+    return this.isRouteClear(route1, components) || this.isRouteClear(route2, components);
+  }
+
+  private createDirectRoute(startInfo: any, endInfo: any): Point[] {
+    const start = startInfo.connectionPoint;
+    const end = endInfo.connectionPoint;
+
+    if (startInfo.orientation === "right" && endInfo.orientation === "left") {
+      if (Math.abs(start.y - end.y) < 40) {
+        return [
+          { x: (start.x + end.x) / 2, y: start.y },
+          { x: (start.x + end.x) / 2, y: end.y },
+        ];
+      }
+      return [{ x: end.x, y: start.y }];
+    }
+
+    if (startInfo.orientation === "left" && endInfo.orientation === "right") {
+      if (Math.abs(start.y - end.y) < 40) {
+        return [
+          { x: (start.x + end.x) / 2, y: start.y },
+          { x: (start.x + end.x) / 2, y: end.y },
+        ];
+      }
+      return [{ x: end.x, y: start.y }];
+    }
+
+    if (Math.abs(start.x - end.x) > Math.abs(start.y - end.y)) {
+      return [{ x: end.x, y: start.y }];
+    } else {
+      return [{ x: start.x, y: end.y }];
+    }
+  }
+
+  private calculateSmartRoute(
+    startInfo: any,
+    endInfo: any,
+    components: Component[],
     
-    for (let i = 0; i < wirePoints.length - 1; i++) {
-      const p1 = wirePoints[i];
-      const p2 = wirePoints[i + 1];
-      
-      const threshold = 10;
-      const distance = this.distanceToSegment(point, p1, p2);
-      
-      if (distance < threshold) {
+  ): Point[] {
+    const CLEARANCE = 30;
+    const GRID_SIZE = 20;
+
+    const start = startInfo.connectionPoint;
+    const end = endInfo.connectionPoint;
+
+    const obstacles = components
+      .map(comp => {
+        const bounds = comp.getBoundingBox();
+        if (!bounds) return null;
+
+        return {
+          x: bounds.x - CLEARANCE,
+          y: bounds.y - CLEARANCE,
+          width: bounds.width + 2 * CLEARANCE,
+          height: bounds.height + 2 * CLEARANCE,
+        };
+      })
+      .filter(Boolean);
+
+    const strategies = [
+      () => this.routeAroundObstacles(start, end, obstacles, startInfo, endInfo),
+      () => this.routeWithWaypoints(start, end, obstacles, startInfo, endInfo),
+    ];
+
+    for (const strategy of strategies) {
+      const route = strategy();
+      if (route && route.length > 0) {
+        return this.optimizeRoute(route);
+      }
+    }
+
+    return [{ x: end.x, y: start.y }];
+  }
+
+  private routeAroundObstacles(
+    start: Point,
+    end: Point,
+    obstacles: any[],
+    startInfo: any,
+    endInfo: any
+  ): Point[] | null {
+    const GRID_SIZE = 20;
+    const route: Point[] = [];
+
+    let current = { ...start };
+    const target = { ...end };
+
+    const initialOffset = this.getInitialOffset(startInfo, 40);
+    current = {
+      x: current.x + initialOffset.x,
+      y: current.y + initialOffset.y,
+    };
+    route.push({ ...current });
+
+    while (this.distance(current, target) > GRID_SIZE) {
+      const nextPoint = this.findNextStepAroundObstacles(current, target, obstacles);
+      if (!nextPoint) break;
+
+      current = nextPoint;
+      route.push({ ...current });
+
+      if (route.length > 20) break;
+    }
+
+    const finalOffset = this.getInitialOffset(endInfo, -40);
+    const finalPoint = {
+      x: target.x + finalOffset.x,
+      y: target.y + finalOffset.y,
+    };
+
+    if (route.length === 0 || this.distance(route[route.length - 1], finalPoint) > GRID_SIZE) {
+      route.push(finalPoint);
+    }
+
+    return route;
+  }
+
+  private getInitialOffset(portInfo: any, distance: number): Point {
+    return {
+      x: portInfo.direction.x * distance,
+      y: portInfo.direction.y * distance,
+    };
+  }
+
+  private findNextStepAroundObstacles(
+    current: Point,
+    target: Point,
+    obstacles: any[]
+  ): Point | null {
+    const GRID_SIZE = 20;
+
+    const direct = this.moveTowards(current, target, GRID_SIZE);
+    if (!this.pointIntersectsObstacles(direct, obstacles)) {
+      return direct;
+    }
+
+    const alternatives = [
+      { x: current.x + GRID_SIZE, y: current.y },
+      { x: current.x - GRID_SIZE, y: current.y },
+      { x: current.x, y: current.y + GRID_SIZE },
+      { x: current.x, y: current.y - GRID_SIZE },
+    ];
+
+    alternatives.sort((a, b) => this.distance(a, target) - this.distance(b, target));
+
+    for (const alt of alternatives) {
+      if (!this.pointIntersectsObstacles(alt, obstacles)) {
+        return alt;
+      }
+    }
+
+    return null;
+  }
+
+  private moveTowards(from: Point, to: Point, stepSize: number): Point {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance <= stepSize) {
+      return { ...to };
+    }
+
+    const ratio = stepSize / distance;
+    return {
+      x: from.x + dx * ratio,
+      y: from.y + dy * ratio,
+    };
+  }
+
+  private routeWithWaypoints(
+    start: Point,
+    end: Point,
+    obstacles: any[],
+    startInfo: any,
+    endInfo: any
+  ): Point[] | null {
+    const waypoints = this.generateWaypoints(start, end, obstacles);
+
+    if (waypoints.length === 0) {
+      return this.createDirectRoute(startInfo, endInfo);
+    }
+
+    return this.findOptimalWaypointRoute(start, end, waypoints, obstacles);
+  }
+
+  private generateWaypoints(start: Point, end: Point, obstacles: any[]): Point[] {
+    const waypoints: Point[] = [];
+    const CLEARANCE = 20;
+
+    for (const obstacle of obstacles) {
+      if (!obstacle) continue;
+
+      const corners = [
+        { x: obstacle.x - CLEARANCE, y: obstacle.y - CLEARANCE },
+        { x: obstacle.x + obstacle.width + CLEARANCE, y: obstacle.y - CLEARANCE },
+        { x: obstacle.x - CLEARANCE, y: obstacle.y + obstacle.height + CLEARANCE },
+        { x: obstacle.x + obstacle.width + CLEARANCE, y: obstacle.y + obstacle.height + CLEARANCE },
+      ];
+
+      waypoints.push(...corners);
+    }
+
+    return waypoints;
+  }
+
+  private findOptimalWaypointRoute(
+    start: Point,
+    end: Point,
+    waypoints: Point[],
+    obstacles: any[]
+  ): Point[] {
+    const route: Point[] = [];
+
+    let bestWaypoint = null;
+    let bestScore = Infinity;
+
+    for (const waypoint of waypoints) {
+      if (this.pointIntersectsObstacles(waypoint, obstacles)) continue;
+
+      const score = this.distance(start, waypoint) + this.distance(waypoint, end);
+      if (score < bestScore) {
+        bestScore = score;
+        bestWaypoint = waypoint;
+      }
+    }
+
+    if (bestWaypoint) {
+      route.push(bestWaypoint);
+    }
+
+    return route;
+  }
+
+  private isRouteClear(route: Point[], components: Component[]): boolean {
+    for (let i = 0; i < route.length - 1; i++) {
+      if (this.segmentIntersectsComponents(route[i], route[i + 1], components)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private segmentIntersectsComponents(p1: Point, p2: Point, components: Component[]): boolean {
+    const CLEARANCE = 15;
+
+    for (const component of components) {
+      const bounds = component.getBoundingBox();
+      if (!bounds) continue;
+
+      const expandedBounds = {
+        x: bounds.x - CLEARANCE,
+        y: bounds.y - CLEARANCE,
+        width: bounds.width + 2 * CLEARANCE,
+        height: bounds.height + 2 * CLEARANCE,
+      };
+
+      if (this.lineIntersectsRect(p1, p2, expandedBounds)) {
         return true;
       }
     }
-    
     return false;
   }
-  
-  private optimizeControlPoints(): void {
-    if (this.controlPoints.length <= 2) return;
-    
-    
-    for (let i = this.controlPoints.length - 2; i > 0; i--) {
-      const prev = i > 0 ? this.controlPoints[i - 1] : this.from!.position;
-      const current = this.controlPoints[i];
-      const next = i < this.controlPoints.length - 1 ? this.controlPoints[i + 1] : this.to!.position;
-      
-      
-      if (
-        (prev.x === current.x && current.x === next.x) ||
-        (prev.y === current.y && current.y === next.y)
-      ) {
-        
-        this.controlPoints.splice(i, 1);
-      }
+
+  private lineIntersectsRect(p1: Point, p2: Point, rect: any): boolean {
+    const left = rect.x;
+    const right = rect.x + rect.width;
+    const top = rect.y;
+    const bottom = rect.y + rect.height;
+
+    if (
+      (p1.x >= left && p1.x <= right && p1.y >= top && p1.y <= bottom) ||
+      (p2.x >= left && p2.x <= right && p2.y >= top && p2.y <= bottom)
+    ) {
+      return true;
     }
+
+    return (
+      this.lineSegmentsIntersect(p1, p2, { x: left, y: top }, { x: right, y: top }) ||
+      this.lineSegmentsIntersect(p1, p2, { x: right, y: top }, { x: right, y: bottom }) ||
+      this.lineSegmentsIntersect(p1, p2, { x: right, y: bottom }, { x: left, y: bottom }) ||
+      this.lineSegmentsIntersect(p1, p2, { x: left, y: bottom }, { x: left, y: top })
+    );
   }
 
+  private lineSegmentsIntersect(p1: Point, p2: Point, p3: Point, p4: Point): boolean {
+    const denominator = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+    if (denominator === 0) return false;
 
- 
+    const ua = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / denominator;
+    const ub = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / denominator;
+
+    return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
+  }
+
+  private pointIntersectsObstacles(point: Point, obstacles: any[]): boolean {
+    for (const obstacle of obstacles) {
+      if (!obstacle) continue;
+
+      if (
+        point.x >= obstacle.x &&
+        point.x <= obstacle.x + obstacle.width &&
+        point.y >= obstacle.y &&
+        point.y <= obstacle.y + obstacle.height
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private optimizeRoute(route: Point[]): Point[] {
+    if (route.length <= 2) return route;
+
+    const optimized: Point[] = [route[0]];
+
+    for (let i = 1; i < route.length - 1; i++) {
+      const prev = optimized[optimized.length - 1];
+      const current = route[i];
+      const next = route[i + 1];
+
+      if (!this.isSignificantDirectionChange(prev, current, next)) {
+        continue;
+      }
+
+      optimized.push(current);
+    }
+
+    optimized.push(route[route.length - 1]);
+    return optimized;
+  }
+
+  private isSignificantDirectionChange(p1: Point, p2: Point, p3: Point): boolean {
+    const v1 = { x: p2.x - p1.x, y: p2.y - p1.y };
+    const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
+
+    const len1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+    const len2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+
+    if (len1 === 0 || len2 === 0) return false;
+
+    v1.x /= len1;
+    v1.y /= len1;
+    v2.x /= len2;
+    v2.y /= len2;
+
+    const dot = v1.x * v2.x + v1.y * v2.y;
+
+    return Math.abs(dot) < 0.9;
+  }
+
   updateTempEndPoint(point: Point): void {
     this.tempEndPoint = point;
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    
     if (!this.from) return;
-    if(!this.from.position) return;
-    if(this.to && !this.to.position && !this.tempEndPoint) return;
+    if (!this.from.position) return;
+    if (this.to && !this.to.position && !this.tempEndPoint) return;
+
     const startX = this.from.position.x;
     const startY = this.from.position.y;
-    
+
     let endX, endY;
     if (this.to) {
       endX = this.to.position.x;
@@ -400,69 +612,61 @@ export class Wire {
     } else {
       return;
     }
-  
-    
-    let wireColor = '#cdcfd0'; 
+
+    let wireColor = "#cdcfd0";
 
     if (this.from.value) {
       if (Array.isArray(this.from.value)) {
-        
         const hasActiveBit = (this.from.value as BitArray).some(bit => bit);
-        wireColor = hasActiveBit ? '#4CAF50' : '#cdcfd0';
+        wireColor = hasActiveBit ? "#4CAF50" : "#cdcfd0";
       } else {
-        
-        wireColor = this.from.value ? '#4CAF50' : '#cdcfd0';
+        wireColor = this.from.value ? "#4CAF50" : "#cdcfd0";
       }
     }
 
-    ctx.strokeStyle = this.selected ? '#0B6E4F' : wireColor;
-    
-    
+    ctx.strokeStyle = this.selected ? "#0B6E4F" : wireColor;
+
     if (this.bitWidth > 1) {
       ctx.lineWidth = this.selected ? 4 : 3;
-      
       ctx.setLineDash([5, 3]);
     } else {
       ctx.lineWidth = this.selected ? 3 : 2;
       ctx.setLineDash([]);
     }
-    
+
     ctx.beginPath();
     ctx.moveTo(startX, startY);
-    
+
     if (this.controlPoints.length > 0) {
       for (const point of this.controlPoints) {
         ctx.lineTo(point.x, point.y);
       }
     }
-    
-    ctx.lineTo(endX, endY);
-    
-    if (!this.selected) {
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-    }
-    
-    ctx.stroke();
-    ctx.setLineDash([]); 
 
-    
+    ctx.lineTo(endX, endY);
+
+    if (!this.selected) {
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+    }
+
+    ctx.stroke();
+    ctx.setLineDash([]);
+
     if (this.bitWidth > 1) {
-      
       const points = this.getAllPoints();
       if (points.length >= 2) {
         const midIndex = Math.floor(points.length / 2);
         const p1 = points[midIndex - 1];
         const p2 = points[midIndex];
-        
+
         const midX = (p1.x + p2.x) / 2;
         const midY = (p1.y + p2.y) / 2;
-        
-        
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "10px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
         ctx.fillText(`${this.bitWidth}b`, midX, midY - 8);
       }
     }
@@ -471,41 +675,37 @@ export class Wire {
       this.drawControlPoints(ctx);
     }
   }
-  
 
   private drawControlPoints(ctx: CanvasRenderingContext2D): void {
     const controlPointRadius = 6;
-    
-  
+
     for (let i = 0; i < this.controlPoints.length; i++) {
       const point = this.controlPoints[i];
-      
-  
-      ctx.fillStyle = 'rgba(52, 152, 219, 0.3)';
+
+      ctx.fillStyle = "rgba(52, 152, 219, 0.3)";
       ctx.beginPath();
       ctx.arc(point.x, point.y, controlPointRadius + 2, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#3498db';
-      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = "#3498db";
+      ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(point.x, point.y, controlPointRadius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
     }
-    
-   
+
     const allPoints = this.getAllPoints();
     for (let i = 0; i < allPoints.length - 1; i++) {
       const p1 = allPoints[i];
       const p2 = allPoints[i + 1];
-      
+
       const midX = (p1.x + p2.x) / 2;
       const midY = (p1.y + p2.y) / 2;
-      
-      ctx.fillStyle = 'rgba(52, 152, 219, 0.5)';
-      ctx.strokeStyle = '#ffffff';
+
+      ctx.fillStyle = "rgba(52, 152, 219, 0.5)";
+      ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(midX, midY, controlPointRadius * 0.6, 0, Math.PI * 2);
@@ -515,111 +715,95 @@ export class Wire {
   }
 
   isNearPoint(point: Point, threshold: number = 5): boolean {
-
     const points = this.getAllPoints();
-    
 
     for (let i = 0; i < points.length - 1; i++) {
       const start = points[i];
       const end = points[i + 1];
-      
 
       const distance = this.distanceToSegment(point, start, end);
       if (distance <= threshold) {
         return true;
       }
     }
-    
+
     return false;
   }
-  
-  
 
   isNearControlPoint(point: Point, event?: KeyboardEvent | MouseEvent): number | null {
-   
     for (let i = 0; i < this.controlPoints.length; i++) {
       const cp = this.controlPoints[i];
       const distance = Math.sqrt(Math.pow(point.x - cp.x, 2) + Math.pow(point.y - cp.y, 2));
-   
-      if (distance <= 8) { 
+
+      if (distance <= 8) {
         return i;
       }
     }
-    
 
     if (event && event.altKey) {
       const allPoints = this.getAllPoints();
-      
+
       for (let i = 0; i < allPoints.length - 1; i++) {
         const p1 = allPoints[i];
         const p2 = allPoints[i + 1];
-        
 
         const distance = this.distanceToSegment(point, p1, p2);
-        
-        if (distance <= 5) { 
-          return null; 
+
+        if (distance <= 5) {
+          return null;
         }
       }
     }
-    
-    return null; 
+
+    return null;
   }
 
   addControlPoint(point: Point): void {
     const allPoints = this.getAllPoints();
     let insertIndex = 0;
     let minDistance = Number.MAX_VALUE;
-    
 
     for (let i = 0; i < allPoints.length - 1; i++) {
       const p1 = allPoints[i];
       const p2 = allPoints[i + 1];
-      
+
       const distance = this.distanceToSegment(point, p1, p2);
       if (distance < minDistance) {
         minDistance = distance;
         insertIndex = i;
       }
     }
-    
 
     if (insertIndex === 0) {
       insertIndex = 0;
     } else {
-      insertIndex = insertIndex - 1; 
+      insertIndex = insertIndex - 1;
     }
-    
 
     const gridSize = 20;
     const snappedPoint = {
       x: Math.round(point.x / gridSize) * gridSize,
-      y: Math.round(point.y / gridSize) * gridSize
+      y: Math.round(point.y / gridSize) * gridSize,
     };
-    
-    
+
     this.controlPoints.splice(insertIndex + 1, 0, snappedPoint);
   }
 
   moveControlPoint(index: number, point: Point): void {
     if (index >= 0 && index < this.controlPoints.length) {
-   
       const gridSize = 20;
       this.controlPoints[index] = {
         x: Math.round(point.x / gridSize) * gridSize,
-        y: Math.round(point.y / gridSize) * gridSize
+        y: Math.round(point.y / gridSize) * gridSize,
       };
     }
   }
-  
 
   moveWire(dx: number, dy: number): void {
-    
     for (let i = 0; i < this.controlPoints.length; i++) {
       this.controlPoints[i].x += dx;
       this.controlPoints[i].y += dy;
     }
-    
 
     const gridSize = 20;
     for (let i = 0; i < this.controlPoints.length; i++) {
@@ -627,8 +811,7 @@ export class Wire {
       this.controlPoints[i].y = Math.round(this.controlPoints[i].y / gridSize) * gridSize;
     }
   }
-  
- 
+
   removeControlPoint(index: number): void {
     if (index >= 0 && index < this.controlPoints.length) {
       this.controlPoints.splice(index, 1);
@@ -637,44 +820,43 @@ export class Wire {
 
   getAllPoints(): Point[] {
     const result: Point[] = [];
-    
-    if(!this.from) return result;
+
+    if (!this.from) return result;
     result.push(this.from.position);
-    
-  
+
     result.push(...this.controlPoints);
-    
 
     if (this.to) {
       result.push(this.to.position);
     } else if (this.tempEndPoint) {
       result.push(this.tempEndPoint);
     }
-    
+
     return result;
   }
 
   private projectPointOnSegment(p: Point, v: Point, w: Point): Point {
     const l2 = this.distanceSquared(v, w);
     if (l2 === 0) return v;
-    
+
     let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
     t = Math.max(0, Math.min(1, t));
-    
+
     return {
       x: v.x + t * (w.x - v.x),
-      y: v.y + t * (w.y - v.y)
+      y: v.y + t * (w.y - v.y),
     };
   }
+
   private distanceToSegment(p: Point, v: Point, w: Point): number {
     const projection = this.projectPointOnSegment(p, v, w);
     return this.distance(p, projection);
   }
-  
+
   private distance(a: Point, b: Point): number {
     return Math.sqrt(this.distanceSquared(a, b));
   }
-  
+
   private distanceSquared(a: Point, b: Point): number {
     return Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2);
   }

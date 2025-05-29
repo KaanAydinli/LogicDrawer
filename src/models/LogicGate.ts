@@ -77,10 +77,6 @@ export abstract class LogicGate extends Component {
     const maxInputs = this.getMaxInputCount();
 
     if (currentInputCount < maxInputs) {
-      const existingConnections = this.inputs.map(input => ({
-        port: input,
-        isConnected: input.isConnected,
-      }));
 
       const newPortPosition = this.getInputPortPosition(currentInputCount, currentInputCount + 1);
       const newPort: Port = {

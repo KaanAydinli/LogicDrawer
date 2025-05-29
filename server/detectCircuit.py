@@ -119,58 +119,58 @@ def get_terminal_regions(gate):
     h = y2 - y1
     cx = (x1 + x2) // 2
     cy = (y1 + y2) // 2
-    gate_type = gate['type'].upper()  # Tutarlılık için büyük harf kullan
+    gate_type = gate['type'].upper()  
     terminals = {}
 
-    # Örnek terminal tanımlamaları (bunları kendi kapı çizimlerinize göre ayarlamanız GEREKİR)
-    # Bu değerler, kapılarınızın görsel tasarımına ve bağlantı noktalarının beklenen konumlarına bağlıdır.
-    # Genellikle, terminaller kapının kenarlarına yakın küçük bölgelerdir.
-    # Aşağıdaki tanımlamalar genel bir başlangıç noktasıdır ve hassas ayarlama gerektirebilir.
+    
+    
+    
+    
 
-    terminal_width = max(10, w // 8) # Terminal genişliği için minimum bir değer
-    terminal_height = max(10, h // 8) # Terminal yüksekliği için minimum bir değer
+    terminal_width = max(10, w // 8) 
+    terminal_height = max(10, h // 8) 
 
-    if gate_type in ["AND", "OR", "XOR", "NAND", "NOR", "XNOR"]: # 2 girişli kapılar için örnek
-        # Input 0 (örneğin, sol kenarın üst kısmı)
+    if gate_type in ["AND", "OR", "XOR", "NAND", "NOR", "XNOR"]: 
+        
         terminals['input0'] = (x1 - terminal_width // 2, y1 + h // 4 - terminal_height // 2,
                                x1 + terminal_width // 2, y1 + h // 4 + terminal_height // 2)
-        # Input 1 (örneğin, sol kenarın alt kısmı)
+        
         terminals['input1'] = (x1 - terminal_width // 2, y1 + 3 * h // 4 - terminal_height // 2,
                                x1 + terminal_width // 2, y1 + 3 * h // 4 + terminal_height // 2)
-        # Output (örneğin, sağ kenarın ortası)
+        
         terminals['output0'] = (x2 - terminal_width // 2, cy - terminal_height // 2,
                                 x2 + terminal_width // 2, cy + terminal_height // 2)
     elif gate_type == "NOT" or gate_type == "BUFFER":
-        if w > h:  # Yatay yönelimli
+        if w > h:  
             terminals['input0'] = (x1 - terminal_width // 2, cy - terminal_height // 2,
                                    x1 + terminal_width // 2, cy + terminal_height // 2)
             terminals['output0'] = (x2 - terminal_width // 2, cy - terminal_height // 2,
                                     x2 + terminal_width // 2, cy + terminal_height // 2)
-        else:  # Dikey yönelimli
+        else:  
             terminals['input0'] = (cx - terminal_width // 2, y1 - terminal_height // 2,
                                    cx + terminal_width // 2, y1 + terminal_height // 2)
             terminals['output0'] = (cx - terminal_width // 2, y2 - terminal_height // 2,
                                     cx + terminal_width // 2, y2 + terminal_height // 2)
-    elif gate_type == "INPUT_HIGH" or gate_type == "INPUT_LOW" or gate_type == "CLOCK": # Sadece çıkışı olan kaynaklar
-        # Bu bileşenlerin çıkış terminali genellikle tüm bileşen veya belirli bir noktasıdır.
-        # Basitlik adına, sağ kenarın ortasını kullanalım.
+    elif gate_type == "INPUT_HIGH" or gate_type == "INPUT_LOW" or gate_type == "CLOCK": 
+        
+        
         terminals['output0'] = (x2 - terminal_width // 2, cy - terminal_height // 2,
                                 x2 + terminal_width // 2, cy + terminal_height // 2)
-    elif gate_type == "OUTPUT_LIGHT" or gate_type == "LED": # Sadece girişi olan hedefler
-        # Sol kenarın ortasını kullanalım.
+    elif gate_type == "OUTPUT_LIGHT" or gate_type == "LED": 
+        
         terminals['input0'] = (x1 - terminal_width // 2, cy - terminal_height // 2,
                                x1 + terminal_width // 2, cy + terminal_height // 2)
-    elif gate_type == "MUX21": # Örnek 2'ye 1 MUX
-        terminals['input0'] = (x1 - terminal_width // 2, y1 + h // 6 - terminal_height // 2, # Data0
+    elif gate_type == "MUX21": 
+        terminals['input0'] = (x1 - terminal_width // 2, y1 + h // 6 - terminal_height // 2, 
                                x1 + terminal_width // 2, y1 + h // 6 + terminal_height // 2)
-        terminals['input1'] = (x1 - terminal_width // 2, y1 + 3 * h // 6 - terminal_height // 2, # Data1
+        terminals['input1'] = (x1 - terminal_width // 2, y1 + 3 * h // 6 - terminal_height // 2, 
                                x1 + terminal_width // 2, y1 + 3 * h // 6 + terminal_height // 2)
-        terminals['input_sel'] = (x1 - terminal_width // 2, y1 + 5 * h // 6 - terminal_height // 2, # Select
+        terminals['input_sel'] = (x1 - terminal_width // 2, y1 + 5 * h // 6 - terminal_height // 2, 
                                   x1 + terminal_width // 2, y1 + 5 * h // 6 + terminal_height // 2)
-        terminals['output0'] = (x2 - terminal_width // 2, cy - terminal_height // 2, # Output
+        terminals['output0'] = (x2 - terminal_width // 2, cy - terminal_height // 2, 
                                 x2 + terminal_width // 2, cy + terminal_height // 2)
-    # ... Diğer kapı tipleri için benzer tanımlamalar ekleyin (örn: MUX41, DECODER, DFLIPFLOP vb.) ...
-    # DFLIPFLOP örneği:
+    
+    
     elif gate_type == "DFLIPFLOP":
         terminals['input_D'] = (x1 - terminal_width // 2, y1 + h // 3 - terminal_height // 2,
                                 x1 + terminal_width // 2, y1 + h // 3 + terminal_height // 2)
@@ -178,22 +178,22 @@ def get_terminal_regions(gate):
                                  x1 + terminal_width // 2, y1 + 2*h // 3 + terminal_height // 2)
         terminals['output_Q'] = (x2 - terminal_width // 2, y1 + h // 3 - terminal_height // 2,
                                  x2 + terminal_width // 2, y1 + h // 3 + terminal_height // 2)
-        terminals['output_QN'] = (x2 - terminal_width // 2, y1 + 2*h // 3 - terminal_height // 2, # Q_bar
+        terminals['output_QN'] = (x2 - terminal_width // 2, y1 + 2*h // 3 - terminal_height // 2, 
                                   x2 + terminal_width // 2, y1 + 2*h // 3 + terminal_height // 2)
     else:
-        # Bilinmeyen veya basit tek giriş/çıkışlı kapılar için varsayılan (veya hata)
+        
         print(f"Uyarı: '{gate_type}' için spesifik terminal bölgeleri tanımlanmadı. Varsayılan kullanılıyor.", file=sys.stderr)
         terminals['input0'] = (x1 - terminal_width // 2, cy - terminal_height // 2,
                                x1 + terminal_width // 2, cy + terminal_height // 2)
         terminals['output0'] = (x2 - terminal_width // 2, cy - terminal_height // 2,
                                 x2 + terminal_width // 2, cy + terminal_height // 2)
     
-    # Tanımlanan terminal bölgelerinin geçerli olduğundan emin olun (bbox içinde veya yakınında)
-    # ve gerekirse kırpın/ayarlayın. Basitlik adına bu adım atlanmıştır.
+    
+    
 
     return terminals
 
-# ...existing code...
+
 
 def find_connections(skeleton, gates):
     
@@ -201,34 +201,34 @@ def find_connections(skeleton, gates):
     regions = regionprops(labeled_skeleton)
     gates_dict = {gate["id"]: gate for gate in gates}
     for gate_id in gates_dict:
-        # Her kapı için spesifik terminal bölgelerini ata
+        
         gates_dict[gate_id]['terminals'] = get_terminal_regions(gates_dict[gate_id])
 
     potential_connections = []
-    for region in regions: # Her bir tel segmenti (iskelet bölgesi) için
+    for region in regions: 
         if region.area < MIN_SEGMENT_AREA: continue
         
-        coords_yx = region.coords # Tel segmentini oluşturan pikseller
+        coords_yx = region.coords 
         
-        # Bu tel segmentinin dokunduğu terminalleri sakla: (gate_id, specific_terminal_name, touch_point_xy)
-        # Her bir (gate_id, specific_terminal_name) çifti bu segment için sadece bir kez eklenmeli.
+        
+        
         terminals_touched_by_this_segment = {} 
 
-        for r_coord, c_coord in coords_yx: # Tel segmentindeki her bir piksel için
-            point_on_wire = (c_coord, r_coord) # (x, y) formatında
+        for r_coord, c_coord in coords_yx: 
+            point_on_wire = (c_coord, r_coord) 
             for gate_id, gate_data in gates_dict.items():
-                # gate_data['terminals'] artık {'input0': (x1,y1,x2,y2), 'output0': ...} gibi spesifik terminaller içeriyor
+                
                 for specific_terminal_name, terminal_bbox_coords in gate_data['terminals'].items():
                     if is_point_near_region(point_on_wire, terminal_bbox_coords, CONNECTION_THRESHOLD):
-                        # Bu tel pikseli, bu spesifik terminal bölgesine dokunuyor/yakın.
-                        # Bu terminalin bu tel segmenti tarafından dokunulduğunu kaydet.
-                        # Eğer zaten kaydedilmişse, tekrar ekleme.
+                        
+                        
+                        
                         key = (gate_id, specific_terminal_name)
                         if key not in terminals_touched_by_this_segment:
-                            terminals_touched_by_this_segment[key] = point_on_wire # İlk dokunma noktasını kaydet
+                            terminals_touched_by_this_segment[key] = point_on_wire 
         
         if terminals_touched_by_this_segment:
-            # Sözlüğü, sonraki adımların beklediği liste formatına dönüştür
+            
             formatted_touched_list = []
             for (gid, term_name), pt_xy in terminals_touched_by_this_segment.items():
                 formatted_touched_list.append((gid, term_name, pt_xy))
@@ -240,30 +240,30 @@ def find_connections(skeleton, gates):
     input_counter = 1
     output_counter = 1
 
-    # 1. Kapıdan kapıya bağlantıları işle
+    
     for region, terminals_in_region in potential_connections: 
         if region.label in processed_regions:
             continue
         
         gate_outputs_touched = []
         gate_inputs_touched = []
-        # terminals_in_region şimdi (gid, specific_term_name, pt) içeriyor olmalı
+        
         for gid, term_name, pt in terminals_in_region: 
-            if 'output' in term_name.lower(): # 'output0', 'output_q', vb. (küçük harfe duyarsız kontrol)
+            if 'output' in term_name.lower(): 
                 gate_outputs_touched.append((gid, term_name, pt))
-            elif 'input' in term_name.lower(): # 'input0', 'input_sel', vb.
+            elif 'input' in term_name.lower(): 
                 gate_inputs_touched.append((gid, term_name, pt))
 
-        # En basit durum: bir çıkış bir girişe bağlanır
+        
         if len(gate_outputs_touched) == 1 and len(gate_inputs_touched) == 1:
             from_gate_id, from_specific_terminal, _ = gate_outputs_touched[0]
             to_gate_id, to_specific_terminal, _ = gate_inputs_touched[0]
 
-            if from_gate_id == to_gate_id and from_specific_terminal == to_specific_terminal: # Aynı terminale kendi kendine bağlantıyı engelle
+            if from_gate_id == to_gate_id and from_specific_terminal == to_specific_terminal: 
                 continue
-            # İsteğe bağlı: Bir kapının herhangi bir çıkışının kendi herhangi bir girişine bağlanmasını engelle
-            # if from_gate_id == to_gate_id:
-            #     continue
+            
+            
+            
 
             conn_key_from = (from_gate_id, from_specific_terminal)
             conn_key_to = (to_gate_id, to_specific_terminal)
@@ -276,13 +276,13 @@ def find_connections(skeleton, gates):
                 connected_terminals.add(conn_key_from)
                 connected_terminals.add(conn_key_to)
                 processed_regions.add(region.label)
-        # TODO: Fan-out (bir çıkıştan birden fazla girişe) ve fan-in (birden fazla çıkıştan bir girişe - genellikle istenmez) durumlarını ele al.
-        # Fan-out için: len(gate_outputs_touched) == 1 and len(gate_inputs_touched) > 1
-        elif len(gate_outputs_touched) == 1 and len(gate_inputs_touched) > 1: # Fan-out durumu
+        
+        
+        elif len(gate_outputs_touched) == 1 and len(gate_inputs_touched) > 1: 
             from_gate_id, from_specific_terminal, _ = gate_outputs_touched[0]
             conn_key_from = (from_gate_id, from_specific_terminal)
 
-            if conn_key_from not in connected_terminals: # Çıkış terminali daha önce kullanılmamışsa
+            if conn_key_from not in connected_terminals: 
                 all_targets_available = True
                 target_keys = []
                 for to_gate_id, to_specific_terminal, _ in gate_inputs_touched:
@@ -303,15 +303,15 @@ def find_connections(skeleton, gates):
                     processed_regions.add(region.label)
 
 
-    # 2. Harici girişleri işle (tel segmenti sadece bir kapı giriş terminaline dokunur)
+    
     for region, terminals_in_region in potential_connections:
         if region.label in processed_regions:
             continue
         
-        if len(terminals_in_region) == 1: # Tel segmenti genel olarak sadece BİR terminale dokunuyor
+        if len(terminals_in_region) == 1: 
             gate_id, specific_terminal_name, _ = terminals_in_region[0]
             
-            if 'input' in specific_terminal_name.lower(): # Ve bu terminal bir GİRİŞ terminali
+            if 'input' in specific_terminal_name.lower(): 
                 conn_key = (gate_id, specific_terminal_name)
                 if conn_key not in connected_terminals:
                     external_input_id = f"input{input_counter}"
@@ -323,15 +323,15 @@ def find_connections(skeleton, gates):
                     input_counter += 1
                     processed_regions.add(region.label)
 
-    # 3. Harici çıkışları işle (tel segmenti sadece bir kapı çıkış terminaline dokunur)
+    
     for region, terminals_in_region in potential_connections:
         if region.label in processed_regions:
             continue
 
-        if len(terminals_in_region) == 1: # Tel segmenti genel olarak sadece BİR terminale dokunuyor
+        if len(terminals_in_region) == 1: 
             gate_id, specific_terminal_name, _ = terminals_in_region[0]
 
-            if 'output' in specific_terminal_name.lower(): # Ve bu terminal bir ÇIKIŞ terminali
+            if 'output' in specific_terminal_name.lower(): 
                 conn_key = (gate_id, specific_terminal_name)
                 if conn_key not in connected_terminals:
                     external_output_id = f"output{output_counter}"

@@ -4,6 +4,7 @@ import { Tool, ToolContext, VerilogImportTool, GeminiQueryTool, CircuitDetection
 import { ImageUploader } from './ImageUploader';
 import { apiBaseUrl } from '../services/apiConfig';
 import { Queue } from '../main';
+import { CircuitSuggester } from "./CircuitSuggester";
 
 export class AIAgent {
   private lastUploadedImage: string | null = null;
@@ -13,6 +14,7 @@ export class AIAgent {
   public queue: Queue;
   private promptAI: string;
   private imageUploader: ImageUploader;
+  private circuitSuggester: CircuitSuggester; // Add this line
   
   constructor(
     circuitBoard: CircuitBoard, 
@@ -31,6 +33,9 @@ export class AIAgent {
     // Initialize tools
     this.tools = new Map();
     this.registerTools();
+    
+    // Initialize circuit suggester
+    this.circuitSuggester = new CircuitSuggester(circuitBoard);
     
     console.log("AIAgent initialized successfully");
   }
