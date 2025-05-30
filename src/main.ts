@@ -44,10 +44,10 @@ import { SmartDisplay } from "./models/components/SmartDisplay";
 import { CircuitService } from "./services/CircuitService";
 import { AuthService } from "./services/AuthService";
 export class Queue {
-  public items: {role: string, content: string}[] = [];
+  public items: { role: string; content: string }[] = [];
 
-  enqueue(content: string , role: string) {
-    this.items.push({role, content});
+  enqueue(content: string, role: string) {
+    this.items.push({ role, content });
   }
 
   dequeue() {
@@ -57,8 +57,8 @@ export class Queue {
   isEmpty(): boolean {
     return this.items.length === 0;
   }
-  
-  get messages(): {role: string, content: string}[] {
+
+  get messages(): { role: string; content: string }[] {
     return [...this.items];
   }
 }
@@ -572,7 +572,7 @@ function setUpAI() {
   });
 
   function addUserMessage(text: string) {
-    queue.enqueue(text,"User");
+    queue.enqueue(text, "User");
 
     circuitBoard.saveToLocalStorage();
     const messageDiv = document.createElement("div");
@@ -616,7 +616,7 @@ function setUpAI() {
         console.error("Verilog import failed!");
       }
     }
-    queue.enqueue(aiText,"AI");
+    queue.enqueue(aiText, "AI");
 
     saveToLocalStorage();
 
@@ -1122,8 +1122,6 @@ function setUpLoginAndSignup() {
         throw new Error(errorData.error || "Registration failed");
       }
 
-      
-
       showLoginView();
 
       (document.getElementById("login-email") as HTMLInputElement).value = email;
@@ -1206,31 +1204,50 @@ function setUpLoginAndSignup() {
 
   setupAuthListeners();
 }
-
 async function saveToMongoDB(name: string, circuitData: any) {
   try {
-    const token = localStorage.getItem("auth_token");
-    if (!token) {
+    // Use authService instead of localStorage
+    if (!authService.isAuthenticated) {
       alert("You must be logged in to save circuits. Please sign in.");
       return;
     }
 
-    const userInfo = localStorage.getItem("user_info");
-    const user = userInfo ? JSON.parse(userInfo) : { name: "Unknown" };
-
+    const user = authService.currentUser;
     const parsedData = typeof circuitData === "string" ? JSON.parse(circuitData) : circuitData;
+
+    // In your saveToMongoDB function:
 
     const data = {
       name: name,
-      username: user.name,
-      components: parsedData.components.map((comp: any) => ({
-        id: comp.id,
-        type: comp.type,
-        position: comp.position,
-        inputs: Array.isArray(comp.inputs) ? comp.inputs : [],
-        outputs: Array.isArray(comp.outputs) ? comp.outputs : [],
-        state: comp.state || {},
-      })),
+      username: user?.name || "Unknown",
+      components: parsedData.components.map((comp: any) => {
+        // Check if position exists and has valid x and y coordinates
+        if (
+          !comp.position ||
+          typeof comp.position !== "object" ||
+          comp.position.x === undefined ||
+          comp.position.y === undefined
+        ) {
+          // Provide default position for invalid ones
+          return {
+            id: comp.id,
+            type: comp.type,
+            position: { x: 100, y: 100 }, // Default position
+            inputs: Array.isArray(comp.inputs) ? comp.inputs : [],
+            outputs: Array.isArray(comp.outputs) ? comp.outputs : [],
+            state: comp.state || {},
+          };
+        }
+
+        return {
+          id: comp.id,
+          type: comp.type,
+          position: comp.position,
+          inputs: Array.isArray(comp.inputs) ? comp.inputs : [],
+          outputs: Array.isArray(comp.outputs) ? comp.outputs : [],
+          state: comp.state || {},
+        };
+      }),
       wires: parsedData.wires.map((wire: any) => ({
         id: wire.id,
         start: {
@@ -1245,18 +1262,22 @@ async function saveToMongoDB(name: string, circuitData: any) {
       isPublic: false,
     };
 
+    // For debugging
+    console.log("Sending circuit data:", data);
+
     const currentCircuitId = localStorage.getItem("currentCircuitId");
 
     if (currentCircuitId) {
       console.log("Updating existing circuit ID:", currentCircuitId);
 
       try {
+        // Remove Authorization header, add credentials
         const updateResponse = await fetch(`${apiBaseUrl}/api/circuits/${currentCircuitId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          credentials: "include", // This sends the cookies
           body: JSON.stringify(data),
         });
 
@@ -1272,16 +1293,23 @@ async function saveToMongoDB(name: string, circuitData: any) {
         console.error("Error updating circuit:", error);
       }
     }
-
     console.log("Creating new circuit");
     const response = await fetch(`${apiBaseUrl}/api/circuits`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
+      credentials: "include",
       body: JSON.stringify(data),
     });
+
+    if (!response.ok) {
+      // Add this to see the actual error message
+      const errorText = await response.text();
+      console.error("Server error:", response.status, errorText);
+      alert(`Failed to save circuit: ${errorText}`);
+      return;
+    }
 
     if (response.ok) {
       const newCircuit = await response.json();
