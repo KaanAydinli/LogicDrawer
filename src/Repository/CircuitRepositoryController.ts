@@ -769,7 +769,7 @@ export class CircuitRepositoryController {
     if (authService.isAuthenticated && authService.currentUser) {
       this.currentUserId = authService.currentUser.id;
       
-      console.log("User ID set from AuthService:", this.currentUserId);
+      
     } else {
     }
   }
@@ -785,7 +785,7 @@ export class CircuitRepositoryController {
         if (data.user) {
           this.currentUserId = data.user._id || data.user.id;
           
-          console.log("User ID set from API:", this.currentUserId);
+          
         }
       } else {
         console.warn("Failed to fetch user info, using default ID");
@@ -883,7 +883,6 @@ export class CircuitRepositoryController {
   }
   public refresh(): void {
     this.fetchCurrentUser().then(() => {
-      console.log("Circuit repository refreshed for user:", this.currentUserId);
 
       this.currentTab = "browse";
 
@@ -908,11 +907,8 @@ export class CircuitRepositoryController {
     this.circuitGridElement.innerHTML = `<div class="loading-indicator">Loading circuits...</div>`;
 
     try {
-      console.log("Current user ID:", this.currentUserId);
-      console.log("Current tab:", this.currentTab);
 
       const allCircuits = await this.circuitService.getCircuits();
-      console.log("All circuits from API:", allCircuits);
 
       if (this.currentTab === "browse") {
         this.currentCircuits = allCircuits.filter(c => {
@@ -930,22 +926,22 @@ export class CircuitRepositoryController {
       } else if (this.currentTab === "my-circuits") {
         this.currentCircuits = allCircuits.filter(c => {
           if (typeof c.userId === "object" && c.userId !== null) {
-            console.log(`Circuit ${c.name}: comparing ${c.userId._id} with ${this.currentUserId}`);
+            
             return c.userId._id === this.currentUserId;
           } else {
-            console.log(`Circuit ${c.name}: comparing ${c.userId} with ${this.currentUserId}`);
+            
             return c.userId === this.currentUserId;
           }
         });
 
-        console.log("Filtered my circuits:", this.currentCircuits);
+        
       } else if (this.currentTab === "shared-me") {
         this.currentCircuits = await this.circuitService.getSharedCircuits();
       }
 
       this.renderCircuitGrid();
     } catch (error) {
-      console.error("Failed to load circuits:", error);
+      
       this.circuitGridElement.innerHTML = `
         <div class="no-results">
           <h3>Error Loading Circuits</h3>
@@ -1030,7 +1026,7 @@ export class CircuitRepositoryController {
 
     this.circuitGridElement.innerHTML = "";
 
-    console.log("Rendering circuits:", this.currentCircuits);
+ 
     this.currentCircuits.forEach(circuit => {
       const card = this.createCircuitCard(circuit);
       this.circuitGridElement?.appendChild(card);
@@ -1444,8 +1440,6 @@ export class CircuitRepositoryController {
 
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
-      localStorage.setItem("currentCircuitId", circuit.id);
-      console.log("Saved current circuit ID to localStorage:", circuit.id);
 
       const inputText = document.querySelector(".docName") as HTMLInputElement;
       if (inputText && circuit.name) {
@@ -1464,7 +1458,6 @@ export class CircuitRepositoryController {
       }
 
       const circuitData = await response.json();
-      console.log("Fetched circuit data:", circuitData);
 
       const circuitBoard = this.verilogConverter.circuitBoard;
       circuitBoard.clearCircuit();
@@ -1504,7 +1497,6 @@ export class CircuitRepositoryController {
             const targetPort = portMap.get(wireData.end?.portId);
 
             if (sourcePort && targetPort) {
-              console.log(`Creating wire from ${wireData.start.portId} to ${wireData.end.portId}`);
 
               const wire = new Wire(sourcePort);
               const connected = wire.connect(targetPort);
@@ -1523,7 +1515,7 @@ export class CircuitRepositoryController {
             }
           }
         } else {
-          console.log("No wires to create in the circuit data");
+          
         }
 
         circuitBoard.simulate();

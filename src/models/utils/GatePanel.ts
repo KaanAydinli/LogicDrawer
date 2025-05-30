@@ -5,14 +5,14 @@ import { LogicGate } from "../LogicGate";
 export class GatePanel {
   private panelElement: HTMLElement;
   private selectedComponent: Component | null = null;
-  private circuitBoard: CircuitBoard; // Global circuitBoard instance
+  private circuitBoard: CircuitBoard;
   private onPropertiesChanged: () => void;
 
   constructor(circuit: CircuitBoard, containerId: string, onPropertiesChanged: () => void) {
     this.panelElement = document.getElementById(containerId) || document.createElement("div");
     this.onPropertiesChanged = onPropertiesChanged;
     this.circuitBoard = circuit;
-    // FLOATING PANEL stil ayarları - canvas'a bağlı değil
+
     this.panelElement.style.position = "fixed";
     this.panelElement.style.right = "20px";
     this.panelElement.style.top = "80px";
@@ -22,9 +22,7 @@ export class GatePanel {
     this.panelElement.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.3)";
     this.panelElement.style.borderRadius = "8px";
 
-    // Panel dışında tıklamalar kapanmasın, sadece kapatma butonu işe yarasın
     this.panelElement.addEventListener("mousedown", e => {
-      // Panel içine tıklandığında olayın canvas'a iletilmesini engelle
       e.stopPropagation();
     });
 
@@ -32,7 +30,6 @@ export class GatePanel {
   }
 
   private addStyles(): void {
-    // CSS stilleri - aynı kalacak
     const style = document.createElement("style");
     style.textContent = `
       .component-properties-container {
@@ -175,7 +172,6 @@ export class GatePanel {
     this.panelElement.style.display = "none";
   }
 
-  // Sadece UI'ı gizle, selectedComponent'i sıfırlama
   private hideUIOnly(): void {
     this.panelElement.style.display = "none";
   }
@@ -183,7 +179,6 @@ export class GatePanel {
   private render(): void {
     if (!this.selectedComponent) return;
 
-    // Bileşene göre özel isim ve özellikleri göster
     const componentTypeName = this.getComponentDisplayName(this.selectedComponent.type);
     const isLogicGate = this.selectedComponent instanceof LogicGate;
     const isLed = this.selectedComponent.type === "led";
@@ -209,7 +204,6 @@ export class GatePanel {
           </div>
         </div>`;
 
-    // LogicGate için input sayısı kontrolü
     if (isLogicGate) {
       const minInputs = this.selectedComponent.getMinInputCount();
       const maxInputs = this.selectedComponent.getMaxInputCount();
@@ -230,7 +224,6 @@ export class GatePanel {
         </div>`;
     }
 
-    // LED için özel RGB bit genişliği gösterimi
     if (isLed) {
       htmlContent += `
         <div class="custom-properties">
@@ -242,7 +235,6 @@ export class GatePanel {
         </div>`;
     }
 
-    // Özel özellikler varsa onları da göster
     const customProps = this.selectedComponent.getCustomProperties();
     if (customProps.length > 0) {
       htmlContent += `<div class="custom-properties">`;
@@ -261,14 +253,12 @@ export class GatePanel {
     htmlContent += `</div>`;
     this.panelElement.innerHTML = htmlContent;
 
-    // Close butonunu doğru şekilde işle
     document.getElementById("close-panel")?.addEventListener("click", event => {
       event.stopPropagation();
       event.preventDefault();
       this.hideUIOnly();
     });
 
-    // Bit genişliği düğmeleri
     document.getElementById("decrease-bit-width")?.addEventListener("click", event => {
       event.stopPropagation();
       if (this.selectedComponent) {
@@ -290,7 +280,6 @@ export class GatePanel {
     document.getElementById("rotate-gate")?.addEventListener("click", event => {
       event.stopPropagation();
       if (this.selectedComponent && isLogicGate) {
-        // rotateGate metodu LogicGate sınıfında olmalı
         if (this.selectedComponent instanceof LogicGate) {
           this.selectedComponent.rotate(1);
           this.render();
@@ -299,7 +288,6 @@ export class GatePanel {
       }
     });
 
-    // Input sayısı düğmeleri - sadece LogicGate için
     if (isLogicGate) {
       document.getElementById("decrease-input-count")?.addEventListener("click", event => {
         event.stopPropagation();
@@ -324,10 +312,8 @@ export class GatePanel {
     }
   }
 
-  // Bileşen tipine göre daha kullanıcı dostu isimler göster
   private getComponentDisplayName(type: string): string {
     switch (type) {
-      // Logic Gates
       case "and":
         return "AND Gate";
       case "or":
@@ -345,7 +331,6 @@ export class GatePanel {
       case "buffer":
         return "Buffer Gate";
 
-      // Multiplexers
       case "mux2":
         return "MUX (2:1)";
       case "mux4":
@@ -353,19 +338,16 @@ export class GatePanel {
       case "mux8":
         return "MUX (8:1)";
 
-      // Decoders/Encoders
       case "decoder":
         return "Decoder";
       case "encoder":
         return "Encoder";
 
-      // Adders
       case "halfadder":
         return "Half Adder";
       case "fulladder":
         return "Full Adder";
 
-      // I/O Components
       case "button":
         return "Push Button";
       case "toggle":
@@ -375,13 +357,11 @@ export class GatePanel {
       case "display":
         return "7-Segment Display";
 
-      // Other
       case "clock":
         return "Clock";
       case "custom":
         return "Custom Component";
 
-      // Fallback
       default:
         return type.charAt(0).toUpperCase() + type.slice(1);
     }

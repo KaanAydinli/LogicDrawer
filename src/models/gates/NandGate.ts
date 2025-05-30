@@ -8,17 +8,14 @@ export class NandGate extends LogicGate {
   }
 
   evaluate(): void {
-    // Handle multi-bit inputs
     const input1 = this.inputs[0];
     const input2 = this.inputs[1];
 
     if (!input1 || !input2) return;
 
-    // Check if we have multi-bit inputs
     const isMultiBit = input1.bitWidth > 1 || input2.bitWidth > 1;
 
     if (isMultiBit) {
-      // Get bit arrays
       const value1 = Array.isArray(input1.value)
         ? (input1.value as BitArray)
         : [input1.value as boolean];
@@ -26,9 +23,8 @@ export class NandGate extends LogicGate {
         ? (input2.value as BitArray)
         : [input2.value as boolean];
 
-      // Apply bitwise AND
       var result = BitwiseOperations.AND(value1, value2);
-      // Apply NOT to the result
+
       result = BitwiseOperations.NOT(result);
 
       this.outputs[0].value = result;

@@ -1,4 +1,4 @@
-import { Component, Point } from '../Component';
+import { Component, Point } from "../Component";
 
 /**
  * Text component for adding labels and annotations to the circuit
@@ -15,22 +15,21 @@ export class Text extends Component {
 
   constructor(
     position: Point,
-    text: string = 'Label',
+    text: string = "Label",
     fontSize: number = 16,
-    fontFamily: string = 'Arial',
-    color: string = '#e0e0e0'
+    fontFamily: string = "Arial",
+    color: string = "#e0e0e0"
   ) {
-    super('text', position);
+    super("text", position);
     this.text = text;
     this.fontSize = fontSize;
     this.fontFamily = fontFamily;
     this.color = color;
-    
-    
+
     const textWidth = this.calculateTextWidth();
-    this.size = { 
-      width: textWidth, 
-      height: fontSize * 1.2
+    this.size = {
+      width: textWidth,
+      height: fontSize * 1.2,
     };
   }
 
@@ -38,10 +37,10 @@ export class Text extends Component {
    * Calculate the width of the text using canvas measurement
    */
   private calculateTextWidth(): number {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
     if (!context) return this.text.length * this.fontSize * 0.6;
-    
+
     context.font = `${this.fontSize}px ${this.fontFamily}`;
     const metrics = context.measureText(this.text);
     return metrics.width;
@@ -50,29 +49,24 @@ export class Text extends Component {
   /**
    * Text components don't have any logic to evaluate
    */
-  evaluate(): void {
-    
-  }
+  evaluate(): void {}
 
   /**
    * Draw text on the canvas
    */
   draw(ctx: CanvasRenderingContext2D): void {
-    if (this.isEditing) return; 
+    if (this.isEditing) return;
 
     ctx.save();
-    
-    
+
     ctx.font = `${this.fontSize}px ${this.fontFamily}`;
     ctx.fillStyle = this.color;
-    ctx.textBaseline = 'middle';
-    
-    
+    ctx.textBaseline = "middle";
+
     ctx.fillText(this.text, this.position.x, this.position.y);
-    
-    
+
     if (this.selected) {
-      ctx.strokeStyle = '#e0e0e0';
+      ctx.strokeStyle = "#e0e0e0";
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 3]);
       ctx.strokeRect(
@@ -82,7 +76,7 @@ export class Text extends Component {
         this.size.height + 10
       );
     }
-    
+
     ctx.restore();
   }
 
@@ -99,84 +93,68 @@ export class Text extends Component {
    * Display a textarea for editing the text
    */
   private showEditor(canvas: HTMLCanvasElement): void {
-    // Mevcut canvas transformasyonlarını al
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    
+
     const transform = ctx.getTransform();
-    const scale = transform.a;  // Zoom level
-    const offsetX = transform.e;  // Pan X
-    const offsetY = transform.f;  // Pan Y
-    
-    // Canvas'ın viewport içindeki konumunu al
+    const scale = transform.a;
+    const offsetX = transform.e;
+    const offsetY = transform.f;
+
     const canvasRect = canvas.getBoundingClientRect();
-    
-    // Text pozisyonunu viewport koordinatlarına dönüştür
+
     const viewportX = canvasRect.left + (this.position.x * scale + offsetX);
     const viewportY = canvasRect.top + (this.position.y * scale + offsetY);
-    
-    // Editor oluştur
-    this.editor = document.createElement('textarea');
+
+    this.editor = document.createElement("textarea");
     this.editor.value = this.text;
-    
-    // Editörü tam olarak metin üzerine konumlandır
-    this.editor.style.position = 'fixed'; // absolute yerine fixed kullan
+
+    this.editor.style.position = "fixed";
     this.editor.style.left = `${viewportX}px`;
-    this.editor.style.top = `${viewportY - (this.size.height * scale / 2)}px`;
-    
-    // Boyutları canvas zoom'una göre ayarla
+    this.editor.style.top = `${viewportY - (this.size.height * scale) / 2}px`;
+
     this.editor.style.width = `${(this.size.width + 20) * scale}px`;
     this.editor.style.height = `${(this.size.height + 10) * scale}px`;
     this.editor.style.fontSize = `${this.fontSize * scale}px`;
-    
-    // Stil ayarları
-    this.editor.style.border = '1px solid #0099ff';
-    this.editor.style.outline = 'none';
-    this.editor.style.color = '#e0e0e0';
-    this.editor.style.resize = 'none';
-    this.editor.style.overflow = 'hidden';
-    this.editor.style.padding = '2px';
-    this.editor.style.margin = '0';
-    this.editor.style.zIndex = '1000';
-    this.editor.style.background = '#333';
+
+    this.editor.style.border = "1px solid #0099ff";
+    this.editor.style.outline = "none";
+    this.editor.style.color = "#e0e0e0";
+    this.editor.style.resize = "none";
+    this.editor.style.overflow = "hidden";
+    this.editor.style.padding = "2px";
+    this.editor.style.margin = "0";
+    this.editor.style.zIndex = "1000";
+    this.editor.style.background = "#333";
     this.editor.style.fontFamily = this.fontFamily;
-    this.editor.style.textAlign = 'left'; 
-    this.editor.style.transform = 'translateX(-50%)'; 
-    
+    this.editor.style.textAlign = "left";
+    this.editor.style.transform = "translateX(-50%)";
 
     document.body.appendChild(this.editor);
-    
+
     this.editor.select();
     this.editor.focus();
-    
 
     this.isEditing = true;
-    
 
-    this.editor.addEventListener('blur', () => this.completeEditing());
-
+    this.editor.addEventListener("blur", () => this.completeEditing());
   }
 
   private completeEditing(): void {
     if (this.isEditing && this.editor) {
-      
       this.setText(this.editor.value);
-    
-        document.body.removeChild(this.editor);
-      
-      
-      
+
+      document.body.removeChild(this.editor);
+
       this.editor = null;
       this.isEditing = false;
     }
   }
 
-  /**
-   * Override containsPoint to use text bounds
-   */
+
   containsPoint(point: Point): boolean {
     const halfWidth = this.size.width / 2;
-    
+
     return (
       point.x >= this.position.x - halfWidth &&
       point.x <= this.position.x + halfWidth &&
@@ -185,72 +163,53 @@ export class Text extends Component {
     );
   }
 
-  /**
-   * Start dragging the text
-   */
+
   startDrag(point: Point): void {
     if (this.isEditing) return;
-    
+
     this.dragging = true;
     this.dragOffset = {
       x: this.position.x - point.x,
-      y: this.position.y - point.y
+      y: this.position.y - point.y,
     };
   }
 
-  /**
-   * Update position while dragging
-   */
+ 
   drag(point: Point): void {
     if (this.dragging && !this.isEditing) {
       this.position = {
         x: point.x + this.dragOffset.x,
-        y: point.y + this.dragOffset.y
+        y: point.y + this.dragOffset.y,
       };
     }
   }
 
-  /**
-   * End dragging
-   */
+  
   endDrag(): void {
     this.dragging = false;
   }
 
-  /**
-   * Set the text content and recalculate size
-   */
+  
   setText(text: string): void {
     this.text = text;
     this.size.width = this.calculateTextWidth();
   }
 
-  /**
-   * Get the text content
-   */
   getText(): string {
     return this.text;
   }
 
-  /**
-   * Set the font size and recalculate size
-   */
   setFontSize(size: number): void {
     this.fontSize = size;
     this.size.height = size * 1.2;
     this.size.width = this.calculateTextWidth();
   }
 
-  /**
-   * Set the text color
-   */
   setColor(color: string): void {
     this.color = color;
   }
 
-  /**
-   * Override getState to include text properties
-   */
+  
   getState(): any {
     const baseState = super.getState();
     return {
@@ -258,7 +217,7 @@ export class Text extends Component {
       text: this.text,
       fontSize: this.fontSize,
       fontFamily: this.fontFamily,
-      color: this.color
+      color: this.color,
     };
   }
 
@@ -267,24 +226,23 @@ export class Text extends Component {
    */
   setState(state: any): void {
     super.setState(state);
-    
+
     if (state.text !== undefined) {
       this.text = state.text;
     }
-    
+
     if (state.fontSize !== undefined) {
       this.fontSize = state.fontSize;
     }
-    
+
     if (state.fontFamily !== undefined) {
       this.fontFamily = state.fontFamily;
     }
-    
+
     if (state.color !== undefined) {
       this.color = state.color;
     }
-    
-    
+
     this.size.width = this.calculateTextWidth();
     this.size.height = this.fontSize * 1.2;
   }

@@ -36,7 +36,6 @@ export class VerilogCircuitConverter {
   importVerilogCode(code: string): boolean {
     try {
       const module = this.parser.parseVerilog(code);
-      console.log("Parsed module:", module);
 
       this.components = {};
       this.outputPorts = {};
@@ -46,7 +45,6 @@ export class VerilogCircuitConverter {
       const { hasCombinationalLoop, feedbackEdges } = this.detectFeedbackLoops(module);
 
       if (hasCombinationalLoop) {
-        console.log("Sequential logic or feedback loops detected. Will handle specially.");
         this.feedbackWires = feedbackEdges;
       }
 
@@ -135,8 +133,6 @@ export class VerilogCircuitConverter {
           const gate2UsesGate1Output = gate2.inputs.includes(gate1.output);
 
           if (gate1UsesGate2Output && gate2UsesGate1Output) {
-            console.log(`Çapraz bağlantılı kapılar bulundu: ${gate1.output} <-> ${gate2.output}`);
-
             feedbackEdges.push({
               source: gate1.output,
               target: gate2.output,
@@ -149,10 +145,6 @@ export class VerilogCircuitConverter {
           }
         }
       }
-
-      console.log(
-        `SR latch veya benzer yapılar için ${feedbackEdges.length} geri besleme bağlantısı tespit edildi`
-      );
     }
 
     return { hasCombinationalLoop, feedbackEdges };
@@ -585,9 +577,6 @@ export class VerilogCircuitConverter {
 
     // Check if we need to expand input count for logic gates
     if (this.isLogicGate(gate.type) && gate.inputs.length > component.inputs.length) {
-      console.log(
-        `Expanding gate ${gate.output} from ${component.inputs.length} to ${gate.inputs.length} inputs`
-      );
       this.expandGateInputs(component, gate.inputs.length);
 
       // Important: Re-register the component's output port after expansion
@@ -608,7 +597,6 @@ export class VerilogCircuitConverter {
 
       // Skip feedback connections as before
       if (this.feedbackWires.some(fw => fw.source === gate.output && fw.target === inputName)) {
-        console.log(`Skipping feedback connection from ${gate.output} to ${inputName}`);
         continue;
       }
 
@@ -641,7 +629,6 @@ export class VerilogCircuitConverter {
         const wire = new Wire(sourcePort);
         wire.connect(component.inputs[j]);
         this.circuitBoard.addWire(wire);
-        console.log(`Connected ${inputName} to input ${j} of ${gate.output}`);
       } else {
         console.warn(
           `Source port for ${inputName} not found, creating auto-toggle for ${gate.output}`
@@ -671,31 +658,17 @@ export class VerilogCircuitConverter {
     const logicGate = component as any; // Cast to access LogicGate methods
 
     if (typeof logicGate.increaseInputCount === "function") {
-      const originalOutput = component.outputs[0]; // Save reference to original output
-
       while (component.inputs.length < targetInputCount && component.inputs.length < 8) {
         logicGate.increaseInputCount();
       }
 
-      // Ensure the output reference is still valid after expansion
-      if (component.outputs[0] !== originalOutput) {
-        console.log(
-          `Output reference changed after expanding ${component.type} - updating reference`
-        );
-      }
-
-      // Always update the outputPorts entry to ensure latest reference
       this.outputPorts[component.id] = component.outputs[0];
-
-      console.log(`Expanded ${component.type} to ${component.inputs.length} inputs`);
     } else {
       console.warn(`Cannot expand inputs for component type: ${component.type}`);
     }
   }
 
   private connectOutput(outputName: string, bulb: Component): void {
-    console.log(`Connecting output ${outputName} to bulb ${bulb.id}`);
-
     const bitSelectionMatch = outputName.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
     const actualOutputName = bitSelectionMatch ? outputName : outputName;
 
@@ -703,7 +676,6 @@ export class VerilogCircuitConverter {
     let sourcePort;
 
     if (sourceGate) {
-      console.log(`Found source gate: ${sourceGate.type} (${sourceGate.output})`);
       sourcePort = this.outputPorts[sourceGate.output];
 
       if (!sourcePort) {
@@ -714,7 +686,6 @@ export class VerilogCircuitConverter {
           sourcePort = sourceComponent.outputs[0];
           // Register this port for future use
           this.outputPorts[sourceGate.output] = sourcePort;
-          console.log(`Re-registered output port for ${sourceGate.output}`);
         }
       }
     } else {
@@ -722,15 +693,12 @@ export class VerilogCircuitConverter {
 
       if (!sourcePort && bitSelectionMatch) {
         const [, baseName, bitIndex] = bitSelectionMatch;
-        console.log(
-          `Looking for bit component: ${actualOutputName} (base: ${baseName}, bit: ${bitIndex})`
-        );
 
         // Additional search for multi-bit outputs
         for (const [name, port] of Object.entries(this.outputPorts)) {
           if (name === actualOutputName || name.startsWith(`${baseName}[${bitIndex}]`)) {
             sourcePort = port;
-            console.log(`Found matching port: ${name}`);
+
             break;
           }
         }
@@ -738,9 +706,6 @@ export class VerilogCircuitConverter {
     }
 
     if (sourcePort) {
-      console.log(
-        `Connecting output ${outputName} using port from ${sourcePort.component?.id || "unknown"}`
-      );
       const wire = new Wire(sourcePort);
       wire.connect(bulb.inputs[0]);
       this.circuitBoard.addWire(wire);
@@ -873,10 +838,6 @@ export class VerilogCircuitConverter {
     component: Component,
     conditions?: { value: string; result: string }[]
   ): void {
-    console.log(
-      `Connecting control signals for MUX4 ${component.id} using signal: ${controlSignal}`
-    );
-
     const bit0SignalName = `${controlSignal}[0]`;
     const bit1SignalName = `${controlSignal}[1]`;
 
@@ -884,16 +845,13 @@ export class VerilogCircuitConverter {
     const sourcePortBit1 = this.outputPorts[bit1SignalName];
 
     if (sourcePortBit0 && sourcePortBit1) {
-      console.log(`Found existing multi-bit signals: ${bit0SignalName} and ${bit1SignalName}`);
       const wire0 = new Wire(sourcePortBit0);
       wire0.connect(component.inputs[4]);
       this.circuitBoard.addWire(wire0);
-      console.log(`Connected ${bit0SignalName} to MUX4 select0`);
 
       const wire1 = new Wire(sourcePortBit1);
       wire1.connect(component.inputs[5]);
       this.circuitBoard.addWire(wire1);
-      console.log(`Connected ${bit1SignalName} to MUX4 select1`);
       return;
     }
 
@@ -909,9 +867,7 @@ export class VerilogCircuitConverter {
         const derivedBit0Name = `${baseName}[${bit0Index}]`;
         const derivedBit1Name = `${baseName}[${bit1Index}]`;
 
-        console.log(
-          `Control signal is a bit range. Connecting derived bits: ${derivedBit0Name} and ${derivedBit1Name}`
-        );
+       
         this.connectGateInputToComponent(derivedBit0Name, component, 4);
         this.connectGateInputToComponent(derivedBit1Name, component, 5);
         return;
@@ -921,9 +877,7 @@ export class VerilogCircuitConverter {
     }
 
     if (conditions && conditions.length > 0) {
-      console.log(
-        `Control signal likely from a case statement. Creating toggles based on conditions.`
-      );
+      
       this.connectMux4SelectionsBasedOnCaseValues(conditions, component);
       return;
     }
@@ -1108,9 +1062,7 @@ export class VerilogCircuitConverter {
     wire.connect(component.inputs[inputIndex]);
     this.circuitBoard.addWire(wire);
 
-    console.log(
-      `Connected ${value} (as ${boolValue ? "1" : "0"}) to ${component.id} input ${inputIndex}`
-    );
+    
   }
 
   private isConstant(value: string): boolean {
@@ -1165,8 +1117,7 @@ export class VerilogCircuitConverter {
     multiBitInputs.forEach((input, signalIndex) => {
       if (!input.bitWidth) return;
 
-      console.log(`Setting up multi-bit input: ${input.name} (${input.bitWidth} bits)`);
-
+     
       const baseX = inputBaseX + signalIndex * horizontalSpacing;
       this.componentPositions.set(input.name, { x: baseX, y: inputBaseY });
 
@@ -1205,18 +1156,12 @@ export class VerilogCircuitConverter {
     multiBitOutputs.forEach((output, signalIndex) => {
       if (!output.bitWidth) return;
 
-      console.log(`Setting up multi-bit output: ${output.name} (${output.bitWidth} bits)`);
-
+    
       const baseX = outputBaseX + signalIndex * horizontalSpacing;
       const baseY = outputBaseY;
       this.componentPositions.set(output.name, { x: baseX, y: baseY });
     });
 
-    module.wires.forEach(wire => {
-      if (wire.bitWidth && wire.bitWidth > 1) {
-        console.log(`Registered multi-bit wire: ${wire.name} (${wire.bitWidth} bits)`);
-      }
-    });
   }
 
   private isPositionUsed(x: number, y: number): boolean {
@@ -1229,8 +1174,7 @@ export class VerilogCircuitConverter {
   }
 
   private connectFeedbackWires(): void {
-    console.log("Connecting feedback wires:", this.feedbackWires);
-
+ 
     const feedbackPairs = new Map<string, string[]>();
 
     for (const { source, target } of this.feedbackWires) {
@@ -1266,13 +1210,10 @@ export class VerilogCircuitConverter {
           }
 
           if (targetComponent.inputs[inputIndex].isConnected) {
-            console.log(`Input ${inputIndex} of ${gate.output} is already connected, skipping`);
             continue;
           }
 
-          console.log(
-            `Connecting cross-feedback: ${source} -> input ${inputIndex} of ${gate.output} (${target})`
-          );
+          
           const wire = new Wire(sourcePort);
           wire.connect(targetComponent.inputs[inputIndex]);
           this.circuitBoard.addWire(wire);
@@ -1289,9 +1230,7 @@ export class VerilogCircuitConverter {
 
           if (targetComponent.inputs[inputIndex].isConnected) continue;
 
-          console.log(
-            `Connecting SR latch feedback: ${source} -> input ${inputIndex} of ${target}`
-          );
+          
           const wire = new Wire(sourcePort);
           wire.connect(targetComponent.inputs[inputIndex]);
           this.circuitBoard.addWire(wire);
