@@ -287,6 +287,103 @@ router.post("/", validateCircuitData, async (req: AuthRequest, res) => {
     });
   }
 });
+router.post("/:id/comments", async (req: AuthRequest, res) => {
+  try {
+    if (!req.user?.id) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const circuitId = req.params.id;
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: "Comment text is required" });
+    }
+
+    // Kullanıcı adını doğrudan DB'den al
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const circuit = await Circuit.findById(circuitId);
+    if (!circuit) {
+      return res.status(404).json({ error: "Circuit not found" });
+    }
+
+    // Yorumu devreye ekle
+    circuit.comments.push({
+      userId: new mongoose.Types.ObjectId(req.user.id),
+      text,
+      date: new Date(),
+      authorName: user.name 
+    });
+    await circuit.save();
+
+    return res.status(201).json({ 
+      success: true, 
+      message: "Comment added successfully",
+      comment: {
+       
+        authorId: req.user.id,
+        authorName: user.name,
+        date: new Date(),
+        text,
+       
+      }
+    });
+  } catch (error: any) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ 
+      error: "Failed to add comment",
+      details: error.message 
+    });
+  }
+});
+
+
+// Get comments for a circuit
+router.get("/:id/comments", async (req: AuthRequest, res) => {
+  try {
+    const circuitId = req.params.id;
+    
+    // Kullanıcı bilgilerini populate ederek devre detaylarını getir
+    const circuit = await Circuit.findById(circuitId)
+      .populate({
+        path: 'comments.userId',
+        model: 'User',
+        select: 'name email'
+      });
+    
+    if (!circuit) {
+      return res.status(404).json({ error: "Circuit not found" });
+    }
+
+    // Promise.all ile tüm asenkron işlemleri bekle
+    const formattedComments = await Promise.all((circuit.comments || []).map(async comment => {
+      // Kullanıcıyı bul (populate işlemi çalışmadıysa)
+      const user = comment.userId && typeof comment.userId === 'object' 
+        ? comment.userId 
+        : await User.findById(comment.userId);
+      
+      return {
+        
+        authorId: comment.userId.toString(),
+        // Önce comment.authorName, sonra user.name, yoksa "Unknown User" kullan
+        authorName: comment.authorName || (user && typeof user === 'object' && 'name' in user ? user.name : "Unknown User"),
+        date: comment.date || comment.date || new Date(),
+        text: comment.text,
+        likes: 0
+      };
+    }));
+    
+    return res.json(formattedComments);
+  } catch (error) {
+    console.error("Error fetching comments:", error);
+    res.status(500).json({ error: "Failed to fetch comments" });
+  }
+});
+
 
 // Devre güncelle
 router.put("/:id", validateCircuitData, async (req: AuthRequest, res) => {

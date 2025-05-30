@@ -21,18 +21,34 @@ const circuitSchema = new mongoose.Schema({
     type: Array,
     required: true,
   },
+
+  comments: [
+    {
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      text: String,
+      authorName: String,
+      date: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  // Add sharedWith array to store usernames/IDs of users this circuit is shared with
+
   sharedWith: { type: [String], default: [] },
   isShared: {
     type: Boolean,
     required: false,
   },
-  likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   isPublic: {
     type: Boolean,
     required: false,
@@ -41,7 +57,7 @@ const circuitSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  likes:{
+  likes: {
     type: Number,
     default: 0,
   },

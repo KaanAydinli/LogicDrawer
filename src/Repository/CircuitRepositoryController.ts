@@ -6,12 +6,9 @@ import { CircuitService } from "../services/CircuitService";
 import { AuthService } from "../services/AuthService";
 
 export interface Comment {
-  id: string;
-  authorId: string;
   authorName: string;
   date: Date;
   text: string;
-  likes: number;
 }
 
 export interface CircuitEntry {
@@ -768,8 +765,6 @@ export class CircuitRepositoryController {
 
     if (authService.isAuthenticated && authService.currentUser) {
       this.currentUserId = authService.currentUser.id;
-      
-      
     } else {
     }
   }
@@ -784,8 +779,6 @@ export class CircuitRepositoryController {
         const data = await response.json();
         if (data.user) {
           this.currentUserId = data.user._id || data.user.id;
-          
-          
         }
       } else {
         console.warn("Failed to fetch user info, using default ID");
@@ -883,7 +876,6 @@ export class CircuitRepositoryController {
   }
   public refresh(): void {
     this.fetchCurrentUser().then(() => {
-
       this.currentTab = "browse";
 
       const tabs = document.querySelectorAll(".tab");
@@ -907,7 +899,6 @@ export class CircuitRepositoryController {
     this.circuitGridElement.innerHTML = `<div class="loading-indicator">Loading circuits...</div>`;
 
     try {
-
       const allCircuits = await this.circuitService.getCircuits();
 
       if (this.currentTab === "browse") {
@@ -926,22 +917,17 @@ export class CircuitRepositoryController {
       } else if (this.currentTab === "my-circuits") {
         this.currentCircuits = allCircuits.filter(c => {
           if (typeof c.userId === "object" && c.userId !== null) {
-            
             return c.userId._id === this.currentUserId;
           } else {
-            
             return c.userId === this.currentUserId;
           }
         });
-
-        
       } else if (this.currentTab === "shared-me") {
         this.currentCircuits = await this.circuitService.getSharedCircuits();
       }
 
       this.renderCircuitGrid();
     } catch (error) {
-      
       this.circuitGridElement.innerHTML = `
         <div class="no-results">
           <h3>Error Loading Circuits</h3>
@@ -1026,7 +1012,6 @@ export class CircuitRepositoryController {
 
     this.circuitGridElement.innerHTML = "";
 
- 
     this.currentCircuits.forEach(circuit => {
       const card = this.createCircuitCard(circuit);
       this.circuitGridElement?.appendChild(card);
@@ -1440,7 +1425,6 @@ export class CircuitRepositoryController {
 
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
-
       const inputText = document.querySelector(".docName") as HTMLInputElement;
       if (inputText && circuit.name) {
         inputText.value = circuit.name;
@@ -1497,7 +1481,6 @@ export class CircuitRepositoryController {
             const targetPort = portMap.get(wireData.end?.portId);
 
             if (sourcePort && targetPort) {
-
               const wire = new Wire(sourcePort);
               const connected = wire.connect(targetPort);
 
@@ -1515,7 +1498,6 @@ export class CircuitRepositoryController {
             }
           }
         } else {
-          
         }
 
         circuitBoard.simulate();
