@@ -19,6 +19,25 @@
 
   
 
+<div id="tutorial-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="tutorial-title">LogicDrawer'a Hoş Geldiniz!</h2>
+      <span class="close-tutorial">&times;</span>
+    </div>
+    <div class="modal-body">
+      <div class="tutorial-navigation">
+        <button id="prev-step" disabled>Önceki</button>
+        <div id="step-indicators"></div>
+        <button id="next-step">Sonraki</button>
+      </div>
+      <div id="tutorial-content"></div>
+    </div>
+    <div class="modal-footer">
+      <label><input type="checkbox" id="dont-show-again"> Bir daha gösterme</label>
+    </div>
+  </div>
+</div>
   <div id="app">
 
       <div class = "docNameContainer">
@@ -62,7 +81,9 @@
   
   
               <div class = "aiLogo" >AI</div>
-  
+
+              
+
               <div class="theme-container">
                 <div id="test" class="Theme">Themes</div>
                 <div class="theme-dropdown">
@@ -745,7 +766,7 @@
         </button>
       </div>
    
-
+ 
   <script type="module" src="/src/main.ts"></script>
 
   
@@ -810,6 +831,9 @@
     }
   });
 </script>
+
+
+
 </body>
 
 </html>

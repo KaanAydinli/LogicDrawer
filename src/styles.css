@@ -1370,10 +1370,226 @@ body {
   font-weight: bold;
   margin-bottom: 4px;
 }
+/* Tutorial Navigation Butonlarının Stili */
+.tutorial-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+#prev-step, #next-step {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: var(--component-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+#next-step {
+  background-color: #0B6E4F;
+  color: white;
+}
+
+#prev-step:hover, #next-step:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+#prev-step:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Checkbox Stili */
+.modal-footer label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+#dont-show-again {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+#tutorial-close {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  background-color: #0B6E4F;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#tutorial-close:hover {
+  background-color: #0d8c64;
+}
 
 .suggestion-description {
   color: var(--text-color);
   margin-bottom: 6px;
+}
+/* Rehber modalı için CSS */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  overflow: auto;
+}
+
+.modal-content {
+  background-color: var(--component-bg);
+  color: var(--text-color);
+  margin:  auto;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 80%;
+  max-width: 800px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: modalFadeIn 0.3s;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.close-tutorial {
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+}
+
+.tutorial-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+#step-indicators {
+  display: flex;
+  gap: 8px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--border-color);
+  cursor: pointer;
+}
+
+.step-dot.active {
+  background-color: #0B6E4F;
+  transform: scale(1.2);
+}
+
+.tutorial-content img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 10px 0;
+  border: 1px solid var(--border-color);
+}
+
+.tutorial-step {
+  display: none;
+}
+
+.tutorial-step.active {
+  display: block;
+  animation: stepFadeIn 0.5s;
+}
+
+@keyframes stepFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* Tutorial videoları için stil ekleyin */
+.tutorial-video {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 15px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background-color: #000; /* Video yüklenirken siyah arkaplan */
+}
+
+/* Mevcut image stilini tutuyoruz, belki bazı adımlarda hala resim kullanabiliriz */
+.tutorial-content img {
+  max-width: 100%;
+  border-radius: 4px;
+  margin: 10px 0;
+  border: 1px solid var(--border-color);
+}
+
+/* Yardım butonu */
+.help-button {
+  position: fixed;
+  bottom: 220px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #0B6E4F;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  border: none;
+  z-index: 100;
+  transition: all 0.3s;
+}
+
+.help-button:hover {
+  transform: scale(1.1);
+  background-color: #0d8c64;
 }
 
 .suggestion-hint {

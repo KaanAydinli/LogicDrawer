@@ -43,6 +43,7 @@ import { MultiBit } from "./models/components/MultiBit";
 import { SmartDisplay } from "./models/components/SmartDisplay";
 import { CircuitService } from "./services/CircuitService";
 import { AuthService } from "./services/AuthService";
+import { Tutorial } from "./models/utils/Tutorial";
 export class Queue {
   public items: { role: string; content: string }[] = [];
 
@@ -144,6 +145,31 @@ async function initApp() {
   handleResize();
   setFile();
   setTools();
+  
+  try {
+    const helpButton = document.createElement("button");
+    helpButton.className = "help-button";
+    helpButton.innerHTML = "?";
+    helpButton.title = "Yardım";
+    document.body.appendChild(helpButton);
+
+    const tutorial = new Tutorial();
+
+    helpButton.addEventListener("click", () => {
+      console.log("Yardım butonuna tıklandı");
+      tutorial.goToStep(0);
+      tutorial.show();
+    });
+
+    // İlk kez giren kullanıcılar için
+    if (tutorial.shouldShowTutorial()) {
+      setTimeout(() => {
+        tutorial.show();
+      }, 1500);
+    }
+  } catch (error) {
+    console.error("Tutorial oluşturma hatası:", error);
+  }
 
   async function verifyAuthToken() {
     try {
@@ -934,11 +960,6 @@ function setUpLoginAndSignup() {
       rightContainer.append(authButton);
 
       authButton.addEventListener("click", showAuthModal);
-
-      const token = localStorage.getItem("auth_token");
-      if (token) {
-        updateUserInterface(true);
-      }
     }
   };
 
@@ -1180,26 +1201,6 @@ function setUpLoginAndSignup() {
 
     loginButton?.addEventListener("click", handleLogin);
     signupButton?.addEventListener("click", handleSignup);
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const userInfo = localStorage.getItem("user_info");
-      if (userInfo) {
-        const user = JSON.parse(userInfo);
-        updateUserInterface(true, user.name);
-
-        const authButton = document.getElementById("auth-button");
-        if (authButton) {
-          authButton.addEventListener("click", e => {
-            if (localStorage.getItem("auth_token")) {
-              e.stopPropagation();
-              if (confirm("Çıkış yapmak istiyor musunuz?")) {
-                handleLogout();
-              }
-            }
-          });
-        }
-      }
-    });
   }
 
   setupAuthListeners();
