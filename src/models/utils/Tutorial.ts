@@ -46,7 +46,7 @@ export class Tutorial {
         <p>LogicDrawer, dijital mantık devrelerini tasarlamanıza, simüle etmenize ve paylaşmanıza olanak tanıyan güçlü bir araçtır.</p>
         <p>Bu kısa rehber, temel özellikleri tanıtacak ve başlamanıza yardımcı olacaktır.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/tutorial/welcome.mp4" type="video/mp4">
+          <source src="assets/login.mp4" type="video/mp4">
           Tarayıcınız video etiketini desteklemiyor.
         </video>
       `
@@ -57,7 +57,7 @@ export class Tutorial {
         <p>Sol taraftaki panelden bileşenleri seçip, çalışma alanına sürükleyebilirsiniz.</p>
         <p>And, Or, Not gibi mantık kapıları, anahtar ve LED gibi giriş/çıkış bileşenleri kullanarak devrelerinizi oluşturun.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/tutorial/drag-drop.mp4" type="video/mp4">
+          <source src="assets/dragdrop.mp4" type="video/mp4">
           Tarayıcınız video etiketini desteklemiyor.
         </video>
         <p><strong>İpucu:</strong> Çift tıklayarak bir kapıyı döndürebilirsiniz.</p>
@@ -67,9 +67,9 @@ export class Tutorial {
       title: "Bileşenleri Bağlama",
       content: `
         <p>Bileşenlerin giriş/çıkış noktalarına tıklayıp, bağlantı yapmak istediğiniz diğer noktaya sürükleyerek kablo oluşturabilirsiniz.</p>
-        <p>Çıkış portlarından (sağ taraf) giriş portlarına (sol taraf) bağlantı yapılabilir.</p>
+        <p>Bağlantı sağlandıktan sonra kablolar otomatik olarak kendilerini düzelteceklerdir. </p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/tutorial/wiring.mp4" type="video/mp4">
+          <source src="assets/connect.mp4" type="video/mp4">
           Tarayıcınız video etiketini desteklemiyor.
         </video>
       `
@@ -80,7 +80,7 @@ export class Tutorial {
         <p>Devrenizi oluşturduktan sonra, giriş değerlerini değiştirerek simülasyonu çalıştırabilirsiniz.</p>
         <p>Anahtarlara tıklayarak değerlerini değiştirebilir, devrenizin davranışını gözlemleyebilirsiniz.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/tutorial/simulation.mp4" type="video/mp4">
+          <source src="assets/toggle.mp4" type="video/mp4">
           Tarayıcınız video etiketini desteklemiyor.
         </video>
       `
@@ -91,7 +91,7 @@ export class Tutorial {
         <p>Sağ üst köşedeki AI butonuna tıklayarak yapay zeka asistanına erişebilirsiniz.</p>
         <p>Devre tasarımı, hata ayıklama veya yeni fikirler için AI'dan yardım alabilirsiniz.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/tutorial/ai-assistant.mp4" type="video/mp4">
+          <source src="assets/ai.mp4" type="video/mp4">
           Tarayıcınız video etiketini desteklemiyor.
         </video>
       `
@@ -102,7 +102,7 @@ export class Tutorial {
         <p>Hesabınıza giriş yaptıktan sonra, üst menüden devrelerinizi kaydedebilir ve başkalarıyla paylaşabilirsiniz.</p>
         <p>Ayrıca topluluk tarafından paylaşılan devrelere erişebilir, onları inceleyebilir ve kendi projelerinizde kullanabilirsiniz.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/tutorial/repository.mp4" type="video/mp4">
+          <source src="assets/repository.mp4" type="video/mp4">
           Tarayıcınız video etiketini desteklemiyor.
         </video>
       `
