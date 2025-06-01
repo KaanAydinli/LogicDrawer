@@ -13,6 +13,7 @@ import circuitRoutes from "./routes/circuitRoutes";
 import aiRoutes from "./routes/aiRoutes";
 
 const app = express();
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/logicdrawer";
 
@@ -50,17 +51,18 @@ app.use((req, res, next) => {
 
   next();
 });
-
-// MongoDB bağlantısı
 mongoose
-  .connect(MONGODB_URI)
+  .connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 30000, // 30 saniyeye çıkarın
+    socketTimeoutMS: 45000, // Socket timeout ekleyin
+    connectTimeoutMS: 45000, // Bağlantı timeout ekleyin
+  })
   .then(() => {
-    console.log("Connected to MongoDB successfully");
-    console.log("MongoDB URI:", MONGODB_URI);
+    console.log("MongoDB connected successfully");
   })
   .catch(err => {
     console.error("MongoDB connection error:", err);
-    console.error("Connection URI:", MONGODB_URI);
+    console.log("Connection URI:", MONGODB_URI.replace(/:[^\/]+@/, ":****@")); // Şifreyi gizle
   });
 
 // Güvenlik middleware'leri
@@ -83,12 +85,12 @@ app.get("/health", (req, res) => {
   });
 });
 
-const distPath = path.join(__dirname, '../../dist');
+const distPath = path.join(__dirname, "../../dist");
 app.use(express.static(distPath));
 
 // API dışındaki tüm istekleri index.html'e yönlendir
-app.get('*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
 });
 
 // Server'ı başlat
