@@ -18,7 +18,7 @@ const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/logicd
 
 app.use(
   cors({
-    origin: ["http://139.179.195.6:4000", "http://localhost:3000", "http://localhost:4000"],
+    origin: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
@@ -81,6 +81,14 @@ app.get("/health", (req, res) => {
     timestamp: new Date().toISOString(),
     ip: req.ip,
   });
+});
+
+const distPath = path.join(__dirname, '../../dist');
+app.use(express.static(distPath));
+
+// API dışındaki tüm istekleri index.html'e yönlendir
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 // Server'ı başlat

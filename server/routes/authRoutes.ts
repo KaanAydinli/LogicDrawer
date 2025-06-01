@@ -26,6 +26,11 @@ router.post("/register", async (req, res) => {
     const sanitizedName = name.replace(/<[^>]*>?/gm, '');
     
     const existingUser = await User.findOne({ email });
+    const existingNameUser = await User.findOne({ name: sanitizedName });
+
+    if (existingNameUser) {
+      return res.status(400).json({ error: "Name already in use" });
+    }
     if (existingUser) {
       return res.status(400).json({ error: "Email already in use" });
     }

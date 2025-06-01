@@ -1565,10 +1565,10 @@ function setTheme() {
       activeOption.classList.add("active");
     }
   } else {
-    const defaultOption = document.querySelector('.theme-option[data-theme="forest"]');
+    const defaultOption = document.querySelector('.theme-option[data-theme="midnight"]');
     if (defaultOption) {
       defaultOption.classList.add("active");
-      applyTheme("forest");
+      applyTheme("midnight");
     }
   }
 }
