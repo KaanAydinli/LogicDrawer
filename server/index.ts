@@ -54,15 +54,7 @@ app.use((req, res, next) => {
   next();
 });
 mongoose
-  .connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 30000,
-    socketTimeoutMS: 45000,
-    connectTimeoutMS: 45000,
-    bufferCommands: false, // Critical: Disable command buffering
-   
-    maxPoolSize: 10,
-    minPoolSize: 2,
-  })
+  .connect(MONGODB_URI)
   .then(() => {
     console.log("MongoDB connected successfully");
   })
