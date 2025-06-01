@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { defineConfig as defineVitestConfig } from 'vitest/config'; // Vitest config tipini import et
 
+// Basitleştirilmiş config
 export default defineConfig({
   server: {
     hmr: {
@@ -12,7 +13,8 @@ export default defineConfig({
 
   },
   build: {
-    sourcemap: false
+    sourcemap: false,
+    outDir: 'dist'
   },
   // Vitest yapılandırmasını buraya ekleyin
   test: {
