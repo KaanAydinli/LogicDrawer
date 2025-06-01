@@ -9,14 +9,14 @@
     "dev:server": "cd server && npm run dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "dev:network": "concurrently \"vite --host --port 4000 --force\" \"cd server && npm run dev\"",
-    "build": "tsc -b && vite build --outDir dist",
+    "build": "tsc && vite build",
     "lint": "eslint src --fix && npx tsc --noEmit",
     "format": "prettier --write \"**/*.{html,css,js,ts,json}\"",
     "format:check": "prettier --check \"**/*.{html,css,js,ts,json}\"",
     "preview": "vite preview --host",
     "server": "ts-node server/index.ts",
     "build:all": "npm run build && cd server && npm run build",
-    "start": "cd server && npm start"
+    "start": "node dist/server/index.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
