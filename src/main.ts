@@ -1,6 +1,7 @@
 declare global {
   interface Window {
     circuitBoard: CircuitBoard;
+    converter: VerilogCircuitConverter;
   }
 }
 
@@ -98,6 +99,7 @@ async function initApp() {
   initCircuitBoard();
   window.circuitBoard = circuitBoard;
   converter = new VerilogCircuitConverter(circuitBoard);
+  window.converter = converter; 
 
   document.querySelector(".screenshot")?.addEventListener("click", () => {
     circuitBoard.takeScreenshot();
