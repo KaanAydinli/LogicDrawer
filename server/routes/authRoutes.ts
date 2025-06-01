@@ -10,9 +10,9 @@ const JWT_SECRET = process.env.JWT_SECRET || "a";
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    
+
     // NoSQL injection kontrolü
-    if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string') {
+    if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string") {
       return res.status(400).json({ error: "Invalid input format" });
     }
 
@@ -21,10 +21,10 @@ router.post("/register", async (req, res) => {
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: "Invalid email format" });
     }
-    
+
     // XSS koruması
-    const sanitizedName = name.replace(/<[^>]*>?/gm, '');
-    
+    const sanitizedName = name.replace(/<[^>]*>?/gm, "");
+
     const existingUser = await User.findOne({ email });
     const existingNameUser = await User.findOne({ name: sanitizedName });
 
@@ -63,40 +63,46 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     // NoSQL injection kontrolü
-    if (typeof email !== 'string' || typeof password !== 'string') {
+    if (typeof email !== "string" || typeof password !== "string") {
       return res.status(400).json({ error: "Invalid email or password format" });
     }
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ error: "Invalid email or password" });
+    try {
+      const user = await User.findOne({ email }).maxTimeMS(5000);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
+        expiresIn: "1h",
+      });
+
+      res.cookie("auth_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 1000,
+      });
+
+      res.json({
+        message: "Login successful",
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+        },
+      });
+   
+    } catch (error) {
+      console.error("Login error:", error);
+      return res.status(500).json({ error: "Database connection issue" });
     }
-
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
-      expiresIn: "1h",
-    });
-
-    res.cookie('auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 1000
-    });
-
-    res.json({
-      message: "Login successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-    });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Server error during login" });
@@ -105,11 +111,11 @@ router.post("/login", async (req, res) => {
 
 // Kullanıcı çıkışı
 router.post("/logout", (req, res) => {
-  res.clearCookie('auth_token', {
+  res.clearCookie("auth_token", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
   });
   res.json({ message: "Logged out successfully" });
 });
@@ -124,13 +130,14 @@ router.get("/me", (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
-    
-    User.findById(decoded.id).select("-password")
+
+    User.findById(decoded.id)
+      .select("-password")
       .then(user => {
         if (!user) {
           return res.status(404).json({ error: "User not found" });
         }
-        
+
         res.json({ user });
       })
       .catch(err => {
@@ -162,31 +169,27 @@ router.post("/refresh", authMiddleware, async (req: AuthRequest, res) => {
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "Authentication required" });
     }
-    
+
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    
+
     // Yeni token oluştur
-    const token = jwt.sign(
-      { id: user._id, email: user.email }, 
-      JWT_SECRET, 
-      { expiresIn: "24h" }
-    );
-    
+    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "24h" });
+
     // Cookie olarak gönder (daha güvenli)
-    res.cookie('auth_token', token, {
+    res.cookie("auth_token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000 // 24 saat
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 24 * 60 * 60 * 1000, // 24 saat
     });
-    
-    res.json({ 
+
+    res.json({
       message: "Token refreshed successfully",
-      expiresIn: 24 * 60 * 60 // saniye cinsinden
+      expiresIn: 24 * 60 * 60, // saniye cinsinden
     });
   } catch (error) {
     console.error("Token refresh error:", error);
