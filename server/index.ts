@@ -15,7 +15,9 @@ import aiRoutes from "./routes/aiRoutes";
 const app = express();
 app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/logicdrawer";
+const MONGODB_URI = process.env.MONGODB_URI || "";
+
+//mongodb://localhost:27017/logicdrawer
 
 app.use(
   cors({
