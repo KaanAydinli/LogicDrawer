@@ -68,7 +68,9 @@ router.post("/login", async (req, res) => {
     }
 
     try {
-      const user = await User.findOne({ email }).maxTimeMS(5000);
+      const user = await User.findOne({ email })
+        .maxTimeMS(8000); // Reduce from your connection timeout
+       
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -98,7 +100,6 @@ router.post("/login", async (req, res) => {
           email: user.email,
         },
       });
-   
     } catch (error) {
       console.error("Login error:", error);
       return res.status(500).json({ error: "Database connection issue" });
