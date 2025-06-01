@@ -498,20 +498,21 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       const circuitBoard = window.circuitBoard;
 
-      if (!window.verilogConverter && circuitBoard) {
-        // VerilogCircuitConverter modülünü dinamik olarak yükle
-        import("./models/utils/VerilogCircuitConverter.js")
-          .then(module => {
-            circuitBoard.clearCircuit();
-            const VerilogCircuitConverter = module.VerilogCircuitConverter;
-            window.verilogConverter = new VerilogCircuitConverter(circuitBoard);
-            processVerilogCode(verilogCode, container);
-          })
-          .catch(error => {
-            console.error("VerilogCircuitConverter yüklenemedi:", error);
-            alert("Verilog dönüştürücü modülü yüklenemedi!");
-          });
-      } else if (window.verilogConverter) {
+      // if (!window.verilogConverter && circuitBoard) {
+      //   // VerilogCircuitConverter modülünü dinamik olarak yükle
+      //   import("./models/utils/VerilogCircuitConverter.js")
+      //     .then(module => {
+      //       circuitBoard.clearCircuit();
+      //       const VerilogCircuitConverter = module.VerilogCircuitConverter;
+      //       window.verilogConverter = new VerilogCircuitConverter(circuitBoard);
+      //       processVerilogCode(verilogCode, container);
+      //     })
+      //     .catch(error => {
+      //       console.error("VerilogCircuitConverter yüklenemedi:", error);
+      //       alert("Verilog dönüştürücü modülü yüklenemedi!");
+      //     });
+      // } else
+       if (window.verilogConverter) {
         // Dönüştürücü zaten yüklüyse kullan
         processVerilogCode(verilogCode, container);
       } else {
