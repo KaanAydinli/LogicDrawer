@@ -8,6 +8,8 @@ import { authMiddleware } from "../middlewares/auth";
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 
+
+
 // Upload için multer ayarları
 const upload = multer({
   storage: multer.memoryStorage(),
