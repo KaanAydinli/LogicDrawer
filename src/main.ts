@@ -78,7 +78,7 @@ let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
-const promptAI = import.meta.env.VITE_PROMPT;
+const promptAI = (import.meta.env as any).VITE_PROMPT;
 const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
 const sidebar = document.querySelector(".sidebar") as HTMLElement;
