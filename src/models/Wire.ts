@@ -39,6 +39,7 @@ export class Wire {
 
     if (this.from && this.from.bitWidth !== toPort.bitWidth) {
       console.log(`Bit width mismatch: ${this.from.bitWidth} vs ${toPort.bitWidth}`);
+      return false;
     }
 
     const isOutputToInput = this.from && this.from.type === "output" && toPort.type === "input";

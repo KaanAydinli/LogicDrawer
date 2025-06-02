@@ -195,6 +195,13 @@ export class GatePanel {
           <div class="property-value">${componentTypeName}</div>
         </div>
         
+        `;
+
+    if(this.selectedComponent.type === "toggle" || this.selectedComponent.type === "button" || this.selectedComponent.type === "light-bulb") {
+
+    }
+    else{
+      htmlContent += `
         <div class="property-group">
           <label>Bit Width:</label>
           <div class="property-control">
@@ -203,6 +210,7 @@ export class GatePanel {
             <button id="increase-bit-width" class="control-btn" ${this.selectedComponent.defaultBitWidth >= 64 ? "disabled" : ""}>+</button>
           </div>
         </div>`;
+    }
 
     if (isLogicGate) {
       const minInputs = this.selectedComponent.getMinInputCount();
