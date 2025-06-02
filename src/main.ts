@@ -483,7 +483,20 @@ function addComponentByType(type: string, position: Point) {
   circuitBoard.addComponent(component);
 }
 
-function setupKeyboardShortcuts() {}
+function setupKeyboardShortcuts() {
+
+  document.addEventListener("keydown", event => {
+    if (event.ctrlKey && event.key === "s") {
+      event.preventDefault();
+        var text = inputText.value;
+        if (text === "") {
+          text = "circuit";
+        }
+        const circuitData = circuitBoard.exportCircuit();
+        saveToMongoDB(text, circuitData);
+    } 
+  });
+}
 
 function setUpAI() {
   const aiLogo = document.querySelector(".aiLogo") as HTMLElement;

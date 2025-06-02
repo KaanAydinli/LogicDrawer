@@ -27,6 +27,7 @@ export class MultiBit extends Component {
 
   evaluate(): void {
     this.outputs[0].value = [...this.bits];
+   
   }
 
   toggleBit(index: number): void {

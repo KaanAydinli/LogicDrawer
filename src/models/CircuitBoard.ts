@@ -144,7 +144,7 @@ export class CircuitBoard {
       return;
     }
 
-    if (event.ctrlKey && event.key === "s") {
+    if (event.ctrlKey && event.key === "d") {
       event.preventDefault();
       this.saveToFile();
     } else if (event.ctrlKey && event.key === "o") {
@@ -502,14 +502,10 @@ export class CircuitBoard {
     table: HTMLTableElement,
     padding: number
   ): void {
-    
-
-    
     ctx.font = "14px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    
     const rows = table.rows;
     const headerHeight = 40; // Başlık satır yüksekliği
     const rowHeight = 30; // Normal satır yüksekliği
@@ -998,7 +994,7 @@ export class CircuitBoard {
     const cellSize = Math.min((width - padding * 2) / colCount, (height - padding * 2) / rowCount);
 
     // Render K-Map table to canvas
-    this.renderKMapToCanvas(tempCtx, kmapTable,  yOffset, cellSize);
+    this.renderKMapToCanvas(tempCtx, kmapTable, yOffset, cellSize);
 
     // Draw expression if exists
     if (kmapExpr && kmapExpr.textContent) {
@@ -1021,7 +1017,7 @@ export class CircuitBoard {
   private renderKMapToCanvas(
     ctx: CanvasRenderingContext2D,
     table: HTMLTableElement,
-   
+
     yPadding: number,
     cellSize: number
   ): void {

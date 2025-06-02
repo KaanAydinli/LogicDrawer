@@ -89,7 +89,8 @@ export class Tutorial {
       title: "AI Asistanı Kullanma",
       content: `
         <p>Sağ üst köşedeki AI butonuna tıklayarak yapay zeka asistanına erişebilirsiniz.</p>
-        <p>Devre tasarımı, hata ayıklama veya yeni fikirler için AI'dan yardım alabilirsiniz.</p>
+        <p>Verilog kodu yazdırma, K-Map ve Truth Table görsellerinden devreye geçiş yapma ve mantık devreleri hakkında bilgi almak için sohbet edebilirsiniz.</p>
+        <p>Aynı zamanda elle çizdiğiniz devre fotoğraflarını yükleyerek yapay zekanın o fotoğrafı, üzerinde oynayabileceğiniz devreye dönüştürmesini izleyebilirsiniz</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/ai.mp4" type="video/mp4">
           Tarayıcınız video etiketini desteklemiyor.
@@ -100,6 +101,7 @@ export class Tutorial {
       title: "Devre Kaydetme ve Paylaşma",
       content: `
         <p>Hesabınıza giriş yaptıktan sonra, üst menüden devrelerinizi kaydedebilir ve başkalarıyla paylaşabilirsiniz.</p>
+        <p>Arkadaşınızın kullanıcı ismini kullanarak paylaştığınız devre üzerinde ortak bir şekilde çalışıp kaydedebilirsiniz</p>
         <p>Ayrıca topluluk tarafından paylaşılan devrelere erişebilir, onları inceleyebilir ve kendi projelerinizde kullanabilirsiniz.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/repository.mp4" type="video/mp4">
