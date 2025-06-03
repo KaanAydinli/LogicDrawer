@@ -79,7 +79,7 @@ let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
 
-const promptAI = import.meta.env.VITE_PROMPT ||  "";
+const promptAI = import.meta.env.VITE_PROMPT || "";
 const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
 const sidebar = document.querySelector(".sidebar") as HTMLElement;
@@ -99,7 +99,7 @@ async function initApp() {
   initCircuitBoard();
   window.circuitBoard = circuitBoard;
   converter = new VerilogCircuitConverter(circuitBoard);
-  window.converter = converter; 
+  window.converter = converter;
 
   document.querySelector(".screenshot")?.addEventListener("click", () => {
     circuitBoard.takeScreenshot();
@@ -147,7 +147,7 @@ async function initApp() {
   handleResize();
   setFile();
   setTools();
-  
+
   try {
     const helpButton = document.createElement("button");
     helpButton.className = "help-button";
@@ -484,17 +484,16 @@ function addComponentByType(type: string, position: Point) {
 }
 
 function setupKeyboardShortcuts() {
-
   document.addEventListener("keydown", event => {
     if (event.ctrlKey && event.key === "s") {
       event.preventDefault();
-        var text = inputText.value;
-        if (text === "") {
-          text = "circuit";
-        }
-        const circuitData = circuitBoard.exportCircuit();
-        saveToMongoDB(text, circuitData);
-    } 
+      var text = inputText.value;
+      if (text === "") {
+        text = "circuit";
+      }
+      const circuitData = circuitBoard.exportCircuit();
+      saveToMongoDB(text, circuitData);
+    }
   });
 }
 
@@ -603,7 +602,7 @@ function setUpAI() {
 
           setTimeout(() => {
             addAIMessage(
-              "I see you've uploaded an image. Would you like me to analyze it or detect a circuit from it?"
+              "I see you've uploaded an image. Would you like me to analyze it, detect a circuit from handdrawn image, or draw circuit from truth table or K-map?", 
             );
           }, 1000);
         }
@@ -863,6 +862,166 @@ function setTools() {
         circuitBoard.showKarnaughMap();
       } else if (selectedTool === "screenshot") {
         circuitBoard.takeScreenshot();
+      } else if (selectedTool === "upload-tt") {
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "image/*";
+        fileInput.style.display = "none";
+        document.body.appendChild(fileInput);
+
+        fileInput.addEventListener("change", async event => {
+          const target = event.target as HTMLInputElement;
+          const file = target?.files?.[0];
+          if (!file) return;
+
+          // Convert the file to base64
+          const reader = new FileReader();
+          reader.onload = async function (e) {
+            if (e.target && e.target.result) {
+              if (typeof e.target.result === "string") {
+                const imageData = e.target.result;
+
+                const previewContainer = document.createElement("div");
+                previewContainer.className = "image-preview-container";
+                previewContainer.style.position = "fixed";
+                previewContainer.style.top = "50%";
+                previewContainer.style.right = "10%";
+                previewContainer.style.transform = "translate(-50%, -50%)";
+                previewContainer.style.backgroundColor = "#2a2a2a";
+                previewContainer.style.padding = "20px";
+                previewContainer.style.borderRadius = "8px";
+                previewContainer.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.5)";
+                previewContainer.style.zIndex = "10000";
+                previewContainer.style.maxWidth = "80%";
+                previewContainer.style.textAlign = "center";
+
+                // Add title
+                const title = document.createElement("h3");
+                title.textContent = "Truth Table Image Preview";
+                title.style.color = "#fff";
+                title.style.marginBottom = "15px";
+                previewContainer.appendChild(title);
+
+                // Add image preview
+                const img = document.createElement("img");
+                img.src = imageData;
+                img.style.maxWidth = "100%";
+                img.style.maxHeight = "60vh";
+                img.style.border = "1px solid #444";
+                img.style.borderRadius = "4px";
+                previewContainer.appendChild(img);
+
+                 document.body.appendChild(previewContainer);
+                // Create a ToolContext object
+                const context = {
+                  message: "Analyze this truth table image",
+                  image: imageData,
+                  circuitBoard: circuitBoard,
+                  queue: queue,
+                  promptAI: promptAI,
+                  imageUploader: imageUploader,
+                };
+
+                // Process the truth table directly
+                const ttTool = aiAgent.tools.get("TRUTH_TABLE_IMAGE");
+
+                if (!ttTool) {
+                  console.error("Truth Table tool not found");
+                  alert("Truth Table tool is not available.");
+                  return;
+                }
+                const result = await ttTool.execute(context);
+                document.body.removeChild(previewContainer);
+                // Show the result to the user
+                alert(result);
+              }
+            }
+            document.body.removeChild(fileInput);
+          };
+          reader.readAsDataURL(file);
+        });
+
+        fileInput.click();
+      } else if (selectedTool === "upload-kmap") {
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "image/*";
+        fileInput.style.display = "none";
+        document.body.appendChild(fileInput);
+
+        fileInput.addEventListener("change", async event => {
+          const target = event.target as HTMLInputElement;
+          const file = target?.files?.[0];
+          if (!file) return;
+
+          // Convert the file to base64
+          const reader = new FileReader();
+          reader.onload = async function (e) {
+            if (e.target && e.target.result) {
+              if (typeof e.target.result === "string") {
+                const imageData = e.target.result;
+
+                 const previewContainer = document.createElement("div");
+                previewContainer.className = "image-preview-container";
+                previewContainer.style.position = "fixed";
+                previewContainer.style.top = "50%";
+                previewContainer.style.right = "10%";
+                previewContainer.style.transform = "translate(-50%, -50%)";
+                previewContainer.style.backgroundColor = "#2a2a2a";
+                previewContainer.style.padding = "20px";
+                previewContainer.style.borderRadius = "8px";
+                previewContainer.style.boxShadow = "0 4px 15px rgba(0, 0, 0, 0.5)";
+                previewContainer.style.zIndex = "10000";
+                previewContainer.style.maxWidth = "80%";
+                previewContainer.style.textAlign = "center";
+
+                // Add title
+                const title = document.createElement("h3");
+                title.textContent = "Truth Table Image Preview";
+                title.style.color = "#fff";
+                title.style.marginBottom = "15px";
+                previewContainer.appendChild(title);
+
+                // Add image preview
+                const img = document.createElement("img");
+                img.src = imageData;
+                img.style.maxWidth = "100%";
+                img.style.maxHeight = "60vh";
+                img.style.border = "1px solid #444";
+                img.style.borderRadius = "4px";
+                previewContainer.appendChild(img);
+
+                 document.body.appendChild(previewContainer);
+
+                // Create a ToolContext object
+                const context = {
+                  message: "Analyze this K-map image",
+                  image: imageData,
+                  circuitBoard: circuitBoard,
+                  queue: queue,
+                  promptAI: promptAI,
+                  imageUploader: imageUploader,
+                };
+
+                // Process the K-map directly
+                const kmapTool = aiAgent.tools.get("KMAP_IMAGE");
+                if (!kmapTool) {
+                  console.error("K-map tool not found");
+                  alert("K-map tool is not available.");
+                  return;
+                }
+                const result = await kmapTool.execute(context);
+                document.body.removeChild(previewContainer);
+                // Show the result to the user
+                alert(result);
+              }
+            }
+            document.body.removeChild(fileInput);
+          };
+          reader.readAsDataURL(file);
+        });
+
+        fileInput.click();
       }
       toolsDropdown.classList.remove("show");
     });

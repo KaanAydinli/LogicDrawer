@@ -7,7 +7,7 @@ import { Queue } from '../main';
 
 export class AIAgent {
   private lastUploadedImage: string | null = null;
-  private tools: Map<string, Tool>;
+  public tools: Map<string, Tool>;
   private circuitBoard: CircuitBoard;
   public queue: Queue;
   private promptAI: string;
