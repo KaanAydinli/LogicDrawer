@@ -2,14 +2,14 @@
   "name": "logicdrawer-server",
   "version": "1.0.0",
   "description": "Backend server for LogicDrawer",
-  "main": "dist/index.js", 
+  "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules index.ts",
-    "build": "tsc"
+    "build": "tsc &&  npm run copy-python",
+    "copy-python": "copyfiles -u 1 \"python/**/*.py\" dist/"
   },
-  
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
@@ -24,7 +24,6 @@
     "mongoose": "^7.0.3",
     "xss-filters": "^1.2.7"
   },
-
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.8",
@@ -35,8 +34,8 @@
     "@types/multer": "^1.4.12",
     "@types/node": "^18.15.11",
     "@types/xss-filters": "^1.2.0",
+    "copyfiles": "^2.4.1",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.0.4"
-    
   }
 }
