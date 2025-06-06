@@ -50,7 +50,7 @@ app.use((req, res, next) => {
       `\x1b[41m\x1b[97m [UYARI] Şüpheli User-Agent: ${userAgent} | IP: ${req.ip} | Yol: ${req.path} \x1b[0m`
     );
   }
- 
+
   next();
 });
 mongoose
