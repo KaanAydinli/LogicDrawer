@@ -28,11 +28,11 @@ router.post("/analyze/roboflow", async (req, res) => {
     const pythonScriptPath = path.join(__dirname, "..", "detectCircuit.py");
     
     // Python executable'ı belirle
-  const pythonExecutable = process.env.PYTHON_EXECUTABLE || 
-                         (process.platform === "win32" ? "python" : "python3");
+    const pythonExecutable = process.env.PYTHON_EXECUTABLE || 
+                          (process.platform === "win32" ? "python" : "python3");
 
     // Python script'in varlığını kontrol et
-    if (!require('fs').existsSync(pythonScriptPath)) {
+    if (!fs.existsSync(pythonScriptPath)) {
       return res.status(500).json({ 
         error: "Python script not found", 
         path: pythonScriptPath 
@@ -41,163 +41,109 @@ router.post("/analyze/roboflow", async (req, res) => {
 
     console.log(`Starting Python script: ${pythonExecutable} ${pythonScriptPath}`);
 
-    const pythonProcess = spawn(pythonExecutable, [pythonScriptPath], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        PYTHONUNBUFFERED: "1",
-        PYTHONIOENCODING: "utf-8"
-      }
-    });
-
-    let scriptOutput = "";
-    let scriptError = "";
-
-    pythonProcess.stdout.on("data", (data) => {
-      scriptOutput += data.toString();
-    });
-
-    pythonProcess.stderr.on("data", (data) => {
-      console.log("Python stderr:", data.toString());
-      scriptError += data.toString();
-    });
-
-    pythonProcess.on("close", (code) => {
-      if (code === 0) {
-        try {
-          // Extract only the valid JSON from the output by finding the first { and last }
-          const jsonStart = scriptOutput.indexOf('{');
-          const jsonEnd = scriptOutput.lastIndexOf('}') + 1;
-          
-          if (jsonStart >= 0 && jsonEnd > jsonStart) {
-            const jsonString = scriptOutput.substring(jsonStart, jsonEnd);
-            console.log("Extracted JSON:", jsonString.substring(0, 100) + "...");
-            
-            const result = JSON.parse(jsonString);
-            res.json(result);
-          } else {
-            throw new Error("No valid JSON found in Python output");
+    // Promise-based execution to properly handle async flow
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const pythonProcess = spawn(pythonExecutable, [pythonScriptPath], {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: {
+            ...process.env,
+            PYTHONUNBUFFERED: "1",
+            PYTHONIOENCODING: "utf-8"
           }
-        } catch (e) {
-          console.error("Error parsing Python output:", e);
-          console.error("Raw output:", scriptOutput);
-          res.status(500).json({ 
-            error: "Failed to parse Python output", 
-            details: (e as Error).message 
-          });
-        }
-      } else {
-        res.status(500).json({ 
-          error: "Python script failed", 
-          details: scriptError 
         });
-      }
-    });
 
+        let scriptOutput = "";
+        let scriptError = "";
 
-    return new Promise((resolve, reject) => {
-      // Error handling
-      pythonProcess.on("error", (err) => {
-        console.error(`Python process error: ${err.message}`);
-        
-        
-        if (!res.headersSent) {
-          res.status(500).json({ 
-            error: "Failed to start Python script", 
-            details: err.message,
-            executable: pythonExecutable
-          });
-        }
-        reject(err);
-      });
+        // Stdout handling
+        pythonProcess.stdout.on("data", (data) => {
+          scriptOutput += data.toString();
+        });
 
-      // Stdout handling
-      pythonProcess.stdout.on("data", (data) => {
-        scriptOutput += data.toString();
-      });
+        // Stderr handling
+        pythonProcess.stderr.on("data", (data) => {
+          console.log("Python stderr:", data.toString());
+          scriptError += data.toString();
+        });
 
-      // Stderr handling
-      pythonProcess.stderr.on("data", (data) => {
-        console.log("Python stderr:", data.toString());
-        scriptError += data.toString();
-      });
+        // Error handling
+        pythonProcess.on("error", (err) => {
+          console.error(`Python process error: ${err.message}`);
+          reject(new Error(`Failed to start Python script: ${err.message}`));
+        });
 
-      // Process close handling
-      pythonProcess.on("close", (code) => {
-        if (code === 0) {
-          try {
-            // Extract only the valid JSON from the output by finding the first { and last }
-            const jsonStart = scriptOutput.indexOf('{');
-            const jsonEnd = scriptOutput.lastIndexOf('}') + 1;
-            
-            if (jsonStart >= 0 && jsonEnd > jsonStart) {
-              const jsonString = scriptOutput.substring(jsonStart, jsonEnd);
-              console.log("Extracted JSON:", jsonString.substring(0, 100) + "...");
+        // Process close handling
+        pythonProcess.on("close", (code) => {
+          if (code === 0) {
+            try {
+              // Extract only the valid JSON
+              const jsonStart = scriptOutput.indexOf('{');
+              const jsonEnd = scriptOutput.lastIndexOf('}') + 1;
               
-              const result = JSON.parse(jsonString);
-              res.json(result);
-            } else {
-              throw new Error("No valid JSON found in Python output");
+              if (jsonStart >= 0 && jsonEnd > jsonStart) {
+                const jsonString = scriptOutput.substring(jsonStart, jsonEnd);
+                console.log("Extracted JSON:", jsonString + "...");
+                
+                const result = JSON.parse(jsonString);
+                resolve(result);
+              } else {
+                reject(new Error("No valid JSON found in Python output"));
+              }
+            } catch (e) {
+              console.error("Error parsing Python output:", e);
+              console.error("Raw output:", scriptOutput);
+              reject(new Error(`Failed to parse Python output: ${(e as Error).message}`));
             }
-          } catch (e) {
-            console.error("Error parsing Python output:", e);
-            console.error("Raw output:", scriptOutput);
-            res.status(500).json({ 
-              error: "Failed to parse Python output", 
-              details: (e as Error).message 
-            });
+          } else {
+            reject(new Error(`Python script failed with code ${code}: ${scriptError}`));
           }
-        } else {
-          res.status(500).json({ 
-            error: "Python script failed", 
-            details: scriptError 
-          });
+        });
+
+        // Stdin handling
+        pythonProcess.stdin.on('error', (err: NodeJS.ErrnoException) => {
+          console.error(`Stdin error: ${err.message}`);
+          // EOF errors are expected when stream closes
+          if (err.code !== 'EOF') {
+            reject(new Error(`Failed to write to Python script: ${err.message}`));
+          }
+        });
+
+        // Send data to Python
+        try {
+          console.log(`Sending ${base64Data.length} bytes to Python script`);
+          pythonProcess.stdin.write(base64Data, 'utf8');
+          pythonProcess.stdin.end();
+        } catch (writeError) {
+          console.error(`Write error: ${(writeError as Error).message}`);
+          reject(new Error(`Failed to send data to Python script: ${(writeError as Error).message}`));
         }
       });
-
-      // Stdin handling - EOF hatasını önlemek için
-      pythonProcess.stdin.on('error', (err: NodeJS.ErrnoException) => {
-        console.error(`Stdin error: ${err.message}`);
-        // EOF hatası normal olabilir, sadece log et
-        if (err.code !== 'EOF') {
-          
-          
-          if (!res.headersSent) {
-            res.status(500).json({
-              error: "Failed to write to Python script",
-              details: err.message
-            });
-          }
-          reject(err);
-        }
-      });
-
-      // Veriyi gönder
-      try {
-        console.log(`Sending ${base64Data.length} bytes to Python script`);
-        pythonProcess.stdin.write(base64Data, 'utf8');
-        pythonProcess.stdin.end();
-      } catch (writeError) {
-        console.error(`Write error: ${(writeError as Error).message}`);
-        
-        
-        if (!res.headersSent) {
-          res.status(500).json({
-            error: "Failed to send data to Python script",
-            details: (writeError as Error).message
-          });
-        }
-        reject(writeError);
+      
+      // Send the result
+      res.json(result);
+      
+    } catch (pythonError) {
+      // Only respond if headers haven't been sent yet
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: "Python processing error",
+          details: (pythonError as Error).message
+        });
+      } else {
+        console.error("Headers already sent, cannot send error response");
       }
-    });
+    }
 
   } catch (error) {
-    console.error(`Route error: ${(error as Error).message}`);
+    // Only respond if headers haven't been sent yet
     if (!res.headersSent) {
       res.status(500).json({
         error: "Internal server error",
         details: (error as Error).message
       });
+    } else {
+      console.error("Headers already sent, cannot send error response");
     }
   }
 });
