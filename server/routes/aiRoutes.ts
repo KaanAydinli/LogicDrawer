@@ -187,7 +187,7 @@ router.post("/analyze/roboflow", async (req, res) => {
   }
 });
 
-// Mesaj sınıflandırma
+
 router.post("/classify-message", async (req, res) => {
   try {
     const { message, hasImage } = req.body;
