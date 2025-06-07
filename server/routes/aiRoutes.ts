@@ -1,6 +1,7 @@
 import express from "express";
 import { spawn } from "child_process";
 import path from "path";
+import fs from "fs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import multer from "multer";
 import { authMiddleware } from "../middlewares/auth";
@@ -16,7 +17,6 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// Roboflow analizi
 router.post("/analyze/roboflow", async (req, res) => {
   try {
     const { base64Image } = req.body;
@@ -25,65 +25,165 @@ router.post("/analyze/roboflow", async (req, res) => {
     }
 
     const base64Data = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
-
     const pythonScriptPath = path.join(__dirname, "..", "detectCircuit.py");
-    const pythonExecutable = "python";
+    
+    // Python executable'ı belirle
+    const pythonExecutable = process.platform === "win32" ? "python" : "python3";
 
-    const pythonProcess = spawn(pythonExecutable, [pythonScriptPath]);
+    // Python script'in varlığını kontrol et
+    if (!require('fs').existsSync(pythonScriptPath)) {
+      return res.status(500).json({ 
+        error: "Python script not found", 
+        path: pythonScriptPath 
+      });
+    }
+
+    console.log(`Starting Python script: ${pythonExecutable} ${pythonScriptPath}`);
+
+    const pythonProcess = spawn(pythonExecutable, [pythonScriptPath], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        PYTHONUNBUFFERED: "1",
+        PYTHONIOENCODING: "utf-8"
+      }
+    });
 
     let scriptOutput = "";
     let scriptError = "";
+    let hasEnded = false;
 
-    pythonProcess.stdin.write(base64Data);
-    pythonProcess.stdin.end();
-
-    pythonProcess.stdout.on("data", data => {
-      scriptOutput += data.toString();
-    });
-
-    pythonProcess.stderr.on("data", data => {
-      scriptError += data.toString();
-    });
+    // Timeout ekle
+    const timeout = setTimeout(() => {
+      if (!hasEnded) {
+        console.log("Python script timeout, killing process");
+        pythonProcess.kill('SIGTERM');
+      }
+    }, 30000); // 30 saniye timeout
 
     return new Promise((resolve, reject) => {
-      pythonProcess.on("close", code => {
+      // Error handling
+      pythonProcess.on("error", (err) => {
+        console.error(`Python process error: ${err.message}`);
+        hasEnded = true;
+        clearTimeout(timeout);
+        
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            error: "Failed to start Python script", 
+            details: err.message,
+            executable: pythonExecutable
+          });
+        }
+        reject(err);
+      });
+
+      // Stdout handling
+      pythonProcess.stdout.on("data", (data) => {
+        scriptOutput += data.toString();
+      });
+
+      // Stderr handling
+      pythonProcess.stderr.on("data", (data) => {
+        scriptError += data.toString();
+        console.error(`Python stderr: ${data.toString()}`);
+      });
+
+      // Process close handling
+      pythonProcess.on("close", (code, signal) => {
+        hasEnded = true;
+        clearTimeout(timeout);
+        
+        console.log(`Python script closed with code: ${code}, signal: ${signal}`);
+        console.log(`Script output: ${scriptOutput}`);
+        
+        if (scriptError) {
+          console.error(`Script error: ${scriptError}`);
+        }
+
+        if (res.headersSent) {
+          resolve(undefined);
+          return;
+        }
+
         if (code === 0) {
           try {
             const trimmedOutput = scriptOutput.trim();
             if (!trimmedOutput) {
-              throw new Error("Python script produced empty output.");
+              throw new Error("Python script produced empty output");
             }
+            
             const resultJson = JSON.parse(trimmedOutput);
             res.json(resultJson);
             resolve(undefined);
           } catch (parseError) {
+            console.error(`Parse error: ${(parseError as Error).message}`);
             res.status(500).json({
-              error: "Failed to parse analysis result from Python script",
-              details: scriptError || "Parsing error",
+              error: "Failed to parse Python script output",
+              details: (parseError as Error).message,
               rawOutput: scriptOutput,
+              scriptError: scriptError
             });
             reject(parseError);
           }
         } else {
           res.status(500).json({
-            error: "Circuit analysis script failed",
+            error: "Python script execution failed",
+            code: code,
+            signal: signal,
             details: scriptError || `Script exited with code ${code}`,
-            rawOutput: scriptOutput,
+            rawOutput: scriptOutput
           });
-          reject(new Error(`Python script failed: ${scriptError}`));
+          reject(new Error(`Python script failed with code ${code}`));
         }
       });
 
-      pythonProcess.on("error", err => {
-        res.status(500).json({ error: "Failed to start analysis script", details: err.message });
-        reject(err);
+      // Stdin handling - EOF hatasını önlemek için
+      pythonProcess.stdin.on('error', (err: NodeJS.ErrnoException) => {
+        console.error(`Stdin error: ${err.message}`);
+        // EOF hatası normal olabilir, sadece log et
+        if (err.code !== 'EOF') {
+          hasEnded = true;
+          clearTimeout(timeout);
+          
+          if (!res.headersSent) {
+            res.status(500).json({
+              error: "Failed to write to Python script",
+              details: err.message
+            });
+          }
+          reject(err);
+        }
       });
+
+      // Veriyi gönder
+      try {
+        console.log(`Sending ${base64Data.length} bytes to Python script`);
+        pythonProcess.stdin.write(base64Data, 'utf8');
+        pythonProcess.stdin.end();
+      } catch (writeError) {
+        console.error(`Write error: ${(writeError as Error).message}`);
+        hasEnded = true;
+        clearTimeout(timeout);
+        
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: "Failed to send data to Python script",
+            details: (writeError as Error).message
+          });
+        }
+        reject(writeError);
+      }
     });
+
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to analyze image using local script",
-      details: error instanceof Error ? error.message : String(error),
-    });
+    console.error(`Route error: ${(error as Error).message}`);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: "Internal server error",
+        details: (error as Error).message
+      });
+    }
   }
 });
 
