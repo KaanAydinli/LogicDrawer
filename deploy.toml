@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install && npm run build && cd server && npm install && npm run build"
+buildCommand = "apt-get update && apt-get install -y python3 python3-pip libgl1 libglib2.0-0 python3-opencv && pip3 install --break-system-packages ultralytics opencv-python-headless scikit-image numpy && npm install && npm run build && cd server && npm install && npm run build && chmod +x detectCircuit.py"
 
 [deploy]
 startCommand = "node server/dist/index.js"
@@ -10,17 +10,7 @@ restartPolicyType = "ON_FAILURE"
 python_version = "3.10"
 
 [nixpacks.aptPkgs]
-packages = ["python3", "python3-pip", "python3-dev", "python3-venv", "libgl1-mesa-glx", "libglib2.0-0", "libsm6", "libxext6", "libxrender-dev", "libgomp1"]
-
-[nixpacks.install]
-cmd = """
-python3 -m pip install --upgrade pip && \
-pip3 install --no-cache-dir ultralytics opencv-python-headless scikit-image numpy pillow && \
-ln -sf /usr/bin/python3 /usr/local/bin/python3
-"""
+packages = ["libgl1", "libglib2.0-0", "python3-opencv"]
 
 [nixpacks.env]
 PYTHONPATH = "/app:/app/server"
-PYTHONUNBUFFERED = "1"
-PATH = "/usr/local/bin:/usr/bin:/bin:/app/bin:$PATH"
-PYTHON_EXECUTABLE = "/usr/bin/python3"
