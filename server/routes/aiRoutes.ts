@@ -52,22 +52,54 @@ router.post("/analyze/roboflow", async (req, res) => {
 
     let scriptOutput = "";
     let scriptError = "";
-    let hasEnded = false;
 
-    // Timeout ekle
-    const timeout = setTimeout(() => {
-      if (!hasEnded) {
-        console.log("Python script timeout, killing process");
-        pythonProcess.kill('SIGTERM');
+    pythonProcess.stdout.on("data", (data) => {
+      scriptOutput += data.toString();
+    });
+
+    pythonProcess.stderr.on("data", (data) => {
+      console.log("Python stderr:", data.toString());
+      scriptError += data.toString();
+    });
+
+    pythonProcess.on("close", (code) => {
+      if (code === 0) {
+        try {
+          // Extract only the valid JSON from the output by finding the first { and last }
+          const jsonStart = scriptOutput.indexOf('{');
+          const jsonEnd = scriptOutput.lastIndexOf('}') + 1;
+          
+          if (jsonStart >= 0 && jsonEnd > jsonStart) {
+            const jsonString = scriptOutput.substring(jsonStart, jsonEnd);
+            console.log("Extracted JSON:", jsonString.substring(0, 100) + "...");
+            
+            const result = JSON.parse(jsonString);
+            res.json(result);
+          } else {
+            throw new Error("No valid JSON found in Python output");
+          }
+        } catch (e) {
+          console.error("Error parsing Python output:", e);
+          console.error("Raw output:", scriptOutput);
+          res.status(500).json({ 
+            error: "Failed to parse Python output", 
+            details: (e as Error).message 
+          });
+        }
+      } else {
+        res.status(500).json({ 
+          error: "Python script failed", 
+          details: scriptError 
+        });
       }
-    }, 30000); // 30 saniye timeout
+    });
+
 
     return new Promise((resolve, reject) => {
       // Error handling
       pythonProcess.on("error", (err) => {
         console.error(`Python process error: ${err.message}`);
-        hasEnded = true;
-        clearTimeout(timeout);
+        
         
         if (!res.headersSent) {
           res.status(500).json({ 
@@ -86,56 +118,40 @@ router.post("/analyze/roboflow", async (req, res) => {
 
       // Stderr handling
       pythonProcess.stderr.on("data", (data) => {
+        console.log("Python stderr:", data.toString());
         scriptError += data.toString();
-        console.error(`Python stderr: ${data.toString()}`);
       });
 
       // Process close handling
-      pythonProcess.on("close", (code, signal) => {
-        hasEnded = true;
-        clearTimeout(timeout);
-        
-        console.log(`Python script closed with code: ${code}, signal: ${signal}`);
-        console.log(`Script output: ${scriptOutput}`);
-        
-        if (scriptError) {
-          console.error(`Script error: ${scriptError}`);
-        }
-
-        if (res.headersSent) {
-          resolve(undefined);
-          return;
-        }
-
+      pythonProcess.on("close", (code) => {
         if (code === 0) {
           try {
-            const trimmedOutput = scriptOutput.trim();
-            if (!trimmedOutput) {
-              throw new Error("Python script produced empty output");
-            }
+            // Extract only the valid JSON from the output by finding the first { and last }
+            const jsonStart = scriptOutput.indexOf('{');
+            const jsonEnd = scriptOutput.lastIndexOf('}') + 1;
             
-            const resultJson = JSON.parse(trimmedOutput);
-            res.json(resultJson);
-            resolve(undefined);
-          } catch (parseError) {
-            console.error(`Parse error: ${(parseError as Error).message}`);
-            res.status(500).json({
-              error: "Failed to parse Python script output",
-              details: (parseError as Error).message,
-              rawOutput: scriptOutput,
-              scriptError: scriptError
+            if (jsonStart >= 0 && jsonEnd > jsonStart) {
+              const jsonString = scriptOutput.substring(jsonStart, jsonEnd);
+              console.log("Extracted JSON:", jsonString.substring(0, 100) + "...");
+              
+              const result = JSON.parse(jsonString);
+              res.json(result);
+            } else {
+              throw new Error("No valid JSON found in Python output");
+            }
+          } catch (e) {
+            console.error("Error parsing Python output:", e);
+            console.error("Raw output:", scriptOutput);
+            res.status(500).json({ 
+              error: "Failed to parse Python output", 
+              details: (e as Error).message 
             });
-            reject(parseError);
           }
         } else {
-          res.status(500).json({
-            error: "Python script execution failed",
-            code: code,
-            signal: signal,
-            details: scriptError || `Script exited with code ${code}`,
-            rawOutput: scriptOutput
+          res.status(500).json({ 
+            error: "Python script failed", 
+            details: scriptError 
           });
-          reject(new Error(`Python script failed with code ${code}`));
         }
       });
 
@@ -144,8 +160,7 @@ router.post("/analyze/roboflow", async (req, res) => {
         console.error(`Stdin error: ${err.message}`);
         // EOF hatası normal olabilir, sadece log et
         if (err.code !== 'EOF') {
-          hasEnded = true;
-          clearTimeout(timeout);
+          
           
           if (!res.headersSent) {
             res.status(500).json({
@@ -164,8 +179,7 @@ router.post("/analyze/roboflow", async (req, res) => {
         pythonProcess.stdin.end();
       } catch (writeError) {
         console.error(`Write error: ${(writeError as Error).message}`);
-        hasEnded = true;
-        clearTimeout(timeout);
+        
         
         if (!res.headersSent) {
           res.status(500).json({
