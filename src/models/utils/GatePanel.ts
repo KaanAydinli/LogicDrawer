@@ -1,10 +1,12 @@
 import { CircuitBoard } from "../CircuitBoard";
 import { Component } from "../Component";
 import { LogicGate } from "../LogicGate";
+import { Wire } from "../Wire"; // Add this import
 
 export class GatePanel {
   private panelElement: HTMLElement;
   private selectedComponent: Component | null = null;
+  private selectedWire: Wire | null = null; // Add this to track selected wire
   private circuitBoard: CircuitBoard;
   private onPropertiesChanged: () => void;
 
@@ -27,8 +29,67 @@ export class GatePanel {
     });
 
     this.addStyles();
+    // Add touch-friendly styles
+    this.addTouchStyles();
   }
 
+  // Add touch-specific styles for better tablet experience
+  private addTouchStyles(): void {
+    const touchStyle = document.createElement("style");
+    touchStyle.textContent = `
+        .control-btn, .delete-btn, .rotate-btn {
+          min-height: 44px;
+          min-width: 44px;
+          padding: 10px;
+        }
+        
+        .property-control {
+          max-width: 150px;
+        }
+        
+        .delete-btn {
+          margin-top: 20px;
+          background: #d32f2f;
+          width: 100%;
+          font-weight: bold;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        .delete-btn:hover {
+          background: #b71c1c;
+        }
+      
+    `;
+    document.head.appendChild(touchStyle);
+  }
+
+  // Update to accept a wire
+  public show(element: Component | Wire): void {
+    if (element instanceof Component) {
+      this.selectedComponent = element;
+      this.selectedWire = null;
+    } else if (element instanceof Wire) {
+      this.selectedWire = element;
+      this.selectedComponent = null;
+    }
+    
+    this.panelElement.style.display = "block";
+    this.render();
+  }
+
+  public hide(): void {
+    this.selectedComponent = null;
+    this.selectedWire = null;
+    this.panelElement.style.display = "none";
+  }
+
+  private hideUIOnly(): void {
+    this.panelElement.style.display = "none";
+  }
+  
   private addStyles(): void {
     const style = document.createElement("style");
     style.textContent = `
@@ -161,22 +222,17 @@ export class GatePanel {
     document.head.appendChild(style);
   }
 
-  public show(component: Component): void {
-    this.selectedComponent = component;
-    this.panelElement.style.display = "block";
-    this.render();
-  }
-
-  public hide(): void {
-    this.selectedComponent = null;
-    this.panelElement.style.display = "none";
-  }
-
-  private hideUIOnly(): void {
-    this.panelElement.style.display = "none";
-  }
-
   private render(): void {
+    if (!this.selectedComponent && !this.selectedWire) return;
+
+    if (this.selectedComponent) {
+      this.renderComponentProperties();
+    } else if (this.selectedWire) {
+      this.renderWireProperties();
+    }
+  }
+
+  private renderComponentProperties(): void {
     if (!this.selectedComponent) return;
 
     const componentTypeName = this.getComponentDisplayName(this.selectedComponent.type);
@@ -258,7 +314,15 @@ export class GatePanel {
       htmlContent += `</div>`;
     }
 
-    htmlContent += `</div>`;
+    // Add the delete button at the end
+    htmlContent += `
+      <div class="property-group">
+        <button id="delete-component" class="delete-btn">
+          <i class="fa fa-trash"></i> Delete Component
+        </button>
+      </div>
+    </div>`;
+    
     this.panelElement.innerHTML = htmlContent;
 
     document.getElementById("close-panel")?.addEventListener("click", event => {
@@ -318,6 +382,86 @@ export class GatePanel {
         }
       });
     }
+
+    // Add event listener for delete button
+    document.getElementById("delete-component")?.addEventListener("click", event => {
+      event.stopPropagation();
+      if (this.selectedComponent) {
+        this.circuitBoard.deleteSelected();
+        this.hide();
+        this.onPropertiesChanged();
+      }
+    });
+  }
+
+  private renderWireProperties(): void {
+    if (!this.selectedWire) return;
+
+    let htmlContent = `
+      <div class="component-properties-container">
+        <div class="component-properties-header">
+          <h3>Wire Properties</h3>
+          <button id="close-panel" class="close-btn">×</button>
+        </div>
+        
+        <div class="property-group">
+          <label>Type:</label>
+          <div class="property-value">Connection Wire</div>
+        </div>`;
+
+    // Add connection information
+    if (this.selectedWire.from) {
+      const fromComponent = this.selectedWire.from.component;
+      htmlContent += `
+        <div class="property-group">
+          <label>From:</label>
+          <div class="property-value">${this.getComponentDisplayName(fromComponent.type)}</div>
+        </div>`;
+    }
+
+    if (this.selectedWire.to) {
+      const toComponent = this.selectedWire.to.component;
+      htmlContent += `
+        <div class="property-group">
+          <label>To:</label>
+          <div class="property-value">${this.getComponentDisplayName(toComponent.type)}</div>
+        </div>`;
+    }
+
+    // Add bit width if relevant
+    if (this.selectedWire.from?.bitWidth) {
+      htmlContent += `
+        <div class="property-group">
+          <label>Bit Width:</label>
+          <div class="property-value">${this.selectedWire.from.bitWidth}-bit</div>
+        </div>`;
+    }
+
+    // Add delete button
+    htmlContent += `
+      <div class="property-group">
+        <button id="delete-wire" class="delete-btn">
+          <i class="fa fa-trash"></i> Delete Wire
+        </button>
+      </div>
+    </div>`;
+    
+    this.panelElement.innerHTML = htmlContent;
+
+    // Add event listeners
+    document.getElementById("close-panel")?.addEventListener("click", event => {
+      event.stopPropagation();
+      this.hideUIOnly();
+    });
+
+    document.getElementById("delete-wire")?.addEventListener("click", event => {
+      event.stopPropagation();
+      if (this.selectedWire) {
+        this.circuitBoard.deleteSelected();
+        this.hide();
+        this.onPropertiesChanged();
+      }
+    });
   }
 
   private getComponentDisplayName(type: string): string {

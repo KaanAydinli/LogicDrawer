@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "build:all": "cd ../ && npm run build && cd server && npm run build && npm start"
   },
   
   "dependencies": {

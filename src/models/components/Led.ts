@@ -43,14 +43,6 @@ export class Led extends Component {
     this.defaultBitWidth = width;
   }
 
-  public getCustomProperties(): Array<{ name: string; value: any }> {
-    return [
-      { name: "R Input Width", value: this.inputs[0].bitWidth },
-      { name: "G Input Width", value: this.inputs[1].bitWidth },
-      { name: "B Input Width", value: this.inputs[2].bitWidth },
-    ];
-  }
-
   evaluate(): void {
     let r = 0,
       g = 0,

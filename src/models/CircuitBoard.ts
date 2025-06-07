@@ -296,7 +296,7 @@ export class CircuitBoard {
 
   private handleTouchMove(event: TouchEvent): void {
     event.preventDefault();
-
+    this.isSelecting = false; // Disable selection during touch move
     const touches = event.touches;
 
     if (touches.length === 1 && !this.touchState.isPinching) {
@@ -2268,6 +2268,7 @@ export class CircuitBoard {
       if (wire.isNearPoint(mousePos)) {
         wire.selected = true;
         this.selectedWire = wire;
+        this.gatePropertiesPanel.show(wire);
         this.draw();
         return;
       }
