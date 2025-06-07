@@ -28,7 +28,8 @@ router.post("/analyze/roboflow", async (req, res) => {
     const pythonScriptPath = path.join(__dirname, "..", "detectCircuit.py");
     
     // Python executable'ı belirle
-    const pythonExecutable = process.platform === "win32" ? "python" : "python3";
+  const pythonExecutable = process.env.PYTHON_EXECUTABLE || 
+                         (process.platform === "win32" ? "python" : "python3");
 
     // Python script'in varlığını kontrol et
     if (!require('fs').existsSync(pythonScriptPath)) {
