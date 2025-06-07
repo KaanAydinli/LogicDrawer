@@ -45,6 +45,7 @@ import { SmartDisplay } from "./models/components/SmartDisplay";
 import { CircuitService } from "./services/CircuitService";
 import { AuthService } from "./services/AuthService";
 import { Tutorial } from "./models/utils/Tutorial";
+import { setupCanvasPolyfills } from "./utils/canvasPolyfills";
 export class Queue {
   public items: { role: string; content: string }[] = [];
 
@@ -90,6 +91,9 @@ var minimap: HTMLCanvasElement;
 const authService = AuthService.getInstance();
 
 async function initApp() {
+
+  setupCanvasPolyfills();
+  setUpLoginAndSignup();
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
   minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
 
@@ -119,7 +123,7 @@ async function initApp() {
   setupComponentAddListeners();
   setupKeyboardShortcuts();
   setupZoomControls();
-  setUpLoginAndSignup();
+  
   setUpAI();
   setupSettings();
   setTheme();
@@ -305,39 +309,67 @@ function setupComponentAddListeners() {
   let shadowElement: HTMLElement | null = null;
 
   components.forEach(component => {
-    component.addEventListener("mousedown", event => {
-      event.preventDefault();
-
-      const type = component.getAttribute("data-type");
-      if (!type) return;
-
-      draggingType = type;
-
-      shadowElement = document.createElement("div");
-      shadowElement.className = "component-shadow";
-
-      const componentIcon = component.querySelector(".component-icon");
-      if (componentIcon) {
-        shadowElement.innerHTML = componentIcon.innerHTML;
-      }
-
-      shadowElement.style.position = "fixed";
-      shadowElement.style.zIndex = "1000";
-      shadowElement.style.opacity = "0.7";
-      shadowElement.style.pointerEvents = "none";
-      shadowElement.style.width = "40px";
-      shadowElement.style.height = "40px";
-      shadowElement.style.transform = "translate(-100%, -100%) ";
-
-      shadowElement.style.left = `${(event as MouseEvent).clientX}px`;
-      shadowElement.style.top = `${(event as MouseEvent).clientY}px`;
-
-      document.body.appendChild(shadowElement);
-
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
-    });
+    // Existing mouse event handler
+    component.addEventListener("mousedown", ((event: Event) => {
+      handleComponentDragStart(event as MouseEvent);
+    }) as EventListener);
+    
+    // Add touch event handlers
+    component.addEventListener("touchstart", ((event: Event) => {
+      handleComponentTouchStart(event as TouchEvent);
+    }) as EventListener);
   });
+
+  function handleComponentDragStart(event: MouseEvent) {
+    event.preventDefault();
+
+    const type = (event.currentTarget as HTMLElement).getAttribute("data-type");
+    if (!type) return;
+
+    draggingType = type;
+    createShadowElement(event.clientX, event.clientY);
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }
+
+  function handleComponentTouchStart(event: TouchEvent) {
+    event.preventDefault();
+    
+    const touch = event.touches[0];
+    const type = (event.currentTarget as HTMLElement).getAttribute("data-type");
+    if (!type) return;
+
+    draggingType = type;
+    createShadowElement(touch.clientX, touch.clientY);
+
+    document.addEventListener("touchmove", onTouchMove);
+    document.addEventListener("touchend", onTouchEnd);
+  }
+
+  function createShadowElement(clientX: number, clientY: number) {
+    shadowElement = document.createElement("div");
+    shadowElement.className = "component-shadow";
+
+    const componentElement = document.querySelector(`[data-type="${draggingType}"]`);
+    const componentIcon = componentElement?.querySelector(".component-icon");
+    if (componentIcon) {
+      shadowElement.innerHTML = componentIcon.innerHTML;
+    }
+
+    shadowElement.style.position = "fixed";
+    shadowElement.style.zIndex = "1000";
+    shadowElement.style.opacity = "0.7";
+    shadowElement.style.pointerEvents = "none";
+    shadowElement.style.width = "40px";
+    shadowElement.style.height = "40px";
+    shadowElement.style.transform = "translate(-50%, -50%)";
+
+    shadowElement.style.left = `${clientX}px`;
+    shadowElement.style.top = `${clientY}px`;
+
+    document.body.appendChild(shadowElement);
+  }
 
   function onMouseMove(event: MouseEvent) {
     if (shadowElement) {
@@ -346,7 +378,28 @@ function setupComponentAddListeners() {
     }
   }
 
+  function onTouchMove(event: TouchEvent) {
+    if (shadowElement && event.touches.length > 0) {
+      const touch = event.touches[0];
+      shadowElement.style.left = `${touch.clientX}px`;
+      shadowElement.style.top = `${touch.clientY}px`;
+    }
+  }
+
   function onMouseUp(event: MouseEvent) {
+    handleDragEnd(event.clientX, event.clientY);
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup", onMouseUp);
+  }
+
+  function onTouchEnd(event: TouchEvent) {
+    const touch = event.changedTouches[0];
+    handleDragEnd(touch.clientX, touch.clientY);
+    document.removeEventListener("touchmove", onTouchMove);
+    document.removeEventListener("touchend", onTouchEnd);
+  }
+
+  function handleDragEnd(clientX: number, clientY: number) {
     if (!draggingType || !shadowElement) {
       cleanup();
       return;
@@ -354,13 +407,13 @@ function setupComponentAddListeners() {
 
     const canvasRect = canvas.getBoundingClientRect();
     if (
-      event.clientX >= canvasRect.left &&
-      event.clientX <= canvasRect.right &&
-      event.clientY >= canvasRect.top &&
-      event.clientY <= canvasRect.bottom
+      clientX >= canvasRect.left &&
+      clientX <= canvasRect.right &&
+      clientY >= canvasRect.top &&
+      clientY <= canvasRect.bottom
     ) {
-      const canvasX = event.clientX - canvasRect.left;
-      const canvasY = event.clientY - canvasRect.top;
+      const canvasX = clientX - canvasRect.left;
+      const canvasY = clientY - canvasRect.top;
 
       const worldX = (canvasX - circuitBoard.offsetX) / circuitBoard.scale;
       const worldY = (canvasY - circuitBoard.offsetY) / circuitBoard.scale;
@@ -380,11 +433,9 @@ function setupComponentAddListeners() {
     }
     shadowElement = null;
     draggingType = null;
-
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
   }
 }
+
 function addComponentByType(type: string, position: Point) {
   let component;
 

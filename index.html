@@ -786,60 +786,10 @@ endmodule</textarea>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/mode-verilog.js"></script> -->
 <script type="module" src="src/verilog-ide.js"></script>
 
-<!-- <script>
-  const editor = ace.edit("verilog-editor");
-  editor.setTheme("ace/theme/monokai");
-  editor.session.setMode("ace/mode/verilog");
-  editor.setOptions({
-    fontSize: "14pt"
-  });
-</script> -->
 
-  <script>
-  // Safari Font Fix - System Font Alternative
-  document.addEventListener('DOMContentLoaded', function() {
-    // Check if browser is Safari
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    
-    if (isSafari) {
-      console.log("Safari detected - using system font alternative");
-      
-      // Create a new style element with Safari-specific font alternatives
-      const style = document.createElement('style');
-      style.textContent = `
-        /* Safari-specific text elements - use system fonts that look pixel-like */
-        .logo, .docName, .Theme, .file, .storage, .component-label, .theme-option,
-        .fileOption, .settings-content, .ai-chat-header, .aiLogo , .ai-message, .component-group-title {
-          font-family: monospace, 'Courier New', Courier, -apple-system !important;
-          font-weight: bold !important;
-          letter-spacing: -0.5px !important;
-        }
-        
-        /* Make SVG text use system fonts */
-        svg text {
-          font-family: monospace, 'Courier New', Courier, -apple-system !important;
-          font-weight: bold !important;
-        }
-        
-        /* Fix AI avatar text */
-        .ai-avatar {
-          font-family: monospace, 'Courier New', Courier !important;
-          font-weight: bold !important;
-        }
-      `;
-      
-      // Add the style to the document head
-      document.head.appendChild(style);
-      
-      // Replace SVG text elements with plain div elements
-      document.querySelectorAll('.ai-avatar').forEach(avatar => {
-        if (avatar.querySelector('svg')) {
-          avatar.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100%; font-weight: bold;">AI</div>';
-        }
-      });
-    }
-  });
-</script>
+<script src="//cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
+  
 
 
 

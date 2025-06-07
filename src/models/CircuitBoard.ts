@@ -218,14 +218,254 @@ export class CircuitBoard {
     this.draw();
   }
   private setupEvents(): void {
+    // Existing mouse event handlers
     this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
     this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
     this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
     this.canvas.addEventListener("click", this.handleClick.bind(this));
 
+    // Add touch event handlers
+    this.canvas.addEventListener("touchstart", this.handleTouchStart.bind(this));
+    this.canvas.addEventListener("touchmove", this.handleTouchMove.bind(this));
+    this.canvas.addEventListener("touchend", this.handleTouchEnd.bind(this));
+
     // Add keyboard event listener
     window.addEventListener("keydown", this.handleKeyDown.bind(this));
+  }
+
+  // Touch gesture state tracking
+  private touchState = {
+    touchCount: 0,
+    initialDistance: 0,
+    lastTouchX: 0,
+    lastTouchY: 0,
+    isPinching: false,
+    isPanning: false,
+    touchStartTime: 0,
+    initialTouches: [] as Touch[],
+  };
+
+  private handleTouchStart(event: TouchEvent): void {
+    event.preventDefault(); // Prevent scrolling/zooming the page
+
+    const touches = event.touches;
+    this.touchState.touchCount = touches.length;
+    this.touchState.touchStartTime = Date.now();
+    this.touchState.initialTouches = Array.from(touches);
+    this.isSelecting = false;
+
+    if (touches.length === 1) {
+      // Single touch - convert to mouse event for component interaction
+      const touch = touches[0];
+      const rect = this.canvas.getBoundingClientRect();
+      const touchX = touch.clientX - rect.left;
+      const touchY = touch.clientY - rect.top;
+
+      this.touchState.lastTouchX = touchX;
+      this.touchState.lastTouchY = touchY;
+
+      // Convert touch to mouse position and call existing handler
+      const mouseEvent = new MouseEvent("mousedown", {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+
+      this.handleMouseDown(mouseEvent);
+    } else if (touches.length === 2) {
+      // Two-finger gesture - setup for pinch/zoom or pan
+      this.touchState.isPinching = true;
+      this.touchState.isPanning = true;
+
+      // Calculate initial distance for pinch/zoom
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+      this.touchState.initialDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+
+      // Calculate midpoint for panning
+      this.touchState.lastTouchX = (touch1.clientX + touch2.clientX) / 2;
+      this.touchState.lastTouchY = (touch1.clientY + touch2.clientY) / 2;
+    }
+  }
+
+  private handleTouchMove(event: TouchEvent): void {
+    event.preventDefault();
+
+    const touches = event.touches;
+
+    if (touches.length === 1 && !this.touchState.isPinching) {
+      // Single touch - handle as mouse move
+      const touch = touches[0];
+
+      const mouseEvent = new MouseEvent("mousemove", {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+
+      this.handleMouseMove(mouseEvent);
+    } else if (touches.length === 2) {
+      // Handle two-finger gestures
+      const touch1 = touches[0];
+      const touch2 = touches[1];
+
+      // Calculate current distance between touch points
+      const currentDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+
+      // Calculate midpoint of touches
+      const midpointX = (touch1.clientX + touch2.clientX) / 2;
+      const midpointY = (touch1.clientY + touch2.clientY) / 2;
+
+      // Handle pinch/zoom
+      if (this.touchState.isPinching) {
+        const distanceChange = currentDistance / this.touchState.initialDistance;
+
+        if (distanceChange > 1.05) {
+          // Zooming in
+          this.zoomIn(midpointX, midpointY);
+          this.touchState.initialDistance = currentDistance;
+        } else if (distanceChange < 0.95) {
+          // Zooming out
+          this.zoomOut(midpointX, midpointY);
+          this.touchState.initialDistance = currentDistance;
+        }
+      }
+
+      // Handle panning with two fingers
+      if (this.touchState.isPanning) {
+        const deltaX = midpointX - this.touchState.lastTouchX;
+        const deltaY = midpointY - this.touchState.lastTouchY;
+
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+          this.panCanvas(deltaX, deltaY);
+          this.touchState.lastTouchX = midpointX;
+          this.touchState.lastTouchY = midpointY;
+        }
+      }
+    }
+  }
+
+  private handleTouchEnd(event: TouchEvent): void {
+    event.preventDefault();
+
+    this.draggedComponent = null; // Clear dragged component on touch end
+    this.isSelecting = false;
+    const touch = event.changedTouches[0];
+    // If we have an active wire that needs to be connected
+    if (this.currentWire && event.changedTouches.length > 0) {
+
+      // Convert to world coordinates
+      const worldPos = this.getTransformedMousePosition(touch.clientX, touch.clientY);
+
+      console.log("Touch end at world position:", worldPos);
+
+      // Expand the touch target area for better port detection
+      const TOUCH_RADIUS = 30; // Larger radius for easier port targeting
+
+      // Check all components for a port near the touch point
+      let foundPort = null;
+      for (const component of this.components) {
+        // Use an expanded hit area for touch
+        const port = component.getPortAtPositionRadius(worldPos, TOUCH_RADIUS);
+        if (port) {
+          console.log("Found port for connection:", port);
+          foundPort = port;
+          break;
+        }
+      }
+
+      if (foundPort) {
+        // Prevent connecting to the same component
+        if (this.currentWire.from?.component === foundPort.component) {
+          console.log("Cannot connect to the same component");
+          this.currentWire = null;
+          this.draw();
+          return;
+        }
+
+        // Prevent connecting to an already connected input port
+        if (foundPort.type === "input" && foundPort.isConnected) {
+          console.log("Cannot connect to an already connected input port");
+          this.currentWire = null;
+          this.draw();
+          return;
+        }
+
+        // Prevent connecting input-to-input
+        if (
+          foundPort.type === "input" &&
+          this.currentWire.from &&
+          this.currentWire.from.type === "input"
+        ) {
+          console.log("Cannot connect input port to another input port");
+          this.currentWire = null;
+          this.draw();
+          return;
+        }
+
+        const success = this.currentWire.connect(foundPort);
+        if (success) {
+          console.log("Connection successful! Adding wire to list.");
+          foundPort.isConnected = true;
+          this.wires.push(this.currentWire);
+          this.currentWire.autoRoute(this.components);
+          this.currentWire = null;
+          this.simulate();
+        } else {
+          console.log("Connection failed!");
+          this.currentWire = null;
+        }
+      } else {
+        console.log("No port found at touch end, clearing wire");
+        this.currentWire = null;
+      }
+      this.draw();
+    }
+    
+    for (const component of this.components) {
+      if (component.type === "button") {
+        if (component.containsPoint( this.getTransformedMousePosition(touch.clientX, touch.clientY))) {
+          (component as any).onMouseUp();
+          this.simulate();
+          this.draw();
+          return;
+        }
+      }
+    }
+    // Reset touch state
+    this.touchState.touchCount = 0;
+    this.touchState.isPinching = false;
+    this.touchState.isPanning = false;
+
+    // If this was a quick tap, handle as click
+    const touchDuration = Date.now() - this.touchState.touchStartTime;
+    if (
+      touchDuration < 200 &&
+      event.touches.length === 0 &&
+      this.touchState.initialTouches.length === 1
+    ) {
+      const initialTouch = this.touchState.initialTouches[0];
+      const mouseEvent = new MouseEvent("click", {
+        clientX: initialTouch.clientX,
+        clientY: initialTouch.clientY,
+        bubbles: true,
+        cancelable: true,
+        view: window,
+      });
+
+      this.handleClick(mouseEvent);
+    }
   }
 
   addComponent(component: Component): void {

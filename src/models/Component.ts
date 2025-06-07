@@ -287,4 +287,18 @@ export abstract class Component {
       height: this.size.height,
     };
   }
+  // Add this method to the Component class
+public getPortAtPositionRadius(point: Point, radius: number = 10): Port | null {
+  for (const port of [...this.inputs, ...this.outputs]) {
+    const distance = Math.sqrt(
+      Math.pow(port.position.x - point.x, 2) + 
+      Math.pow(port.position.y - point.y, 2)
+    );
+    
+    if (distance <= radius) {
+      return port;
+    }
+  }
+  return null;
+}
 }
