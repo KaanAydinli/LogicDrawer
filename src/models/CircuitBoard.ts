@@ -364,7 +364,6 @@ export class CircuitBoard {
     const touch = event.changedTouches[0];
     // If we have an active wire that needs to be connected
     if (this.currentWire && event.changedTouches.length > 0) {
-
       // Convert to world coordinates
       const worldPos = this.getTransformedMousePosition(touch.clientX, touch.clientY);
 
@@ -432,10 +431,12 @@ export class CircuitBoard {
       }
       this.draw();
     }
-    
+
     for (const component of this.components) {
       if (component.type === "button") {
-        if (component.containsPoint( this.getTransformedMousePosition(touch.clientX, touch.clientY))) {
+        if (
+          component.containsPoint(this.getTransformedMousePosition(touch.clientX, touch.clientY))
+        ) {
           (component as any).onMouseUp();
           this.simulate();
           this.draw();
@@ -2286,21 +2287,30 @@ export class CircuitBoard {
     this.draw();
   }
   private updatePropertiesPanel(): void {
+    // Check if a wire is selected first
+    if (this.selectedWire) {
+      this.gatePropertiesPanel.show(this.selectedWire);
+      return;
+    }
+
     // Hide the panel if no selection or multiple selections
     if (this.selectedComponents.length !== 1 || !this.selectedComponent) {
       this.gatePropertiesPanel.hide();
-
       return;
     }
 
     // Show the panel only if a single LogicGate is selected
     const selectedComponent = this.selectedComponents[0];
-
     this.gatePropertiesPanel.show(selectedComponent);
   }
   public clearSelection(): void {
     this.selectedComponents.forEach(component => (component.selected = false));
     this.selectedComponents = [];
+
+    if (this.selectedWire) {
+      this.selectedWire.selected = false;
+      this.selectedWire = null;
+    }
     this.gatePropertiesPanel.hide();
     this.draw();
   }
@@ -2425,7 +2435,7 @@ export class CircuitBoard {
       }
     }
 
-    if (!this.draggedComponent && !this.currentWire) {
+    if (!this.draggedComponent && !this.currentWire && !this.selectedWire) {
       this.clearSelection();
     }
 
