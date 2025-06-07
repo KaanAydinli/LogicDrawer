@@ -238,8 +238,44 @@ function extractVerilogFromPrompt(prompt: string): string | null {
 }
 
 function setupZoomControls() {
+
+  // Add sensitivity control variables
+  let lastZoomTime = 0;
+  const zoomCooldown = 20; // Minimum milliseconds between zoom operations
+  let zoomAccumulator = 0;
+  const zoomThreshold = 20; // Accumulate this much delta before zooming
+  const maxZoomPerSecond = 20; // Maximum number of zoom operations per second
+  let zoomCount = 0;
+  let zoomResetTimer: number | null = null;
+
   canvas.addEventListener("wheel", event => {
     event.preventDefault();
+    
+    const now = Date.now();
+    
+    // Reset zoom count every second
+    if (!zoomResetTimer) {
+      zoomResetTimer = window.setTimeout(() => {
+        zoomCount = 0;
+        zoomResetTimer = null;
+      }, 1000);
+    }
+    
+    // Throttle zoom operations
+    if (now - lastZoomTime < zoomCooldown || zoomCount >= maxZoomPerSecond) {
+      return;
+    }
+    
+    // Accumulate delta for smoother zooming
+    zoomAccumulator += Math.abs(event.deltaY);
+    
+    if (zoomAccumulator < zoomThreshold) {
+      return;
+    }
+    
+    zoomAccumulator = 0;
+    lastZoomTime = now;
+    zoomCount++;
 
     if (event.deltaY < 0) {
       circuitBoard.zoomIn(event.clientX, event.clientY);
@@ -247,6 +283,7 @@ function setupZoomControls() {
       circuitBoard.zoomOut(event.clientX, event.clientY);
     }
   });
+
 
   canvas.addEventListener("mousedown", event => {
     if (event.button === 1) {
