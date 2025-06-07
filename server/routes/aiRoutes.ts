@@ -252,13 +252,13 @@ router.post("/generate/gemini-text", async (req, res) => {
             .map(msg => `${msg.role === "user" ? "User" : "AI"}: ${msg.content}`)
             .join("\n");
 
-          fullPrompt = `${systemPrompt}\n\n${historyText}\n\nLast User Message: ${prompt}`;
+          fullPrompt = `"The following is your System Prompt: "${systemPrompt}\n "Here is the conversation history with you and the user" \n${historyText}\n\This is the User Last Message: ${prompt}`;
         } else {
           fullPrompt = `${systemPrompt}\n\n${prompt}`;
         }
       }
 
-      console.log("Gemini prompt:", fullPrompt);
+      console.log("Gemini prompt:", prompt);
       const result = await model.generateContent(fullPrompt);
       const response = result.response;
       const text = response.text();
