@@ -6,10 +6,28 @@ from skimage.morphology import skeletonize
 from skimage.measure import label, regionprops
 import math
 import sys
+import os
 import base64
 
 
 MODEL_PATH = "best.pt" 
+
+if not os.path.exists(MODEL_PATH):
+    possible_paths = [
+        "./best.pt",
+        "../best.pt",
+        "/app/server/best.pt",
+        "/app/server/dist/best.pt"
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            print(f"Found model at alternative path: {path}", file=sys.stderr)
+            MODEL_PATH = path
+            break
+    else:
+        print(f"Could not find model file at any of these locations: {possible_paths}", file=sys.stderr)
+
 SAVE_DEBUG_IMAGES = False
 
 
