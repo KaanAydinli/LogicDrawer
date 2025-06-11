@@ -169,6 +169,7 @@ Analyze the user's message and return ONLY ONE of these categories:
 - IMAGE_ANALYSIS: If the message asks to analyze or describe an image without creating a circuit
 - TRUTH_TABLE_IMAGE: If the message asks to analyze or draw the truth table from an image
 - KMAP_IMAGE: If the message asks to analyze or draw the Karnaugh map from an image
+- CIRCUIT_FIX: If the message asks to edit, fix or improve the current circuit
 - GENERAL_INFORMATION: For questions about circuitry, programming, or other informational requests
 
 Reply with ONLY the category name, nothing else.`;
@@ -200,6 +201,8 @@ Reply with ONLY the category name, nothing else.`;
 
       const data = await response.json();
 
+     
+
       if (!data.choices || !data.choices.length) {
         throw new Error("Empty response from Mistral API");
       }
@@ -207,6 +210,8 @@ Reply with ONLY the category name, nothing else.`;
       const text = data.choices[0].message.content.trim().toUpperCase();
 
       let classification = text;
+
+      console.log("Classification result:", classification);
 
       return res.json({ classification });
     } catch (error) {

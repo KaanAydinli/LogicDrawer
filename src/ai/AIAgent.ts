@@ -1,5 +1,5 @@
 import { CircuitBoard } from '../models/CircuitBoard';
-import { Tool,  VerilogImportTool, GeminiQueryTool, CircuitDetectionTool, ImageAnalysisTool,  TruthTableImageTool, KMapImageTool } from './Tools';
+import { Tool,  VerilogImportTool, GeminiQueryTool, CircuitDetectionTool, ImageAnalysisTool,  TruthTableImageTool, KMapImageTool, CircuitFixTool } from './Tools';
 import { ImageUploader } from './ImageUploader';
 import { apiBaseUrl } from '../services/apiConfig';
 import { Queue } from '../main';
@@ -41,10 +41,9 @@ export class AIAgent {
     this.tools.set('GENERAL_INFORMATION', new GeminiQueryTool());
     this.tools.set('CIRCUIT_DETECTION', new CircuitDetectionTool());
     this.tools.set('IMAGE_ANALYSIS', new ImageAnalysisTool());
-    
-    // Register new tools
     this.tools.set('TRUTH_TABLE_IMAGE', new TruthTableImageTool());
     this.tools.set('KMAP_IMAGE', new KMapImageTool());
+    this.tools.set('CIRCUIT_FIX', new CircuitFixTool() ); 
     
     console.log("Tools registered:", Array.from(this.tools.keys()));
   }

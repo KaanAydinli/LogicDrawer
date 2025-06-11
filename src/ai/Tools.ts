@@ -78,6 +78,199 @@ export class VerilogImportTool implements Tool {
   }
 }
 
+// Tool for fixing or creating circuits based on user descriptions
+export class CircuitFixTool implements Tool {
+  async execute(context: ToolContext): Promise<string> {
+    try {
+      // Get existing circuit data if available
+      let circuitJson = {};
+      if (typeof context.circuitBoard.exportCircuit=== 'function') {
+        circuitJson = context.circuitBoard.exportCircuit();
+      }
+
+      const circuitSpecPrompt = `
+You are acting as a digital logic circuit design expert. Create a JSON circuit definition exactly in this format:
+
+{
+  "components": [
+    {
+      "id": "unique-id",
+      "type": "component-type",
+      "state": {
+        "id": "unique-id",
+        "type": "component-type",
+        "position": {
+          "x": 300,
+          "y": 200
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [...],
+        "outputs": [...],
+        "on": false
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "wire-id",
+      "fromComponentId": "source-id",
+      "fromPortId": "source-id-output-0",
+      "toComponentId": "target-id",
+      "toPortId": "target-id-input-0"
+    }
+  ]
+}
+
+Available component types: toggle, button ,light-bulb, and, or, not, xor, nand, nor, xnor, mux2
+
+EXAMPLE WORKING CIRCUIT:
+{
+  "components": [
+    {
+      "id": "input1",
+      "type": "toggle",
+      "state": {
+        "id": "input1",
+        "type": "toggle",
+        "position": {
+          "x": 300,
+          "y": 200
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "input1-output-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 370,
+              "y": 230
+            }
+          }
+        ],
+        "on": false
+      }
+    },
+    {
+      "id": "output1",
+      "type": "led",
+      "state": {
+        "id": "output1",
+        "type": "led",
+        "position": {
+          "x": 500,
+          "y": 200
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "output1-input-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 490,
+              "y": 230
+            }
+          }
+        ],
+        "outputs": []
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "wire1",
+      "fromComponentId": "input1",
+      "fromPortId": "input1-output-0",
+      "toComponentId": "output1",
+      "toPortId": "output1-input-0"
+    }
+  ]
+}
+
+`;
+
+      // Create augmented message with circuit data
+      const circuitData = Object.keys(circuitJson).length > 0 ? 
+        `\n\nCURRENT CIRCUIT:\n${JSON.stringify(circuitJson, null, 2)}` : '';
+      const augmentedMessage = `${circuitSpecPrompt}\n\n${context.message}${circuitData}`;
+      
+      console.log("Executing Circuit Fix Tool with message:", context.message.substring(0, 50) + "...");
+
+      // Call the Gemini API
+      const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: augmentedMessage,
+          history: context.queue.messages,
+          systemPrompt: context.promptAI,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const generatedText = data.text || "";
+      
+      // Extract JSON string from response
+      let jsonString = null;
+      const jsonMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/) || 
+                       generatedText.match(/```\s*([\s\S]*?)\s*```/) ||
+                       generatedText.match(/(\{[\s\S]*"components"[\s\S]*"wires"[\s\S]*\})/);
+      
+      if (jsonMatch && jsonMatch[1]) {
+        jsonString = jsonMatch[1].trim();
+      } else {
+        const directJsonMatch = generatedText.match(/\{[\s\S]*"components"[\s\S]*"wires"[\s\S]*\}/);
+        if (directJsonMatch) {
+          jsonString = directJsonMatch[0].trim();
+        }
+      }
+      
+      if (!jsonString) {
+        return "I couldn't generate a valid circuit representation. Please provide more specific details.";
+      }
+      
+      console.log("Extracted JSON string:", jsonString.substring(0, 100) + "...");
+      
+      // Clear the current circuit
+      if (typeof context.circuitBoard.clearCircuit === 'function') {
+        context.circuitBoard.clearCircuit();
+      }
+      
+      // THE KEY FIX: Always use the string directly with importCircuit
+      // Do NOT parse it first - importCircuit expects a string and does the parsing itself
+      try {
+        context.circuitBoard.importCircuit(jsonString);
+        return "I've created/fixed the circuit based on your description. You can see it on the canvas now.";
+      } catch (error) {
+        console.error("Error importing circuit:", error);
+        return "I've designed a circuit based on your description, but couldn't automatically apply it. Here's the JSON representation:\n\n```json\n" + 
+          jsonString + "\n```";
+      }
+    } catch (error) {
+      console.error("Error in CircuitFixTool:", error);
+      return "I encountered an error while trying to create/fix your circuit. Please try again with clearer instructions.";
+    }
+  }
+}
+
 // Tool for general information retrieval using Gemini
 export class GeminiQueryTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
