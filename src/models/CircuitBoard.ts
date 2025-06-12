@@ -858,7 +858,7 @@ export class CircuitBoard {
     content.style.border = "1px solid #444";
     content.style.borderRadius = "5px";
     content.style.padding = "20px";
-    content.style.maxWidth = "90%";
+    content.style.maxWidth = "30%";
     content.style.maxHeight = "90%";
     content.style.overflow = "auto";
 

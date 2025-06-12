@@ -47,7 +47,7 @@ export class Tutorial {
         <p>Bu kısa rehber, temel özellikleri tanıtacak ve başlamanıza yardımcı olacaktır.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/login.mp4" type="video/mp4">
-          Tarayıcınız video etiketini desteklemiyor.
+          Your browser does not support the video tag.
         </video>
       `
     },
