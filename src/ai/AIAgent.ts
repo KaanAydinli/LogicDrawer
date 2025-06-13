@@ -34,6 +34,67 @@ export class AIAgent {
     
     console.log("AIAgent initialized successfully");
   }
+  
+  async processUserInputWithStreaming(message: string): Promise<ReadableStream<Uint8Array>> {
+  try {
+    // Add message to queue
+    this.queue.enqueue(message, "user");
+    
+    // Step 1: Classify the message using server-side endpoint
+    const classification = await this.classifyMessageServerSide(message);
+    console.log(`Message classified as: ${classification}`);
+
+    // For information queries, use streaming
+    if (classification === "GENERAL_INFORMATION") {
+      const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text?stream=true`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: message,
+          systemPrompt: this.promptAI,
+          history: this.queue.messages.slice(-5),
+          stream: true
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${await response.text()}`);
+      }
+      
+      return response.body!;
+    } else {
+      // For specialized tools, use the existing method and convert the result to a stream
+      const result = await this.processUserInput(message);
+      
+      // Convert the string result to a ReadableStream
+      const encoder = new TextEncoder();
+      return new ReadableStream({
+        start(controller) {
+          // Send as SSE format
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+          controller.close();
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error in processUserInputWithStreaming:", error);
+    
+    // Return error as a stream
+    const encoder = new TextEncoder();
+    const errorMessage = "I'm having trouble processing your request right now. Please try again.";
+    
+    return new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: errorMessage })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+        controller.close();
+      }
+    });
+  }
+}
 
   // Register all available tools
   private registerTools() {

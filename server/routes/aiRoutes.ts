@@ -307,12 +307,12 @@ router.post("/generate/gemini-text", async (req, res) => {
       return res.status(500).json({ error: "Google API key not configured" });
     }
 
-    try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+     try {
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
 
       let fullPrompt = prompt;
       if (systemPrompt) {
-        // Eğer history bir array ise düzgün formatlama yap
+        // Format history if it's an array
         if (history && Array.isArray(history)) {
           const historyText = history
             .map(msg => `${msg.role === "user" ? "User" : "AI"}: ${msg.content}`)
@@ -325,11 +325,53 @@ router.post("/generate/gemini-text", async (req, res) => {
       }
 
       console.log("Gemini prompt:", prompt);
-      const result = await model.generateContent(fullPrompt);
-      const response = result.response;
-      const text = response.text();
-
-      return res.json({ text });
+      
+      // Check if client requested streaming
+      const useStreaming = req.query.stream === 'true' || req.body.stream === true;
+      
+      if (useStreaming) {
+        // Set up headers for SSE
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        
+        try {
+          // Generate streaming content
+          const streamingResponse = await model.generateContentStream(fullPrompt);
+          
+          // Send chunks as they arrive
+          for await (const chunk of streamingResponse.stream) {
+            // Important: call text() function to get the actual text
+            const textChunk = chunk.text();
+            if (textChunk) {
+              res.write(`data: ${JSON.stringify({ chunk: textChunk })}\n\n`);
+            }
+          }
+          
+          // Send end of stream signal
+          res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+          res.end();
+        } catch (streamError) {
+          if (!res.headersSent) {
+            return res.status(500).json({
+              error: "Streaming error",
+              details: streamError instanceof Error ? streamError.message : String(streamError)
+            });
+          } else {
+            res.write(`data: ${JSON.stringify({ 
+              error: "Streaming error", 
+              details: streamError instanceof Error ? streamError.message : String(streamError) 
+            })}\n\n`);
+            res.end();
+          }
+        }
+      } else {
+        // Use non-streaming API for regular requests
+        const result = await model.generateContent(fullPrompt);
+        const response = result.response;
+        const text = response.text();
+        return res.json({ text });
+      }
     } catch (error) {
       return res.status(500).json({
         error: "Failed to generate text with Gemini",

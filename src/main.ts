@@ -617,35 +617,122 @@ function setUpAI() {
     chatContainer.classList.remove("open");
     aiLogo.classList.remove("active");
   });
-
   async function sendMessage() {
-    const message = chatInput.value.trim();
-    if (message === "") return;
+  const message = chatInput.value.trim();
+  if (message === "") return;
 
-    addUserMessage(message);
+  addUserMessage(message);
+  
+  // Reset input field
+  chatInput.value = "";
+  chatInput.style.height = "auto";
+  chatInput.style.cssText = "";
+  chatInput.style.height = "24px";
+  chatInput.scrollTop = 0;
+  chatInput.blur();
+  chatInput.focus();
 
-    chatInput.value = "";
-
-    chatInput.style.height = "auto";
-
-    chatInput.style.cssText = "";
-    chatInput.style.height = "24px";
-
-    chatInput.scrollTop = 0;
-
-    chatInput.blur();
-    chatInput.focus();
-
-    try {
-      const aiResponse = await aiAgent.processUserInput(message);
-
-      addAIMessage(aiResponse);
-    } catch (error) {
-      console.error("Error getting AI response:", error);
-
-      addAIMessage("I'm having trouble processing your request right now. Please try again later.");
+  try {
+    // Create a placeholder for AI response
+    const messageDiv = document.createElement("div");
+    messageDiv.className = "ai-message";
+    messageDiv.innerHTML = `
+      <div class="ai-avatar">
+        <svg width="200px" height="40px" xmlns="http://www.w3.org/2000/svg">              
+          <text x="0" y="18" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+        </svg>
+      </div>
+      <div class="message-content" id="streaming-message"></div>
+    `;
+    messagesContainer.appendChild(messageDiv);
+    
+    const streamingMessageElement = messageDiv.querySelector("#streaming-message")!;
+    let fullResponse = "";
+    let displayedResponse = "";
+    let typeQueue = [] as string[]; // Queue for typing animation
+    
+    // Start a typing animation interval
+    const typeInterval = setInterval(() => {
+      if (typeQueue.length > 0) {
+        const nextChar = typeQueue.shift();
+        displayedResponse += nextChar;
+        streamingMessageElement.innerHTML = escapeHTML(displayedResponse);
+        scrollToBottom();
+      }
+    }, 10); // Adjust this value to control typing speed (lower = faster)
+    
+    // Get the stream from AIAgent
+    const stream = await aiAgent.processUserInputWithStreaming(message);
+    const reader = stream.getReader();
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      // Convert the chunk to text
+      const chunk = new TextDecoder().decode(value);
+      
+      // Parse the SSE data
+      const lines = chunk.split('\n\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.substring(6));
+            
+            if (data.error) {
+              clearInterval(typeInterval);
+              streamingMessageElement.innerHTML = escapeHTML(data.error);
+              break;
+            }
+            
+            if (data.done) {
+              // Wait for typing to complete
+              const checkComplete = setInterval(() => {
+                if (typeQueue.length === 0) {
+                  clearInterval(checkComplete);
+                  clearInterval(typeInterval);
+                  // Streaming complete
+                  queue.enqueue(fullResponse, "AI");
+                  saveToLocalStorage();
+                }
+              }, 100);
+              break;
+            }
+            
+            if (data.chunk) {
+              fullResponse += data.chunk;
+              // Add each character to the typing queue
+              for (const char of data.chunk) {
+                typeQueue.push(char);
+              }
+            }
+          } catch (e) {
+            console.error("Error parsing SSE data:", e, line);
+          }
+        }
+      }
     }
+    
+    // Process any Verilog code
+    const code = extractVerilogFromPrompt(fullResponse);
+    if (code) {
+      console.log("Verilog code detected:", code);
+      const converter = new VerilogCircuitConverter(circuitBoard);
+      const success = converter.importVerilogCode(code);
+      if (success) {
+        console.log("Verilog import successful!");
+      } else {
+        console.error("Verilog import failed!");
+      }
+    }
+    
+  } catch (error) {
+    console.error("Error getting AI response:", error);
+    addAIMessage("I'm having trouble processing your request right now. Please try again later.");
   }
+  
+  scrollToBottom();
+}
 
   sendButton.addEventListener("click", sendMessage);
 
