@@ -100,8 +100,6 @@ export abstract class Component {
     return [];
   }
 
- 
-
   getOutputBitWidth(index: number): number {
     if (index >= 0 && index < this.outputs.length) {
       return this.outputs[index].bitWidth || 1;
@@ -230,8 +228,6 @@ export abstract class Component {
     return state;
   }
 
- 
-
   setState(state: any): void {
     if (!state) return;
 
@@ -288,17 +284,16 @@ export abstract class Component {
     };
   }
   // Add this method to the Component class
-public getPortAtPositionRadius(point: Point, radius: number = 10): Port | null {
-  for (const port of [...this.inputs, ...this.outputs]) {
-    const distance = Math.sqrt(
-      Math.pow(port.position.x - point.x, 2) + 
-      Math.pow(port.position.y - point.y, 2)
-    );
-    
-    if (distance <= radius) {
-      return port;
+  public getPortAtPositionRadius(point: Point, radius: number = 10): Port | null {
+    for (const port of [...this.inputs, ...this.outputs]) {
+      const distance = Math.sqrt(
+        Math.pow(port.position.x - point.x, 2) + Math.pow(port.position.y - point.y, 2)
+      );
+
+      if (distance <= radius) {
+        return port;
+      }
     }
+    return null;
   }
-  return null;
-}
 }

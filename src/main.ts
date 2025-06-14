@@ -649,6 +649,7 @@ function setUpAI() {
     const streamingMessageElement = messageDiv.querySelector("#streaming-message")!;
     let fullResponse = "";
     let displayedResponse = "";
+    streamingMessageElement.innerHTML = "<strong>Thinking...<strong>";
     let typeQueue = [] as string[]; // Queue for typing animation
     
     // Start a typing animation interval

@@ -32,6 +32,7 @@ import { MultiBit } from "./components/MultiBit";
 import { GatePanel } from "./utils/GatePanel";
 import { TruthTableManager } from "./utils/TruthTableManager";
 import { KarnaughMap } from "./utils/KarnaughMap";
+import { ActionHistory } from "./utils/ActionHistory";
 
 export class CircuitBoard {
   components: Component[];
@@ -176,6 +177,10 @@ export class CircuitBoard {
     } else if (event.ctrlKey && event.key === "g") {
       event.preventDefault();
       this.toggleGrid();
+    } else if (event.ctrlKey && event.key === "z") {
+      let json = ActionHistory.undo();
+
+      if (json != null) this.importCircuit(json);
     }
 
     // View controls
@@ -470,6 +475,7 @@ export class CircuitBoard {
   }
 
   addComponent(component: Component): void {
+    ActionHistory.saveState(this.exportCircuit());
     this.components.push(component);
     this.draw();
   }
@@ -2481,6 +2487,8 @@ export class CircuitBoard {
 
           const success = this.currentWire.connect(port);
           if (success) {
+            ActionHistory.saveState(this.exportCircuit());
+
             console.log("Connection successful! Adding wire to list.");
             port.isConnected = true;
             this.wires.push(this.currentWire);
