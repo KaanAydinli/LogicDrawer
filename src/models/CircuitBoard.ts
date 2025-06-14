@@ -1686,7 +1686,12 @@ export class CircuitBoard {
     });
 
     this.components.forEach(component => {
-      component.evaluate();
+
+      if(component instanceof Text){
+        component.update();
+      }
+      else
+        component.evaluate();
     });
 
     for (let i = 0; i < 10; i++) {

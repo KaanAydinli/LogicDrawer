@@ -52,7 +52,8 @@ export class VerilogImportTool implements Tool {
       const success = converter.importVerilogCode(code!);
 
       if (success) {
-        return "I've successfully created the circuit from your Verilog code! You can see it on the canvas now.";
+        // return "I've successfully created the circuit from your Verilog code! You can see it on the canvas now.";
+        return generatedText;
       } else {
         return "I found Verilog code but couldn't create a circuit from it. There might be syntax errors or unsupported features.";
       }

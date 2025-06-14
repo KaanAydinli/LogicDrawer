@@ -713,19 +713,7 @@ function setUpAI() {
         }
       }
     }
-    
-    // Process any Verilog code
-    const code = extractVerilogFromPrompt(fullResponse);
-    if (code) {
-      console.log("Verilog code detected:", code);
-      const converter = new VerilogCircuitConverter(circuitBoard);
-      const success = converter.importVerilogCode(code);
-      if (success) {
-        console.log("Verilog import successful!");
-      } else {
-        console.error("Verilog import failed!");
-      }
-    }
+  
     
   } catch (error) {
     console.error("Error getting AI response:", error);

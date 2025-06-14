@@ -164,7 +164,7 @@ router.post("/classify-message", async (req, res) => {
     try {
       const systemPrompt = `You are a classification assistant for a logic circuit design application.
 Analyze the user's message and return ONLY ONE of these categories:
-- VERILOG_IMPORT: If the message contains Verilog code or asks to import/create a circuit from code
+- VERILOG_IMPORT: If the message contains Verilog code or asks to import/create a circuit from code also if they ask to create some type of circuit so agent can code it.
 - CIRCUIT_DETECTION: If the message asks to detect, draw, or analyze a circuit from an image
 - IMAGE_ANALYSIS: If the message asks to analyze or describe an image without creating a circuit
 - TRUTH_TABLE_IMAGE: If the message asks to analyze or draw the truth table from an image

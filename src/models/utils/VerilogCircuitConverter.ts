@@ -53,6 +53,14 @@ export class VerilogCircuitConverter {
       this.organizeAndPositionComponents(module, signalLayers);
       this.buildCircuit(module);
 
+      for(const component in this.components){
+        const comp = this.components[component];
+        
+        comp.selected = true;
+
+        this.circuitBoard.selectedComponents.push(comp);
+      }
+
       this.circuitBoard.simulate();
       this.circuitBoard.draw();
       return true;
@@ -390,6 +398,7 @@ export class VerilogCircuitConverter {
           };
 
           const label = new Text(labelPosition, input.name, 20);
+          label.attachToComponent(this.components[input.name]);
           this.circuitBoard.addComponent(label);
         }
       });
@@ -527,6 +536,7 @@ export class VerilogCircuitConverter {
               y: bitPosition.y + 20,
             };
             const label = new Text(labelPosition, bitName, 16);
+            label.attachToComponent(bulb);
             this.circuitBoard.addComponent(label);
 
             this.connectOutput(bitName, bulb);
@@ -543,6 +553,7 @@ export class VerilogCircuitConverter {
             y: position.y + 20,
           };
           const label = new Text(labelPosition, output.name, 20);
+          label.attachToComponent(bulb);
           this.circuitBoard.addComponent(label);
 
           this.connectOutput(output.name, bulb);
@@ -649,6 +660,7 @@ export class VerilogCircuitConverter {
 
         const labelPosition = { x: position.x - 80, y: position.y + 20 };
         const label = new Text(labelPosition, inputName, 20);
+        label.attachToComponent(toggle);
         this.circuitBoard.addComponent(label);
       }
     }
@@ -725,6 +737,7 @@ export class VerilogCircuitConverter {
 
       const labelPosition = { x: position.x - 80, y: position.y + 20 };
       const label = new Text(labelPosition, `${actualOutputName} (auto)`, 20);
+      label.attachToComponent(toggle);
       this.circuitBoard.addComponent(label);
     }
   }
@@ -789,6 +802,7 @@ export class VerilogCircuitConverter {
         y: position.y + 20,
       };
       const label = new Text(labelPosition, trimmedInputName, 20);
+      label.attachToComponent(toggle);
       this.circuitBoard.addComponent(label);
     }
   }
@@ -829,6 +843,7 @@ export class VerilogCircuitConverter {
         y: position.y + 20,
       };
       const label = new Text(labelPosition, controlSignal, 20);
+      label.attachToComponent(toggle);
       this.circuitBoard.addComponent(label);
     }
   }
@@ -933,9 +948,11 @@ export class VerilogCircuitConverter {
     this.circuitBoard.addComponent(toggle1);
 
     const label0 = new Text({ x: pos0.x - 80, y: pos0.y + 20 }, "select0", 16);
+    label0.attachToComponent(toggle0);
     this.circuitBoard.addComponent(label0);
 
     const label1 = new Text({ x: pos1.x - 80, y: pos1.y + 20 }, "select1", 16);
+    label1.attachToComponent(toggle1);
     this.circuitBoard.addComponent(label1);
 
     const wire0 = new Wire(toggle0.outputs[0]);
@@ -957,6 +974,7 @@ export class VerilogCircuitConverter {
 
       const infoPos = { x: mux.position.x, y: mux.position.y - 80 };
       const infoLabel = new Text(infoPos, caseInfoText, 14);
+      
       this.circuitBoard.addComponent(infoLabel);
     }
   }
@@ -1145,6 +1163,7 @@ export class VerilogCircuitConverter {
           y: position.y + 30,
         };
         const label = new Text(labelPosition, bitName, 16);
+        label.attachToComponent(toggle);
         this.circuitBoard.addComponent(label);
       }
       inputBaseY += 50;

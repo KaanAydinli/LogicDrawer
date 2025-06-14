@@ -12,6 +12,9 @@ export class Text extends Component {
   private dragOffset: Point = { x: 0, y: 0 };
   private isEditing: boolean = false;
   private editor: HTMLTextAreaElement | null = null;
+  private attachedTo: Component | null = null;
+  private relativeOffset: Point = { x: 0, y: 0 };
+  private snapDistance: number = 20; // Yapışma mesafesi
 
   constructor(
     position: Point,
@@ -31,6 +34,21 @@ export class Text extends Component {
       width: textWidth,
       height: fontSize * 1.2,
     };
+  }
+  detachFromComponent(): void {
+    this.attachedTo = null;
+  }
+  attachToComponent(component: Component): void {
+    this.attachedTo = component;
+
+    // Komponente göre göreceli pozisyonu hesapla
+    this.relativeOffset = {
+      x: this.position.x - component.position.x,
+      y: this.position.y - component.position.y,
+    };
+
+    // Component ID'sini referans olarak sakla
+    this.id = `${component.id}-label`;
   }
 
   /**
@@ -151,7 +169,6 @@ export class Text extends Component {
     }
   }
 
-
   containsPoint(point: Point): boolean {
     const halfWidth = this.size.width / 2;
 
@@ -163,7 +180,6 @@ export class Text extends Component {
     );
   }
 
-
   startDrag(point: Point): void {
     if (this.isEditing) return;
 
@@ -174,22 +190,6 @@ export class Text extends Component {
     };
   }
 
- 
-  drag(point: Point): void {
-    if (this.dragging && !this.isEditing) {
-      this.position = {
-        x: point.x + this.dragOffset.x,
-        y: point.y + this.dragOffset.y,
-      };
-    }
-  }
-
-  
-  endDrag(): void {
-    this.dragging = false;
-  }
-
-  
   setText(text: string): void {
     this.text = text;
     this.size.width = this.calculateTextWidth();
@@ -205,11 +205,80 @@ export class Text extends Component {
     this.size.width = this.calculateTextWidth();
   }
 
+  
+
   setColor(color: string): void {
     this.color = color;
   }
-
+ update(): void {
+    if (this.attachedTo) {
+      this.position = {
+        x: this.attachedTo.position.x + this.relativeOffset.x,
+        y: this.attachedTo.position.y + this.relativeOffset.y
+      };
+    }
+  }
   
+  /**
+   * Mevcut drag metodunu override et
+   */
+  drag(point: Point): void {
+    if (this.dragging && !this.isEditing) {
+      this.position = {
+        x: point.x + this.dragOffset.x,
+        y: point.y + this.dragOffset.y
+      };
+      
+      // Eğer bir komponente bağlıysa ve sürüklüyorsa, bağlantıyı güncelle
+      if (this.attachedTo) {
+        this.relativeOffset = {
+          x: this.position.x - this.attachedTo.position.x,
+          y: this.position.y - this.attachedTo.position.y
+        };
+      }
+    }
+  }
+  findAndAttachToNearestComponent(components: Component[]): boolean {
+    if (this.isEditing) return false;
+    
+    let closestComponent: Component | null = null;
+    let minDistance = Infinity;
+    
+    for (const component of components) {
+      // Text komponentini ve kendisini atla
+      if (component === this || component.type === "text") continue;
+      
+      const distance = Math.sqrt(
+        Math.pow(this.position.x - component.position.x, 2) + 
+        Math.pow(this.position.y - component.position.y, 2)
+      );
+      
+      if (distance < minDistance && distance < this.snapDistance) {
+        minDistance = distance;
+        closestComponent = component;
+      }
+    }
+    
+    if (closestComponent) {
+      this.attachToComponent(closestComponent);
+      return true;
+    }
+    
+    return false;
+  }
+  /**
+   * Sürükleme bitince en yakın komponente yapıştırmayı dene
+   */
+  endDrag(components: Component[]): void {
+    this.dragging = false;
+    
+    // Eğer zaten bir komponente bağlı değilse, yakındaki bir komponente yapıştırmayı dene
+    if (!this.attachedTo) {
+      this.findAndAttachToNearestComponent(components);
+    }
+  }
+  
+  // getState ve setState metodlarını güncelle
   getState(): any {
     const baseState = super.getState();
     return {
@@ -218,51 +287,23 @@ export class Text extends Component {
       fontSize: this.fontSize,
       fontFamily: this.fontFamily,
       color: this.color,
+      attachedToId: this.attachedTo ? this.attachedTo.id : null,
+      relativeOffset: this.relativeOffset
     };
   }
-
-  /**
-   * Override setState to handle text properties
-   */
+  
   setState(state: any): void {
     super.setState(state);
-
-    if (state.text !== undefined) {
-      this.text = state.text;
+    
+    // Mevcut özellikler...
+    
+    if (state.relativeOffset) {
+      this.relativeOffset = state.relativeOffset;
     }
-
-    if (state.fontSize !== undefined) {
-      this.fontSize = state.fontSize;
-    }
-
-    if (state.fontFamily !== undefined) {
-      this.fontFamily = state.fontFamily;
-    }
-
-    if (state.color !== undefined) {
-      this.color = state.color;
-    }
-
-    this.size.width = this.calculateTextWidth();
-    this.size.height = this.fontSize * 1.2;
+    
+    // attachedToId işlemi, CircuitBoard tarafından yapılmalı çünkü
+    // burada diğer komponentlere erişimimiz yok
   }
-
-  /**
-   * Create a clone of this text component
-   */
-  clone(): Text {
-    return new Text(
-      { x: this.position.x + 20, y: this.position.y + 20 },
-      this.text,
-      this.fontSize,
-      this.fontFamily,
-      this.color
-    );
-  }
-
-  /**
-   * Cancel any active editing
-   */
   cancelEditing(): void {
     if (this.isEditing && this.editor) {
       document.body.removeChild(this.editor);
