@@ -91,49 +91,49 @@ export class DLatch extends Component {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-    const x = this.position.x;
+   const x = this.position.x;
     const y = this.position.y;
     const width = this.size.width;
     const height = this.size.height;
 
-    ctx.fillStyle = "#333355";
+    ctx.fillStyle ="#663354";
     ctx.fillRect(x, y, width, height);
 
-    ctx.strokeStyle = this.selected ? "#ffcc00" : "#8899ff";
+    ctx.strokeStyle = this.selected ? "#ffcc00" :"#5a2355";
     ctx.lineWidth = this.selected ? 3 : 2;
     ctx.strokeRect(x, y, width, height);
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 14px Arial";
+    ctx.font = "normal 12px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("D Latch", x + width / 2, y + 15);
+    ctx.fillText("D Latch", x + width / 2, y + 10);
 
     if (Array.isArray(this.qValue) && this.qValue.length > 1) {
       ctx.font = "9px Arial";
-      ctx.fillText(`${this.qValue.length}b`, x + width / 2, y + height - 8);
+      ctx.fillText(`${this.qValue.length}b`, x + width / 2, y + height - 10);
     }
 
-    ctx.font = "12px Arial";
+    ctx.font = "10px Arial";
 
     ctx.textAlign = "left";
     ctx.fillText("D", x + 10, y + 20);
-    ctx.fillText("EN", x + 10, y + 50);
+    ctx.fillText("CLK", x + 10, y + 50);
 
     ctx.textAlign = "right";
     ctx.fillText("Q", x + width - 10, y + 20);
     ctx.fillText("Q'", x + width - 10, y + 50);
 
     const stateX = x + width / 2;
-    const stateY = y + height / 2 + 10;
-    const stateRadius = 8;
+    const stateY = y + height / 2 - 5;
+    const stateRadius = 6;
 
     ctx.beginPath();
     ctx.arc(stateX, stateY, stateRadius, 0, Math.PI * 2);
 
     const isActive = Array.isArray(this.qValue) ? this.qValue.some(bit => bit) : !!this.qValue;
 
-    ctx.fillStyle = isActive ? "#0B6E4F" : "#ff0000";
+    ctx.fillStyle = isActive ? "#0B6E4F" : "#353535";
     ctx.fill();
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 1;

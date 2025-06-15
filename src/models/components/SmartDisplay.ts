@@ -46,6 +46,8 @@ export class SmartDisplay extends Component {
   evaluate(): void {
     for (let i = 0; i < this.bitWidth; i++) {
       this.bits[i] = this.inputs[i].value as boolean;
+
+     
     }
 
     this.value = bitsToNumber(this.bits);
@@ -137,7 +139,7 @@ export class SmartDisplay extends Component {
       ctx.font = "12px Arial";
       ctx.textAlign = "center";
       ctx.fillText(
-        `${this.bitWidth - i - 1}: ${this.bits[i] ? "1" : "0"}`,
+        `${i}: ${this.bits[i] ? "1" : "0"}`,
         this.position.x + this.size.width / 2,
         y + 8
       );

@@ -7,7 +7,7 @@ export interface BitValue {
 
 export function bitsToNumber(bits: BitArray): number {
   return bits.reduce((result, bit, index) => {
-    return result + (bit ? Math.pow(2, bits.length - index - 1) : 0);
+    return result + (bit ? Math.pow(2, index) : 0);
   }, 0);
 }
 

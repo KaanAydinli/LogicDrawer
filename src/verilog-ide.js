@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Verilog kodu çalıştırma düğmesi işlevselliği
   document.getElementById("run-code")?.addEventListener("click", function () {
     if (!window.editor) {
-      alert("Editör henüz yüklenmedi!");
+      alert("Editör henüz yüklenmedi! ");
       return;
     }
 

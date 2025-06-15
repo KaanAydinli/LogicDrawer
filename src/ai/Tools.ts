@@ -92,54 +92,18 @@ export class CircuitFixTool implements Tool {
       const circuitSpecPrompt = `
 You are acting as a digital logic circuit design expert. Create a JSON circuit definition exactly in this format:
 
+
 {
   "components": [
     {
-      "id": "unique-id",
-      "type": "component-type",
+      "id": "xgjunnvxaar",
+      "type": "constant0",
       "state": {
-        "id": "unique-id",
-        "type": "component-type",
+        "id": "xgjunnvxaar",
+        "type": "constant0",
         "position": {
-          "x": 300,
-          "y": 200
-        },
-        "size": {
-          "width": 60,
-          "height": 60
-        },
-        "selected": false,
-        "inputs": [...],
-        "outputs": [...],
-        "on": false
-      }
-    }
-  ],
-  "wires": [
-    {
-      "id": "wire-id",
-      "fromComponentId": "source-id",
-      "fromPortId": "source-id-output-0",
-      "toComponentId": "target-id",
-      "toPortId": "target-id-input-0"
-    }
-  ]
-}
-
-Available component types: toggle, button ,light-bulb, and, or, not, xor, nand, nor, xnor, mux2
-
-EXAMPLE WORKING CIRCUIT:
-{
-  "components": [
-    {
-      "id": "input1",
-      "type": "toggle",
-      "state": {
-        "id": "input1",
-        "type": "toggle",
-        "position": {
-          "x": 300,
-          "y": 200
+          "x": 26.399993896484375,
+          "y": 114.63750076293945
         },
         "size": {
           "width": 60,
@@ -149,12 +113,107 @@ EXAMPLE WORKING CIRCUIT:
         "inputs": [],
         "outputs": [
           {
-            "id": "input1-output-0",
+            "id": "xgjunnvxaar-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 96.39999389648438,
+              "y": 144.63750076293945
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "s41abputotc",
+      "type": "constant1",
+      "state": {
+        "id": "s41abputotc",
+        "type": "constant1",
+        "position": {
+          "x": 27.399993896484375,
+          "y": 207.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "s41abputotc-output-0",
+            "value": true,
+            "isConnected": true,
+            "position": {
+              "x": 97.39999389648438,
+              "y": 237.63750076293945
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "v2lqvz7bdn8",
+      "type": "multibit",
+      "state": {
+        "id": "v2lqvz7bdn8",
+        "type": "multibit",
+        "position": {
+          "x": 24.399993896484375,
+          "y": 323.63750076293945
+        },
+        "size": {
+          "width": 80,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "v2lqvz7bdn8-output-0",
+            "value": [
+              false,
+              false
+            ],
+            "isConnected": true,
+            "position": {
+              "x": 114.39999389648438,
+              "y": 353.63750076293945
+            }
+          }
+        ],
+        "bitWidth": 2,
+        "bits": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "ej3nj23onl",
+      "type": "toggle",
+      "state": {
+        "id": "ej3nj23onl",
+        "type": "toggle",
+        "position": {
+          "x": 32.399993896484375,
+          "y": 429.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "ej3nj23onl-output-0",
             "value": false,
             "isConnected": true,
             "position": {
-              "x": 370,
-              "y": 230
+              "x": 102.39999389648438,
+              "y": 459.63750076293945
             }
           }
         ],
@@ -162,14 +221,73 @@ EXAMPLE WORKING CIRCUIT:
       }
     },
     {
-      "id": "output1",
-      "type": "led",
+      "id": "i9qphh9gr4o",
+      "type": "button",
       "state": {
-        "id": "output1",
-        "type": "led",
+        "id": "i9qphh9gr4o",
+        "type": "button",
         "position": {
-          "x": 500,
-          "y": 200
+          "x": 35.399993896484375,
+          "y": 517.6375007629395
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "i9qphh9gr4o-output-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 105.39999389648438,
+              "y": 547.6375007629395
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "4gg8bvvqgl4",
+      "type": "clock",
+      "state": {
+        "id": "4gg8bvvqgl4",
+        "type": "clock",
+        "position": {
+          "x": 14.399993896484375,
+          "y": 606.6375007629395
+        },
+        "size": {
+          "width": 70,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "4gg8bvvqgl4-output-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 94.39999389648438,
+              "y": 636.6375007629395
+            }
+          }
+        ],
+        "interval": 1000
+      }
+    },
+    {
+      "id": "zb52cap1l3l",
+      "type": "light-bulb",
+      "state": {
+        "id": "zb52cap1l3l",
+        "type": "light-bulb",
+        "position": {
+          "x": 551.3999938964844,
+          "y": 95.63750076293945
         },
         "size": {
           "width": 60,
@@ -178,29 +296,1384 @@ EXAMPLE WORKING CIRCUIT:
         "selected": false,
         "inputs": [
           {
-            "id": "output1-input-0",
+            "id": "zb52cap1l3l-input-0",
             "value": false,
-            "isConnected": true,
+            "isConnected": false,
             "position": {
-              "x": 490,
-              "y": 230
+              "x": 541.3999938964844,
+              "y": 125.63750076293945
             }
           }
         ],
         "outputs": []
       }
+    },
+    {
+      "id": "eydw32ywx8c",
+      "type": "hex",
+      "state": {
+        "id": "eydw32ywx8c",
+        "type": "hex",
+        "position": {
+          "x": 801.3999938964844,
+          "y": 322.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "eydw32ywx8c-input-0",
+            "value": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "isConnected": true,
+            "position": {
+              "x": 791.3999938964844,
+              "y": 352.63750076293945
+            }
+          }
+        ],
+        "outputs": []
+      }
+    },
+    
+    {
+      "id": "ewwi5suv7k",
+      "type": "led",
+      "state": {
+        "id": "ewwi5suv7k",
+        "type": "led",
+        "position": {
+          "x": 570.3999938964844,
+          "y": 526.6375007629395
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "ewwi5suv7k-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 585.3999938964844,
+              "y": 616.6375007629395
+            }
+          },
+          {
+            "id": "ewwi5suv7k-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 600.3999938964844,
+              "y": 616.6375007629395
+            }
+          },
+          {
+            "id": "ewwi5suv7k-input-2",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 615.3999938964844,
+              "y": 616.6375007629395
+            }
+          }
+        ],
+        "outputs": []
+      }
+    },
+    {
+      "id": "qy13jb87m1h",
+      "type": "buffer",
+      "state": {
+        "id": "qy13jb87m1h",
+        "type": "buffer",
+        "position": {
+          "x": 212.39999389648438,
+          "y": 133.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 40
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "qy13jb87m1h-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 202.39999389648438,
+              "y": 153.63750076293945
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "qy13jb87m1h-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 282.3999938964844,
+              "y": 153.63750076293945
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "r62p3geyqpi",
+      "type": "not",
+      "state": {
+        "id": "r62p3geyqpi",
+        "type": "not",
+        "position": {
+          "x": 379.3999938964844,
+          "y": 130.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 40
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "r62p3geyqpi-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 369.3999938964844,
+              "y": 150.63750076293945
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "r62p3geyqpi-output-0",
+            "value": true,
+            "isConnected": false,
+            "position": {
+              "x": 449.3999938964844,
+              "y": 150.63750076293945
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "wau0v9sgf1",
+      "type": "and",
+      "state": {
+        "id": "wau0v9sgf1",
+        "type": "and",
+        "position": {
+          "x": 226.39999389648438,
+          "y": 221.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "wau0v9sgf1-input-0",
+            "value": true,
+            "isConnected": true,
+            "position": {
+              "x": 216.39999389648438,
+              "y": 241.63750076293945
+            }
+          },
+          {
+            "id": "wau0v9sgf1-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 216.39999389648438,
+              "y": 261.63750076293945
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "wau0v9sgf1-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 296.3999938964844,
+              "y": 251.63750076293945
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "wqmcs78v82",
+      "type": "nand",
+      "state": {
+        "id": "wqmcs78v82",
+        "type": "nand",
+        "position": {
+          "x": 383.3999938964844,
+          "y": 244.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "wqmcs78v82-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 373.3999938964844,
+              "y": 264.63750076293945
+            }
+          },
+          {
+            "id": "wqmcs78v82-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 373.3999938964844,
+              "y": 284.63750076293945
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "wqmcs78v82-output-0",
+            "value": true,
+            "isConnected": true,
+            "position": {
+              "x": 453.3999938964844,
+              "y": 274.63750076293945
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "rkf4074g3s",
+      "type": "or",
+      "state": {
+        "id": "rkf4074g3s",
+        "type": "or",
+        "position": {
+          "x": 213.39999389648438,
+          "y": 368.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "rkf4074g3s-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 203.39999389648438,
+              "y": 388.63750076293945
+            }
+          },
+          {
+            "id": "rkf4074g3s-input-1",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 203.39999389648438,
+              "y": 408.63750076293945
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "rkf4074g3s-output-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 283.3999938964844,
+              "y": 398.63750076293945
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "3prz6sf9d8b",
+      "type": "nor",
+      "state": {
+        "id": "3prz6sf9d8b",
+        "type": "nor",
+        "position": {
+          "x": 367.3999938964844,
+          "y": 386.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "3prz6sf9d8b-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 357.3999938964844,
+              "y": 406.63750076293945
+            }
+          },
+          {
+            "id": "3prz6sf9d8b-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 357.3999938964844,
+              "y": 426.63750076293945
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "3prz6sf9d8b-output-0",
+            "value": true,
+            "isConnected": false,
+            "position": {
+              "x": 437.3999938964844,
+              "y": 416.63750076293945
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "d5e0vbj5fmj",
+      "type": "xor",
+      "state": {
+        "id": "d5e0vbj5fmj",
+        "type": "xor",
+        "position": {
+          "x": 195.39999389648438,
+          "y": 520.6375007629395
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "d5e0vbj5fmj-input-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 185.39999389648438,
+              "y": 540.6375007629395
+            }
+          },
+          {
+            "id": "d5e0vbj5fmj-input-1",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 185.39999389648438,
+              "y": 560.6375007629395
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "d5e0vbj5fmj-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 265.3999938964844,
+              "y": 550.6375007629395
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "qd2wp1l3xu",
+      "type": "xnor",
+      "state": {
+        "id": "qd2wp1l3xu",
+        "type": "xnor",
+        "position": {
+          "x": 385.3999938964844,
+          "y": 540.6375007629395
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "qd2wp1l3xu-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 375.3999938964844,
+              "y": 560.6375007629395
+            }
+          },
+          {
+            "id": "qd2wp1l3xu-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 375.3999938964844,
+              "y": 580.6375007629395
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "qd2wp1l3xu-output-0",
+            "value": true,
+            "isConnected": false,
+            "position": {
+              "x": 455.3999938964844,
+              "y": 570.6375007629395
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "qkdgry1dq",
+      "type": "multibit",
+      "state": {
+        "id": "qkdgry1dq",
+        "type": "multibit",
+        "position": {
+          "x": 698.3999938964844,
+          "y": 181.63750076293945
+        },
+        "size": {
+          "width": 80,
+          "height": 120
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "qkdgry1dq-output-0",
+            "value": [
+              false,
+              false
+            ],
+            "isConnected": true,
+            "position": {
+              "x": 788.3999938964844,
+              "y": 211.63750076293945
+            }
+          }
+        ],
+        "bitWidth": 4,
+        "bits": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "0kxrn3pjmw",
+      "type": "led",
+      "state": {
+        "id": "0kxrn3pjmw",
+        "type": "led",
+        "position": {
+          "x": 153.39999389648438,
+          "y": 310.63750076293945
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "0kxrn3pjmw-input-0",
+            "value": [
+              false,
+              false
+            ],
+            "isConnected": true,
+            "position": {
+              "x": 168.39999389648438,
+              "y": 400.63750076293945
+            }
+          },
+          {
+            "id": "0kxrn3pjmw-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 183.39999389648438,
+              "y": 400.63750076293945
+            }
+          },
+          {
+            "id": "0kxrn3pjmw-input-2",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 198.39999389648438,
+              "y": 400.63750076293945
+            }
+          }
+        ],
+        "outputs": []
+      }
+    },
+    {
+      "id": "ai2lfkj16yd",
+      "type": "mux2",
+      "state": {
+        "id": "ai2lfkj16yd",
+        "type": "mux2",
+        "position": {
+          "x": 81.61539389648436,
+          "y": 749.2998007629394
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "ai2lfkj16yd-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 81.61539389648436,
+              "y": 769.2998007629394
+            }
+          },
+          {
+            "id": "ai2lfkj16yd-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 81.61539389648436,
+              "y": 789.2998007629394
+            }
+          },
+          {
+            "id": "ai2lfkj16yd-input-2",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 111.61539389648436,
+              "y": 749.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "ai2lfkj16yd-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 141.61539389648436,
+              "y": 779.2998007629394
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "amnvdkxbx2i",
+      "type": "mux4",
+      "state": {
+        "id": "amnvdkxbx2i",
+        "type": "mux4",
+        "position": {
+          "x": 253.61539389648436,
+          "y": 772.2998007629394
+        },
+        "size": {
+          "width": 100,
+          "height": 120
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "amnvdkxbx2i-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 253.61539389648436,
+              "y": 796.2998007629394
+            }
+          },
+          {
+            "id": "amnvdkxbx2i-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 253.61539389648436,
+              "y": 820.2998007629394
+            }
+          },
+          {
+            "id": "amnvdkxbx2i-input-2",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 253.61539389648436,
+              "y": 844.2998007629394
+            }
+          },
+          {
+            "id": "amnvdkxbx2i-input-3",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 253.61539389648436,
+              "y": 868.2998007629394
+            }
+          },
+          {
+            "id": "amnvdkxbx2i-input-4",
+            "value": [
+              false,
+              false
+            ],
+            "isConnected": true,
+            "position": {
+              "x": 303.61539389648436,
+              "y": 772.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "amnvdkxbx2i-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 353.61539389648436,
+              "y": 832.2998007629394
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "6quptrf8xt8",
+      "type": "halfadder",
+      "state": {
+        "id": "6quptrf8xt8",
+        "type": "halfadder",
+        "position": {
+          "x": 79.61539389648436,
+          "y": 909.2998007629394
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "6quptrf8xt8-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 69.61539389648436,
+              "y": 929.2998007629394
+            }
+          },
+          {
+            "id": "6quptrf8xt8-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 69.61539389648436,
+              "y": 949.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "6quptrf8xt8-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 149.61539389648436,
+              "y": 929.2998007629394
+            }
+          },
+          {
+            "id": "6quptrf8xt8-output-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 149.61539389648436,
+              "y": 949.2998007629394
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "346jjt29z3f",
+      "type": "fulladder",
+      "state": {
+        "id": "346jjt29z3f",
+        "type": "fulladder",
+        "position": {
+          "x": 270.61539389648436,
+          "y": 961.2998007629394
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "346jjt29z3f-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 260.61539389648436,
+              "y": 976.2998007629394
+            }
+          },
+          {
+            "id": "346jjt29z3f-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 260.61539389648436,
+              "y": 991.2998007629394
+            }
+          },
+          {
+            "id": "346jjt29z3f-input-2",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 260.61539389648436,
+              "y": 1006.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "346jjt29z3f-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 340.61539389648436,
+              "y": 981.2998007629394
+            }
+          },
+          {
+            "id": "346jjt29z3f-output-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 340.61539389648436,
+              "y": 1001.2998007629394
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "l67zq6ox3r",
+      "type": "multibit",
+      "state": {
+        "id": "l67zq6ox3r",
+        "type": "multibit",
+        "position": {
+          "x": 285.61539389648436,
+          "y": 642.2998007629394
+        },
+        "size": {
+          "width": 80,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "l67zq6ox3r-output-0",
+            "value": [
+              false,
+              false
+            ],
+            "isConnected": true,
+            "position": {
+              "x": 375.61539389648436,
+              "y": 672.2998007629394
+            }
+          }
+        ],
+        "bitWidth": 2,
+        "bits": [
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "id": "5ijto084h0o",
+      "type": "halfsubtractor",
+      "state": {
+        "id": "5ijto084h0o",
+        "type": "halfsubtractor",
+        "position": {
+          "x": 30.615393896484363,
+          "y": 1091.2998007629394
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "5ijto084h0o-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 20.615393896484363,
+              "y": 1111.2998007629394
+            }
+          },
+          {
+            "id": "5ijto084h0o-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 20.615393896484363,
+              "y": 1131.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "5ijto084h0o-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 100.61539389648436,
+              "y": 1111.2998007629394
+            }
+          },
+          {
+            "id": "5ijto084h0o-output-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 100.61539389648436,
+              "y": 1131.2998007629394
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "slmvfz7sui8",
+      "type": "fullsubtractor",
+      "state": {
+        "id": "slmvfz7sui8",
+        "type": "fullsubtractor",
+        "position": {
+          "x": 156.61539389648436,
+          "y": 1100.2998007629394
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "slmvfz7sui8-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 146.61539389648436,
+              "y": 1115.2998007629394
+            }
+          },
+          {
+            "id": "slmvfz7sui8-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 146.61539389648436,
+              "y": 1130.2998007629394
+            }
+          },
+          {
+            "id": "slmvfz7sui8-input-2",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 146.61539389648436,
+              "y": 1145.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "slmvfz7sui8-output-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 226.61539389648436,
+              "y": 1120.2998007629394
+            }
+          },
+          {
+            "id": "slmvfz7sui8-output-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 226.61539389648436,
+              "y": 1140.2998007629394
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "7mpwfxweaym",
+      "type": "decoder",
+      "state": {
+        "id": "7mpwfxweaym",
+        "type": "decoder",
+        "position": {
+          "x": 467.61539389648436,
+          "y": 1022.2998007629394
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "7mpwfxweaym-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 457.61539389648436,
+              "y": 1042.2998007629394
+            }
+          },
+          {
+            "id": "7mpwfxweaym-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 457.61539389648436,
+              "y": 1062.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "7mpwfxweaym-output-0",
+            "value": true,
+            "isConnected": false,
+            "position": {
+              "x": 537.6153938964844,
+              "y": 1034.2998007629394
+            }
+          },
+          {
+            "id": "7mpwfxweaym-output-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 537.6153938964844,
+              "y": 1046.2998007629394
+            }
+          },
+          {
+            "id": "7mpwfxweaym-output-2",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 537.6153938964844,
+              "y": 1058.2998007629394
+            }
+          },
+          {
+            "id": "7mpwfxweaym-output-3",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 537.6153938964844,
+              "y": 1070.2998007629394
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "54na89594tg",
+      "type": "dlatch",
+      "state": {
+        "id": "54na89594tg",
+        "type": "dlatch",
+        "position": {
+          "x": 384.61539389648436,
+          "y": 1175.2998007629394
+        },
+        "size": {
+          "width": 80,
+          "height": 70
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "54na89594tg-input-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 374.61539389648436,
+              "y": 1195.2998007629394
+            }
+          },
+          {
+            "id": "54na89594tg-input-1",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 374.61539389648436,
+              "y": 1225.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "54na89594tg-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 474.61539389648436,
+              "y": 1195.2998007629394
+            }
+          },
+          {
+            "id": "54na89594tg-output-1",
+            "value": true,
+            "isConnected": false,
+            "position": {
+              "x": 474.61539389648436,
+              "y": 1225.2998007629394
+            }
+          }
+        ],
+        "qValue": false
+      }
+    },
+    {
+      "id": "lzyrc8ifl2k",
+      "type": "dflipflop",
+      "state": {
+        "id": "lzyrc8ifl2k",
+        "type": "dflipflop",
+        "position": {
+          "x": 598.6153938964844,
+          "y": 1222.2998007629394
+        },
+        "size": {
+          "width": 80,
+          "height": 70
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "lzyrc8ifl2k-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 588.6153938964844,
+              "y": 1242.2998007629394
+            }
+          },
+          {
+            "id": "lzyrc8ifl2k-input-1",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 588.6153938964844,
+              "y": 1272.2998007629394
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "lzyrc8ifl2k-output-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 688.6153938964844,
+              "y": 1242.2998007629394
+            }
+          },
+          {
+            "id": "lzyrc8ifl2k-output-1",
+            "value": true,
+            "isConnected": false,
+            "position": {
+              "x": 688.6153938964844,
+              "y": 1272.2998007629394
+            }
+          }
+        ],
+        "qValue": false,
+        "lastClk": false
+      }
+    },
+    {
+      "id": "781c84adp17",
+      "type": "text",
+      "state": {
+        "id": "781c84adp17",
+        "type": "text",
+        "position": {
+          "x": 383.61539389648436,
+          "y": 1326.2998007629394
+        },
+        "size": {
+          "width": 39.1484375,
+          "height": 19.2
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [],
+        "text": "Label",
+        "fontSize": 16,
+        "fontFamily": "Arial",
+        "color": "#e0e0e0",
+        "attachedToId": null,
+        "relativeOffset": {
+          "x": 0,
+          "y": 0
+        }
+      }
+    },
+    {
+      "id": "55aruw4tfv5",
+      "type": "clock",
+      "state": {
+        "id": "55aruw4tfv5",
+        "type": "clock",
+        "position": {
+          "x": 192.61539389648436,
+          "y": 1202.2998007629394
+        },
+        "size": {
+          "width": 70,
+          "height": 60
+        },
+        "selected": false,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "55aruw4tfv5-output-0",
+            "value": false,
+            "isConnected": true,
+            "position": {
+              "x": 272.61539389648436,
+              "y": 1232.2998007629394
+            }
+          }
+        ],
+        "interval": 1000
+      }
+    },
+    {
+      "id": "e2y9vnoxe2a",
+      "type": "smartdisplay",
+      "state": {
+        "id": "e2y9vnoxe2a",
+        "type": "smartdisplay",
+        "position": {
+          "x": 157.39999389648438,
+          "y": 194.63750076293945
+        },
+        "size": {
+          "width": 120,
+          "height": 160
+        },
+        "selected": false,
+        "inputs": [
+          {
+            "id": "e2y9vnoxe2a-input-0",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 147.39999389648438,
+              "y": 224.63750076293945
+            }
+          },
+          {
+            "id": "e2y9vnoxe2a-input-1",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 147.39999389648438,
+              "y": 254.63750076293945
+            }
+          },
+          {
+            "id": "e2y9vnoxe2a-input-2",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 147.39999389648438,
+              "y": 284.63750076293945
+            }
+          },
+          {
+            "id": "e2y9vnoxe2a-input-3",
+            "value": false,
+            "isConnected": false,
+            "position": {
+              "x": 147.39999389648438,
+              "y": 314.63750076293945
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "id": "e2y9vnoxe2a-output",
+            "value": [
+              false,
+              false,
+              false,
+              false
+            ],
+            "isConnected": false,
+            "position": {
+              "x": 287.3999938964844,
+              "y": 274.63750076293945
+            }
+          }
+        ],
+        "bitWidth": 4,
+        "bits": [
+          false,
+          false,
+          false,
+          false
+        ],
+        "displayMode": "auto",
+        "value": 0
+      }
     }
   ],
   "wires": [
     {
-      "id": "wire1",
-      "fromComponentId": "input1",
-      "fromPortId": "input1-output-0",
-      "toComponentId": "output1",
-      "toPortId": "output1-input-0"
+      "id": "4xb1lc1kdrg",
+      "fromComponentId": "4gg8bvvqgl4",
+      "fromPortId": "4gg8bvvqgl4-output-0",
+      "toComponentId": "d5e0vbj5fmj",
+      "toPortId": "d5e0vbj5fmj-input-1"
+    },
+    {
+      "id": "n5e0nl8onfa",
+      "fromComponentId": "ej3nj23onl",
+      "fromPortId": "ej3nj23onl-output-0",
+      "toComponentId": "d5e0vbj5fmj",
+      "toPortId": "d5e0vbj5fmj-input-0"
+    },
+    {
+      "id": "5gvaamn18ev",
+      "fromComponentId": "i9qphh9gr4o",
+      "fromPortId": "i9qphh9gr4o-output-0",
+      "toComponentId": "rkf4074g3s",
+      "toPortId": "rkf4074g3s-input-1"
+    },
+    {
+      "id": "ymz388xclzd",
+      "fromComponentId": "rkf4074g3s",
+      "fromPortId": "rkf4074g3s-output-0",
+      "toComponentId": "ruh90qjp2mt",
+      "toPortId": "ruh90qjp2mt-input-0"
+    },
+    {
+      "id": "nr3wtwijk8g",
+      "fromComponentId": "qkdgry1dq",
+      "fromPortId": "qkdgry1dq-output-0",
+      "toComponentId": "eydw32ywx8c",
+      "toPortId": "eydw32ywx8c-input-0"
+    },
+    {
+      "id": "e8qxjmpcfd",
+      "fromComponentId": "s41abputotc",
+      "fromPortId": "s41abputotc-output-0",
+      "toComponentId": "wau0v9sgf1",
+      "toPortId": "wau0v9sgf1-input-0"
+    },
+    {
+      "id": "mrzthszoss",
+      "fromComponentId": "v2lqvz7bdn8",
+      "fromPortId": "v2lqvz7bdn8-output-0",
+      "toComponentId": "0kxrn3pjmw",
+      "toPortId": "0kxrn3pjmw-input-0"
+    },
+    {
+      "id": "d7018px0tuc",
+      "fromComponentId": "l67zq6ox3r",
+      "fromPortId": "l67zq6ox3r-output-0",
+      "toComponentId": "amnvdkxbx2i",
+      "toPortId": "amnvdkxbx2i-input-4"
+    },
+    {
+      "id": "f3fagh79cvq",
+      "fromComponentId": "55aruw4tfv5",
+      "fromPortId": "55aruw4tfv5-output-0",
+      "toComponentId": "54na89594tg",
+      "toPortId": "54na89594tg-input-1"
+    },
+    {
+      "id": "20omadwaddp",
+      "fromComponentId": "55aruw4tfv5",
+      "fromPortId": "55aruw4tfv5-output-0",
+      "toComponentId": "lzyrc8ifl2k",
+      "toPortId": "lzyrc8ifl2k-input-1"
+    },
+    {
+      "id": "nb6rtd7nomb",
+      "fromComponentId": "slmvfz7sui8",
+      "fromPortId": "slmvfz7sui8-output-0",
+      "toComponentId": "54na89594tg",
+      "toPortId": "54na89594tg-input-0"
     }
   ]
 }
+hex component only accepts 4 bit values, so if you need an output with 1 bit use light-bulb or use smart display and connect all 4 (1 bit) outputs to its input and wire it to hex.
+
 
 `;
 
@@ -209,7 +1682,7 @@ EXAMPLE WORKING CIRCUIT:
         `\n\nCURRENT CIRCUIT:\n${JSON.stringify(circuitJson, null, 2)}` : '';
       const augmentedMessage = `${circuitSpecPrompt}\n\n${context.message}${circuitData}`;
       
-      console.log("Executing Circuit Fix Tool with message:", context.message.substring(0, 50) + "...");
+      console.log("Executing Circuit Fix Tool with message:", context.message + "...");
 
       // Call the Gemini API
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {
@@ -248,15 +1721,13 @@ EXAMPLE WORKING CIRCUIT:
         return "I couldn't generate a valid circuit representation. Please provide more specific details.";
       }
       
-      console.log("Extracted JSON string:", jsonString.substring(0, 100) + "...");
+      console.log("Extracted JSON string:", jsonString + "...");
       
       // Clear the current circuit
       if (typeof context.circuitBoard.clearCircuit === 'function') {
         context.circuitBoard.clearCircuit();
       }
       
-      // THE KEY FIX: Always use the string directly with importCircuit
-      // Do NOT parse it first - importCircuit expects a string and does the parsing itself
       try {
         context.circuitBoard.importCircuit(jsonString);
         return "I've created/fixed the circuit based on your description. You can see it on the canvas now.";

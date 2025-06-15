@@ -50,6 +50,7 @@ export class MultiBit extends Component {
     const localY = point.y - this.position.y;
     const bitIndex = Math.floor(localY / 30);
 
+    console.log(`Clicked on bit index: ${bitIndex}`);
     if (bitIndex >= 0 && bitIndex < this.defaultBitWidth) {
       this.toggleBit(bitIndex);
     }
@@ -102,7 +103,7 @@ export class MultiBit extends Component {
       ctx.font = "14px Arial";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.fillText(`Bit ${this.defaultBitWidth - i}:`, this.position.x + 10, bitY);
+      ctx.fillText(`Bit ${ i}:`, this.position.x + 10, bitY);
 
       ctx.textAlign = "right";
       ctx.fillText(this.bits[i] ? "1" : "0", this.position.x + this.size.width - 10, bitY);

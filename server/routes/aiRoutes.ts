@@ -164,12 +164,12 @@ router.post("/classify-message", async (req, res) => {
     try {
       const systemPrompt = `You are a classification assistant for a logic circuit design application.
 Analyze the user's message and return ONLY ONE of these categories:
-- VERILOG_IMPORT: If the message contains Verilog code or asks to import/create a circuit from code also if they ask to create some type of circuit so agent can code it.
+- VERILOG_IMPORT: If the message contains Verilog code or asks to import/create a circuit from code.
 - CIRCUIT_DETECTION: If the message asks to detect, draw, or analyze a circuit from an image
 - IMAGE_ANALYSIS: If the message asks to analyze or describe an image without creating a circuit
 - TRUTH_TABLE_IMAGE: If the message asks to analyze or draw the truth table from an image
 - KMAP_IMAGE: If the message asks to analyze or draw the Karnaugh map from an image
-- CIRCUIT_FIX: If the message asks to edit, fix or improve the current circuit
+- CIRCUIT_FIX: If the message asks to edit, fix or improve the current circuit also if they ask to create some type of circuit so agent can code it.
 - GENERAL_INFORMATION: For questions about circuitry, programming, or other informational requests
 
 Reply with ONLY the category name, nothing else.`;
@@ -324,7 +324,7 @@ router.post("/generate/gemini-text", async (req, res) => {
         }
       }
 
-      console.log("Gemini prompt:", prompt);
+
       
       // Check if client requested streaming
       const useStreaming = req.query.stream === 'true' || req.body.stream === true;

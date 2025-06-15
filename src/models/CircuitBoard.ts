@@ -33,6 +33,7 @@ import { GatePanel } from "./utils/GatePanel";
 import { TruthTableManager } from "./utils/TruthTableManager";
 import { KarnaughMap } from "./utils/KarnaughMap";
 import { ActionHistory } from "./utils/ActionHistory";
+import { SmartDisplay } from "./components/SmartDisplay";
 
 export class CircuitBoard {
   components: Component[];
@@ -1686,12 +1687,9 @@ export class CircuitBoard {
     });
 
     this.components.forEach(component => {
-
-      if(component instanceof Text){
+      if (component instanceof Text) {
         component.update();
-      }
-      else
-        component.evaluate();
+      } else component.evaluate();
     });
 
     for (let i = 0; i < 10; i++) {
@@ -2063,11 +2061,7 @@ export class CircuitBoard {
           (component as any).toggle();
           this.simulate();
           break;
-        } else if (component.type === "button") {
-          (component as any).toggle();
-          this.simulate();
-          break;
-        } else if (component.onClick) {
+        }  else if (component.onClick) {
           component.onClick(mousePos);
           this.simulate();
           break;
@@ -2585,6 +2579,8 @@ export class CircuitBoard {
         return new Led(position);
       case "multibit":
         return new MultiBit(position);
+      case "smartdisplay":
+        return new SmartDisplay(position);
       default:
         console.error(`Bilinmeyen bileşen türü: ${type}`);
         return null;
