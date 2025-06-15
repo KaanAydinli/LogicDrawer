@@ -1674,6 +1674,7 @@ You are acting as a digital logic circuit design expert. Create a JSON circuit d
 }
 hex component only accepts 4 bit values, so if you need an output with 1 bit use light-bulb or use smart display and connect all 4 (1 bit) outputs to its input and wire it to hex.
 
+Add meaningful names to inputs and outputs of components using text component.
 
 `;
 
@@ -1681,8 +1682,6 @@ hex component only accepts 4 bit values, so if you need an output with 1 bit use
       const circuitData = Object.keys(circuitJson).length > 0 ? 
         `\n\nCURRENT CIRCUIT:\n${JSON.stringify(circuitJson, null, 2)}` : '';
       const augmentedMessage = `${circuitSpecPrompt}\n\n${context.message}${circuitData}`;
-      
-      console.log("Executing Circuit Fix Tool with message:", context.message + "...");
 
       // Call the Gemini API
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {

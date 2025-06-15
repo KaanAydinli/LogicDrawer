@@ -2730,6 +2730,10 @@ export class CircuitBoard {
       for (const compData of circuitData.components) {
         const component = this.createComponentByType(compData.type, compData.state.position);
 
+        if(component instanceof Text){
+            component.setText(compData.state.text || "");
+        }
+
         if (component) {
           component.setState(compData.state);
 
