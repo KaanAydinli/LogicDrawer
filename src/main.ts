@@ -361,6 +361,8 @@ function setupComponentAddListeners() {
     }) as EventListener);
   });
 
+  addMobileEventListeners();
+
   function handleComponentDragStart(event: MouseEvent) {
     event.preventDefault();
 
@@ -374,6 +376,51 @@ function setupComponentAddListeners() {
     document.addEventListener("mouseup", onMouseUp);
   }
 
+  function addMobileEventListeners() {
+
+        
+        
+        const mobileRightMenuBtn = document.getElementById("mobile-right-menu");
+        const mobileMenu = document.getElementById("mobile-menu");
+        const closeMenuBtn = document.getElementById("close-mobile-menu");
+
+       
+        
+
+        if (mobileRightMenuBtn) {
+          mobileRightMenuBtn.addEventListener("click", function () {
+
+            if( mobileMenu!.classList.contains("open")) {
+              mobileMenu!.classList.remove("open");
+              document.body.classList.remove("menu-open");
+              return;
+            }
+            mobileMenu!.classList.add("open");
+            document.body.classList.add("menu-open");
+          });
+        }
+
+        // Hamburger menüyü kapatma
+        if (closeMenuBtn) {
+          closeMenuBtn.addEventListener("click", function () {
+            mobileMenu!.classList.remove("open");
+            document.body.classList.remove("menu-open");
+          });
+        }
+
+        // Alt menüleri tıklama
+        const menuItemsWithSubmenu = document.querySelectorAll(".mobile-menu-item.has-submenu");
+        menuItemsWithSubmenu.forEach(item => {
+          item.addEventListener("click", function(this: HTMLElement, e: Event) {
+            // Alt menü içindeki tıklamalarda ana menü tıklamasını engelle
+            if (e.target && (e.target as Element).closest(".mobile-submenu")) return;
+
+            // Tıklanan menüyü aç/kapat
+            this.classList.toggle("expanded");
+          });
+        });
+     
+  }
   function handleComponentTouchStart(event: TouchEvent) {
     event.preventDefault();
     cleanup();
@@ -2053,4 +2100,5 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
   loadSavedCircuits();
+  
 });

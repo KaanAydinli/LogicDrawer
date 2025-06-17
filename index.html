@@ -1354,51 +1354,6 @@ module if_test(
     </div>
     <script type="module" src="/src/main.ts"></script>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        // Hamburger menü öğelerini seçme
-        const mobileMenuBtn = document.getElementById("mobile-menu-button");
-        const mobileRightMenuBtn = document.getElementById("mobile-right-menu");
-        const mobileMenu = document.getElementById("mobile-menu");
-        const closeMenuBtn = document.getElementById("close-mobile-menu");
-
-       
-        
-
-        if (mobileRightMenuBtn) {
-          mobileRightMenuBtn.addEventListener("click", function () {
-
-            if( mobileMenu.classList.contains("open")) {
-              mobileMenu.classList.remove("open");
-              document.body.classList.remove("menu-open");
-              return;
-            }
-            mobileMenu.classList.add("open");
-            document.body.classList.add("menu-open");
-          });
-        }
-
-        // Hamburger menüyü kapatma
-        if (closeMenuBtn) {
-          closeMenuBtn.addEventListener("click", function () {
-            mobileMenu.classList.remove("open");
-            document.body.classList.remove("menu-open");
-          });
-        }
-
-        // Alt menüleri tıklama
-        const menuItemsWithSubmenu = document.querySelectorAll(".mobile-menu-item.has-submenu");
-        menuItemsWithSubmenu.forEach(item => {
-          item.addEventListener("click", function (e) {
-            // Alt menü içindeki tıklamalarda ana menü tıklamasını engelle
-            if (e.target.closest(".mobile-submenu")) return;
-
-            // Tıklanan menüyü aç/kapat
-            this.classList.toggle("expanded");
-          });
-        });
-      });
-    </script>
 
     <!-- <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.36.1/min/vs/loader.js"></script> -->
 
