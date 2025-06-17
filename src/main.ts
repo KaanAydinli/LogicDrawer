@@ -91,7 +91,6 @@ var minimap: HTMLCanvasElement;
 const authService = AuthService.getInstance();
 
 async function initApp() {
-
   setupCanvasPolyfills();
   setUpLoginAndSignup();
   setMobile();
@@ -124,7 +123,7 @@ async function initApp() {
   setupComponentAddListeners();
   setupKeyboardShortcuts();
   setupZoomControls();
-  
+
   setUpAI();
   setupSettings();
   setTheme();
@@ -169,7 +168,6 @@ async function initApp() {
       tutorial.show();
     });
 
-    // İlk kez giren kullanıcılar için
     if (tutorial.shouldShowTutorial()) {
       setTimeout(() => {
         tutorial.show();
@@ -239,43 +237,37 @@ function extractVerilogFromPrompt(prompt: string): string | null {
   return cleanedPrompt.substring(moduleStartIndex, endModuleIndex);
 }
 
-
 function setupZoomControls() {
-
-  // Add sensitivity control variables
   let lastZoomTime = 0;
-  const zoomCooldown = 20; // Minimum milliseconds between zoom operations
+  const zoomCooldown = 20;
   let zoomAccumulator = 0;
-  const zoomThreshold = 20; // Accumulate this much delta before zooming
-  const maxZoomPerSecond = 20; // Maximum number of zoom operations per second
+  const zoomThreshold = 20;
+  const maxZoomPerSecond = 20;
   let zoomCount = 0;
   let zoomResetTimer: number | null = null;
 
   canvas.addEventListener("wheel", event => {
     event.preventDefault();
-    
+
     const now = Date.now();
-    
-    // Reset zoom count every second
+
     if (!zoomResetTimer) {
       zoomResetTimer = window.setTimeout(() => {
         zoomCount = 0;
         zoomResetTimer = null;
       }, 1000);
     }
-    
-    // Throttle zoom operations
+
     if (now - lastZoomTime < zoomCooldown || zoomCount >= maxZoomPerSecond) {
       return;
     }
-    
-    // Accumulate delta for smoother zooming
+
     zoomAccumulator += Math.abs(event.deltaY);
-    
+
     if (zoomAccumulator < zoomThreshold) {
       return;
     }
-    
+
     zoomAccumulator = 0;
     lastZoomTime = now;
     zoomCount++;
@@ -286,7 +278,6 @@ function setupZoomControls() {
       circuitBoard.zoomOut(event.clientX, event.clientY);
     }
   });
-
 
   canvas.addEventListener("mousedown", event => {
     if (event.button === 1) {
@@ -341,7 +332,6 @@ function initCircuitBoard() {
   circuitBoard = new CircuitBoard(canvas, minimap);
   window.circuitBoard = circuitBoard;
   createExampleCircuit();
-  preventPinchZoom();
 }
 
 function setupComponentAddListeners() {
@@ -350,12 +340,10 @@ function setupComponentAddListeners() {
   let shadowElement: HTMLElement | null = null;
 
   components.forEach(component => {
-    // Existing mouse event handler
     component.addEventListener("mousedown", ((event: Event) => {
       handleComponentDragStart(event as MouseEvent);
     }) as EventListener);
-    
-    // Add touch event handlers
+
     component.addEventListener("touchstart", ((event: Event) => {
       handleComponentTouchStart(event as TouchEvent);
     }) as EventListener);
@@ -377,54 +365,42 @@ function setupComponentAddListeners() {
   }
 
   function addMobileEventListeners() {
+    const mobileRightMenuBtn = document.getElementById("mobile-right-menu");
+    const mobileMenu = document.getElementById("mobile-menu");
+    const closeMenuBtn = document.getElementById("close-mobile-menu");
 
-        
-        
-        const mobileRightMenuBtn = document.getElementById("mobile-right-menu");
-        const mobileMenu = document.getElementById("mobile-menu");
-        const closeMenuBtn = document.getElementById("close-mobile-menu");
-
-       
-        
-
-        if (mobileRightMenuBtn) {
-          mobileRightMenuBtn.addEventListener("click", function () {
-
-            if( mobileMenu!.classList.contains("open")) {
-              mobileMenu!.classList.remove("open");
-              document.body.classList.remove("menu-open");
-              return;
-            }
-            mobileMenu!.classList.add("open");
-            document.body.classList.add("menu-open");
-          });
+    if (mobileRightMenuBtn) {
+      mobileRightMenuBtn.addEventListener("click", function () {
+        if (mobileMenu!.classList.contains("open")) {
+          mobileMenu!.classList.remove("open");
+          document.body.classList.remove("menu-open");
+          return;
         }
+        mobileMenu!.classList.add("open");
+        document.body.classList.add("menu-open");
+      });
+    }
 
-        // Hamburger menüyü kapatma
-        if (closeMenuBtn) {
-          closeMenuBtn.addEventListener("click", function () {
-            mobileMenu!.classList.remove("open");
-            document.body.classList.remove("menu-open");
-          });
-        }
+    if (closeMenuBtn) {
+      closeMenuBtn.addEventListener("click", function () {
+        mobileMenu!.classList.remove("open");
+        document.body.classList.remove("menu-open");
+      });
+    }
 
-        // Alt menüleri tıklama
-        const menuItemsWithSubmenu = document.querySelectorAll(".mobile-menu-item.has-submenu");
-        menuItemsWithSubmenu.forEach(item => {
-          item.addEventListener("click", function(this: HTMLElement, e: Event) {
-            // Alt menü içindeki tıklamalarda ana menü tıklamasını engelle
-            if (e.target && (e.target as Element).closest(".mobile-submenu")) return;
+    const menuItemsWithSubmenu = document.querySelectorAll(".mobile-menu-item.has-submenu");
+    menuItemsWithSubmenu.forEach(item => {
+      item.addEventListener("click", function (this: HTMLElement, e: Event) {
+        if (e.target && (e.target as Element).closest(".mobile-submenu")) return;
 
-            // Tıklanan menüyü aç/kapat
-            this.classList.toggle("expanded");
-          });
-        });
-     
+        this.classList.toggle("expanded");
+      });
+    });
   }
   function handleComponentTouchStart(event: TouchEvent) {
     event.preventDefault();
     cleanup();
-    
+
     const touch = event.touches[0];
     const type = (event.currentTarget as HTMLElement).getAttribute("data-type");
     if (!type) return;
@@ -637,6 +613,69 @@ function setupKeyboardShortcuts() {
   });
 }
 
+function setupMobileChatBehavior(): void {
+  const aiChatInput = document.getElementById("ai-chat-input") as HTMLTextAreaElement;
+  const aiChatContainer = document.getElementById("ai-chat-container") as HTMLDivElement;
+  const aiChatMessages = document.getElementById("ai-chat-messages") as HTMLDivElement;
+  const closeChat = document.getElementById("close-chat") as HTMLButtonElement;
+  const bodyElement = document.body;
+
+  aiChatInput.addEventListener("input", function () {
+    this.style.height = "auto";
+    const newHeight = Math.min(this.scrollHeight, 80);
+    this.style.height = newHeight + "px";
+  });
+
+  aiChatInput.addEventListener("focus", () => {
+    if (window.innerWidth <= 600) {
+      bodyElement.classList.add("keyboard-active");
+
+      setTimeout(() => {
+        aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+      }, 100);
+    }
+  });
+
+  aiChatInput.addEventListener("blur", () => {
+    if (window.innerWidth <= 600) {
+      setTimeout(() => {
+        bodyElement.classList.remove("keyboard-active");
+
+        setTimeout(() => {
+          aiChatMessages.scrollTop = aiChatMessages.scrollHeight;
+        }, 100);
+      }, 100);
+    }
+  });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      if (window.innerWidth <= 600 && aiChatContainer.classList.contains("open")) {
+        if (window.visualViewport!.height < window.innerHeight * 0.7) {
+          bodyElement.classList.add("keyboard-active");
+
+          if (document.activeElement === aiChatInput) {
+            aiChatInput.scrollIntoView(false);
+          }
+        } else {
+          bodyElement.classList.remove("keyboard-active");
+        }
+      }
+    });
+  }
+
+  closeChat.addEventListener("click", () => {
+    bodyElement.classList.remove("keyboard-active");
+  });
+
+  aiChatInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      document.getElementById("send-message")?.click();
+    }
+  });
+}
+
 function setUpAI() {
   const aiLogo = document.querySelector(".aiLogo") as HTMLElement;
   const chatContainer = document.getElementById("ai-chat-container") as HTMLElement;
@@ -670,110 +709,101 @@ function setUpAI() {
     aiLogo.classList.remove("active");
   });
   async function sendMessage() {
-  const message = chatInput.value.trim();
-  if (message === "") return;
+    const message = chatInput.value.trim();
+    if (message === "") return;
 
-  addUserMessage(message);
-  
-  // Reset input field
-  chatInput.value = "";
-  chatInput.style.height = "auto";
-  chatInput.style.cssText = "";
-  chatInput.style.height = "24px";
-  chatInput.scrollTop = 0;
-  chatInput.blur();
-  chatInput.focus();
+    addUserMessage(message);
 
-  try {
-    // Create a placeholder for AI response
-    const messageDiv = document.createElement("div");
-    messageDiv.className = "ai-message";
-    messageDiv.innerHTML = `
+    chatInput.value = "";
+    chatInput.style.height = "auto";
+    chatInput.style.cssText = "";
+    chatInput.style.height = "24px";
+    chatInput.scrollTop = 0;
+    chatInput.blur();
+    chatInput.focus();
+
+    try {
+      const messageDiv = document.createElement("div");
+      messageDiv.className = "ai-message";
+      messageDiv.innerHTML = `
       <div class="ai-avatar">
-        <svg width="200px" height="40px" xmlns="http://www.w3.org/2000/svg">              
+        <svg width="200px" height="40px" xmlns="http:
           <text x="0" y="18" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
         </svg>
       </div>
       <div class="message-content" id="streaming-message"></div>
     `;
-    messagesContainer.appendChild(messageDiv);
-    
-    const streamingMessageElement = messageDiv.querySelector("#streaming-message")!;
-    let fullResponse = "";
-    let displayedResponse = "";
-    streamingMessageElement.innerHTML = "<strong>Thinking...<strong>";
-    let typeQueue = [] as string[]; // Queue for typing animation
-    
-    // Start a typing animation interval
-    const typeInterval = setInterval(() => {
-      if (typeQueue.length > 0) {
-        const nextChar = typeQueue.shift();
-        displayedResponse += nextChar;
-        streamingMessageElement.innerHTML = escapeHTML(displayedResponse);
-        scrollToBottom();
-      }
-    }, 10); // Adjust this value to control typing speed (lower = faster)
-    
-    // Get the stream from AIAgent
-    const stream = await aiAgent.processUserInputWithStreaming(message);
-    const reader = stream.getReader();
-    
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      // Convert the chunk to text
-      const chunk = new TextDecoder().decode(value);
-      
-      // Parse the SSE data
-      const lines = chunk.split('\n\n');
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.substring(6));
-            
-            if (data.error) {
-              clearInterval(typeInterval);
-              streamingMessageElement.innerHTML = escapeHTML(data.error);
-              break;
-            }
-            
-            if (data.done) {
-              // Wait for typing to complete
-              const checkComplete = setInterval(() => {
-                if (typeQueue.length === 0) {
-                  clearInterval(checkComplete);
-                  clearInterval(typeInterval);
-                  // Streaming complete
-                  queue.enqueue(fullResponse, "AI");
-                  saveToLocalStorage();
-                }
-              }, 100);
-              break;
-            }
-            
-            if (data.chunk) {
-              fullResponse += data.chunk;
-              // Add each character to the typing queue
-              for (const char of data.chunk) {
-                typeQueue.push(char);
+      messagesContainer.appendChild(messageDiv);
+
+      const streamingMessageElement = messageDiv.querySelector("#streaming-message")!;
+      let fullResponse = "";
+      let displayedResponse = "";
+      streamingMessageElement.innerHTML = "<strong>Thinking...<strong>";
+      let typeQueue = [] as string[];
+
+      const typeInterval = setInterval(() => {
+        if (typeQueue.length > 0) {
+          const nextChar = typeQueue.shift();
+          displayedResponse += nextChar;
+          streamingMessageElement.innerHTML = escapeHTML(displayedResponse);
+          scrollToBottom();
+        }
+      }, 10);
+
+      const stream = await aiAgent.processUserInputWithStreaming(message);
+      const reader = stream.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+
+        const lines = chunk.split("\n\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.substring(6));
+
+              if (data.error) {
+                clearInterval(typeInterval);
+                streamingMessageElement.innerHTML = escapeHTML(data.error);
+                break;
               }
+
+              if (data.done) {
+                const checkComplete = setInterval(() => {
+                  if (typeQueue.length === 0) {
+                    clearInterval(checkComplete);
+                    clearInterval(typeInterval);
+
+                    queue.enqueue(fullResponse, "AI");
+                    saveToLocalStorage();
+                  }
+                }, 100);
+                break;
+              }
+
+              if (data.chunk) {
+                fullResponse += data.chunk;
+
+                for (const char of data.chunk) {
+                  typeQueue.push(char);
+                }
+              }
+            } catch (e) {
+              console.error("Error parsing SSE data:", e, line);
             }
-          } catch (e) {
-            console.error("Error parsing SSE data:", e, line);
           }
         }
       }
+    } catch (error) {
+      console.error("Error getting AI response:", error);
+      addAIMessage("I'm having trouble processing your request right now. Please try again later.");
     }
-  
-    
-  } catch (error) {
-    console.error("Error getting AI response:", error);
-    addAIMessage("I'm having trouble processing your request right now. Please try again later.");
+
+    scrollToBottom();
   }
-  
-  scrollToBottom();
-}
 
   sendButton.addEventListener("click", sendMessage);
 
@@ -818,7 +848,7 @@ function setUpAI() {
 
           setTimeout(() => {
             addAIMessage(
-              "I see you've uploaded an image. Would you like me to analyze it, detect a circuit from handdrawn image, or draw circuit from truth table or K-map?", 
+              "I see you've uploaded an image. Would you like me to analyze it, detect a circuit from handdrawn image, or draw circuit from truth table or K-map?"
             );
           }, 1000);
         }
@@ -910,55 +940,52 @@ function setUpAI() {
 }
 
 function createExampleCircuit() {
-
   const docNameContainer = document.querySelector(".docNameContainer");
-  if(docNameContainer && window.getComputedStyle(docNameContainer).display !== "none"){
-
+  if (docNameContainer && window.getComputedStyle(docNameContainer).display !== "none") {
     const switch1 = new ToggleSwitch({ x: 300, y: 200 });
     const switch2 = new ToggleSwitch({ x: 300, y: 300 });
-  
+
     const andGate = new AndGate({ x: 500, y: 250 });
-  
+
     const wire1 = new Wire(switch1.outputs[0], true);
     wire1.connect(andGate.inputs[0]);
     circuitBoard.addWire(wire1);
-  
+
     const wire2 = new Wire(switch2.outputs[0], true);
     wire2.connect(andGate.inputs[1]);
     circuitBoard.addWire(wire2);
-  
+
     const lightBulb = new Led({ x: 700, y: 250 });
-  
+
     const wire3 = new Wire(andGate.outputs[0], true);
     wire3.connect(lightBulb.inputs[0]);
     circuitBoard.addWire(wire3);
-  
+
     circuitBoard.addComponent(switch1);
     circuitBoard.addComponent(switch2);
     circuitBoard.addComponent(andGate);
     circuitBoard.addComponent(lightBulb);
-  }
-  else{
+  } else {
     const switch1 = new ToggleSwitch({ x: 0, y: 150 });
     const switch2 = new ToggleSwitch({ x: 130, y: 150 });
-  
+
     const andGate = new AndGate({ x: 100, y: 350 });
     andGate.rotate(1);
-  
+
     const wire1 = new Wire(switch1.outputs[0], true);
     wire1.connect(andGate.inputs[0]);
     circuitBoard.addWire(wire1);
-  
+
     const wire2 = new Wire(switch2.outputs[0], true);
     wire2.connect(andGate.inputs[1]);
     circuitBoard.addWire(wire2);
-  
+
     const lightBulb = new LightBulb({ x: 100, y: 450 });
-  
+
     const wire3 = new Wire(andGate.outputs[0], true);
     wire3.connect(lightBulb.inputs[0]);
     circuitBoard.addWire(wire3);
-  
+
     circuitBoard.addComponent(switch1);
     circuitBoard.addComponent(switch2);
     circuitBoard.addComponent(andGate);
@@ -1121,7 +1148,6 @@ function setTools() {
           const file = target?.files?.[0];
           if (!file) return;
 
-          // Convert the file to base64
           const reader = new FileReader();
           reader.onload = async function (e) {
             if (e.target && e.target.result) {
@@ -1142,14 +1168,12 @@ function setTools() {
                 previewContainer.style.maxWidth = "80%";
                 previewContainer.style.textAlign = "center";
 
-                // Add title
                 const title = document.createElement("h3");
                 title.textContent = "Truth Table Image Preview";
                 title.style.color = "#fff";
                 title.style.marginBottom = "15px";
                 previewContainer.appendChild(title);
 
-                // Add image preview
                 const img = document.createElement("img");
                 img.src = imageData;
                 img.style.maxWidth = "100%";
@@ -1158,8 +1182,8 @@ function setTools() {
                 img.style.borderRadius = "4px";
                 previewContainer.appendChild(img);
 
-                 document.body.appendChild(previewContainer);
-                // Create a ToolContext object
+                document.body.appendChild(previewContainer);
+
                 const context = {
                   message: "Analyze this truth table image",
                   image: imageData,
@@ -1169,7 +1193,6 @@ function setTools() {
                   imageUploader: imageUploader,
                 };
 
-                // Process the truth table directly
                 const ttTool = aiAgent.tools.get("TRUTH_TABLE_IMAGE");
 
                 if (!ttTool) {
@@ -1179,7 +1202,7 @@ function setTools() {
                 }
                 const result = await ttTool.execute(context);
                 document.body.removeChild(previewContainer);
-                // Show the result to the user
+
                 alert(result);
               }
             }
@@ -1201,14 +1224,13 @@ function setTools() {
           const file = target?.files?.[0];
           if (!file) return;
 
-          // Convert the file to base64
           const reader = new FileReader();
           reader.onload = async function (e) {
             if (e.target && e.target.result) {
               if (typeof e.target.result === "string") {
                 const imageData = e.target.result;
 
-                 const previewContainer = document.createElement("div");
+                const previewContainer = document.createElement("div");
                 previewContainer.className = "image-preview-container";
                 previewContainer.style.position = "fixed";
                 previewContainer.style.top = "50%";
@@ -1222,14 +1244,12 @@ function setTools() {
                 previewContainer.style.maxWidth = "80%";
                 previewContainer.style.textAlign = "center";
 
-                // Add title
                 const title = document.createElement("h3");
                 title.textContent = "Truth Table Image Preview";
                 title.style.color = "#fff";
                 title.style.marginBottom = "15px";
                 previewContainer.appendChild(title);
 
-                // Add image preview
                 const img = document.createElement("img");
                 img.src = imageData;
                 img.style.maxWidth = "100%";
@@ -1238,9 +1258,8 @@ function setTools() {
                 img.style.borderRadius = "4px";
                 previewContainer.appendChild(img);
 
-                 document.body.appendChild(previewContainer);
+                document.body.appendChild(previewContainer);
 
-                // Create a ToolContext object
                 const context = {
                   message: "Analyze this K-map image",
                   image: imageData,
@@ -1250,7 +1269,6 @@ function setTools() {
                   imageUploader: imageUploader,
                 };
 
-                // Process the K-map directly
                 const kmapTool = aiAgent.tools.get("KMAP_IMAGE");
                 if (!kmapTool) {
                   console.error("K-map tool not found");
@@ -1259,7 +1277,7 @@ function setTools() {
                 }
                 const result = await kmapTool.execute(context);
                 document.body.removeChild(previewContainer);
-                // Show the result to the user
+
                 alert(result);
               }
             }
@@ -1360,75 +1378,41 @@ function updateUserInterface(isLoggedIn: boolean, userName?: string) {
 async function getUserProfile() {
   return authService.currentUser;
 }
-function setMobile(){
-  
-  const mainMenuItems = document.querySelectorAll('.mobile-menu-item:not(.has-submenu)');
+function setMobile() {
+  const mainMenuItems = document.querySelectorAll(".mobile-menu-item:not(.has-submenu)");
   mainMenuItems.forEach(item => {
-    item.addEventListener('click', function(this: HTMLElement) {
-      const action = this.getAttribute('data-item');
+    item.addEventListener("click", function (this: HTMLElement) {
+      const action = this.getAttribute("data-item");
       console.log(`Ana menü öğesi tıklandı: ${action}`);
-      
-      // Ana menü öğesi işlevselliği
-      switch(action) {
-        case 'circuits':
-          // Devre seçiciyi aç
-          (document.querySelector('.storage') as HTMLElement)?.click();
+
+      switch (action) {
+        case "circuits":
+          (document.querySelector(".storage") as HTMLElement)?.click();
           break;
-          
-        case 'ide':
-          // Verilog IDE'yi aç
-          document.getElementById('open-verilog-editor')?.click();
+
+        case "ide":
+          document.getElementById("open-verilog-editor")?.click();
           break;
-          
-        case 'ai':
-          // AI asistanı aç
-          (document.querySelector('.aiLogo') as HTMLElement)?.click();
+
+        case "ai":
+          (document.querySelector(".aiLogo") as HTMLElement)?.click();
           break;
-          
-        case 'settings':
-          // Ayarları aç
-          (document.querySelector('.settings-icon') as HTMLElement)?.click();
+
+        case "settings":
+          (document.querySelector(".settings-icon") as HTMLElement)?.click();
           break;
-          
-        case 'signin':
-          
-          document.getElementById('auth-button')?.click();
+
+        case "signin":
+          document.getElementById("auth-button")?.click();
           break;
       }
-      
-      // Alt menüsü olmayan öğelerde menüyü kapat
-      document.getElementById('mobile-menu')?.classList.remove('open');
-      document.body.classList.remove('menu-open');
+
+      document.getElementById("mobile-menu")?.classList.remove("open");
+      document.body.classList.remove("menu-open");
     });
   });
 }
-function preventPinchZoom() {
-  // Canvas elementini seç
-  const canvas = document.getElementById('canvas'); // Canvas ID'nizi burada kullanın
-  
-  // Çift dokunma ile zoom'u engelle
-  document.addEventListener('dblclick', function(e) {
-    if (e.target !== canvas) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-  
-  // Pinch zoom'u engelle (canvas hariç)
-  document.addEventListener('touchmove', function(e) {
-    // Birden fazla dokunma varsa ve hedef canvas değilse
-    if (e.touches.length > 1 && e.target !== canvas) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-  
-  // Çift parmak dokunma - pinch başlangıcı
-  document.addEventListener('touchstart', function(e) {
-    // Birden fazla dokunma varsa ve hedef canvas değilse
-    if (e.touches.length > 1 && e.target !== canvas) {
-      e.preventDefault();
-    }
-  }, { passive: false });
-}
+
 function setUpLoginAndSignup() {
   const authModal = document.getElementById("auth-modal");
   const loginForm = document.getElementById("login-form") as HTMLFormElement;
@@ -1697,7 +1681,6 @@ function setUpLoginAndSignup() {
 }
 async function saveToMongoDB(name: string, circuitData: any) {
   try {
-    // Use authService instead of localStorage
     if (!authService.isAuthenticated) {
       alert("You must be logged in to save circuits. Please sign in.");
       return;
@@ -1706,24 +1689,20 @@ async function saveToMongoDB(name: string, circuitData: any) {
     const user = authService.currentUser;
     const parsedData = typeof circuitData === "string" ? JSON.parse(circuitData) : circuitData;
 
-    // In your saveToMongoDB function:
-
     const data = {
       name: name,
       username: user?.name || "Unknown",
       components: parsedData.components.map((comp: any) => {
-        // Check if position exists and has valid x and y coordinates
         if (
           !comp.position ||
           typeof comp.position !== "object" ||
           comp.position.x === undefined ||
           comp.position.y === undefined
         ) {
-          // Provide default position for invalid ones
           return {
             id: comp.id,
             type: comp.type,
-            position: { x: 100, y: 100 }, // Default position
+            position: { x: 100, y: 100 },
             inputs: Array.isArray(comp.inputs) ? comp.inputs : [],
             outputs: Array.isArray(comp.outputs) ? comp.outputs : [],
             state: comp.state || {},
@@ -1753,7 +1732,6 @@ async function saveToMongoDB(name: string, circuitData: any) {
       isPublic: false,
     };
 
-    // For debugging
     console.log("Sending circuit data:", data);
 
     const currentCircuitId = localStorage.getItem("currentCircuitId");
@@ -1762,13 +1740,12 @@ async function saveToMongoDB(name: string, circuitData: any) {
       console.log("Updating existing circuit ID:", currentCircuitId);
 
       try {
-        // Remove Authorization header, add credentials
         const updateResponse = await fetch(`${apiBaseUrl}/api/circuits/${currentCircuitId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
           },
-          credentials: "include", // This sends the cookies
+          credentials: "include",
           body: JSON.stringify(data),
         });
 
@@ -1795,7 +1772,6 @@ async function saveToMongoDB(name: string, circuitData: any) {
     });
 
     if (!response.ok) {
-      // Add this to see the actual error message
       const errorText = await response.text();
       console.error("Server error:", response.status, errorText);
       alert(`Failed to save circuit: ${errorText}`);
@@ -2100,5 +2076,5 @@ window.addEventListener("DOMContentLoaded", () => {
     }
   });
   loadSavedCircuits();
-  
+  setupMobileChatBehavior();
 });
