@@ -149,6 +149,7 @@ async function initApp() {
   });
 
   handleResize();
+  syncCanvasWithAnimation();
   setFile();
   setTools();
 
@@ -236,6 +237,7 @@ function extractVerilogFromPrompt(prompt: string): string | null {
 
   return cleanedPrompt.substring(moduleStartIndex, endModuleIndex);
 }
+
 
 function setupZoomControls() {
 
@@ -858,29 +860,60 @@ function setUpAI() {
 }
 
 function createExampleCircuit() {
-  const switch1 = new ToggleSwitch({ x: 300, y: 200 });
-  const switch2 = new ToggleSwitch({ x: 300, y: 300 });
 
-  const andGate = new AndGate({ x: 500, y: 250 });
+  const docNameContainer = document.querySelector(".docNameContainer");
+  if(docNameContainer && window.getComputedStyle(docNameContainer).display !== "none"){
 
-  const wire1 = new Wire(switch1.outputs[0], true);
-  wire1.connect(andGate.inputs[0]);
-  circuitBoard.addWire(wire1);
-
-  const wire2 = new Wire(switch2.outputs[0], true);
-  wire2.connect(andGate.inputs[1]);
-  circuitBoard.addWire(wire2);
-
-  const lightBulb = new Led({ x: 700, y: 250 });
-
-  const wire3 = new Wire(andGate.outputs[0], true);
-  wire3.connect(lightBulb.inputs[0]);
-  circuitBoard.addWire(wire3);
-
-  circuitBoard.addComponent(switch1);
-  circuitBoard.addComponent(switch2);
-  circuitBoard.addComponent(andGate);
-  circuitBoard.addComponent(lightBulb);
+    const switch1 = new ToggleSwitch({ x: 300, y: 200 });
+    const switch2 = new ToggleSwitch({ x: 300, y: 300 });
+  
+    const andGate = new AndGate({ x: 500, y: 250 });
+  
+    const wire1 = new Wire(switch1.outputs[0], true);
+    wire1.connect(andGate.inputs[0]);
+    circuitBoard.addWire(wire1);
+  
+    const wire2 = new Wire(switch2.outputs[0], true);
+    wire2.connect(andGate.inputs[1]);
+    circuitBoard.addWire(wire2);
+  
+    const lightBulb = new Led({ x: 700, y: 250 });
+  
+    const wire3 = new Wire(andGate.outputs[0], true);
+    wire3.connect(lightBulb.inputs[0]);
+    circuitBoard.addWire(wire3);
+  
+    circuitBoard.addComponent(switch1);
+    circuitBoard.addComponent(switch2);
+    circuitBoard.addComponent(andGate);
+    circuitBoard.addComponent(lightBulb);
+  }
+  else{
+    const switch1 = new ToggleSwitch({ x: 0, y: 150 });
+    const switch2 = new ToggleSwitch({ x: 130, y: 150 });
+  
+    const andGate = new AndGate({ x: 100, y: 350 });
+    andGate.rotate(1);
+  
+    const wire1 = new Wire(switch1.outputs[0], true);
+    wire1.connect(andGate.inputs[0]);
+    circuitBoard.addWire(wire1);
+  
+    const wire2 = new Wire(switch2.outputs[0], true);
+    wire2.connect(andGate.inputs[1]);
+    circuitBoard.addWire(wire2);
+  
+    const lightBulb = new LightBulb({ x: 100, y: 450 });
+  
+    const wire3 = new Wire(andGate.outputs[0], true);
+    wire3.connect(lightBulb.inputs[0]);
+    circuitBoard.addWire(wire3);
+  
+    circuitBoard.addComponent(switch1);
+    circuitBoard.addComponent(switch2);
+    circuitBoard.addComponent(andGate);
+    circuitBoard.addComponent(lightBulb);
+  }
 }
 const fileInput = document.getElementById("loadFile") as HTMLInputElement;
 fileInput?.addEventListener("change", handleFileSelect);

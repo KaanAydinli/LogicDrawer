@@ -218,7 +218,12 @@ export class GatePanel {
         .rotate-btn:active {
         background: #666;
         }
+
+        
+
+
     `;
+
     document.head.appendChild(style);
   }
 

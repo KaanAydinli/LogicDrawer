@@ -60,7 +60,120 @@
         </div>
       </div>
     </div>
+    <div id="mobile-menu" class="mobile-menu">
+      <div class="mobile-menu-header">
+        <button id="close-mobile-menu" class="close-mobile-menu">&times;</button>
+        <h3>Menu</h3>
+      </div>
+      <div class="mobile-menu-content">
+        <div class="mobile-menu-item" data-item="circuits">
+          <span>Circuits</span>
+        </div>
+        <div class="mobile-menu-item" data-item="ide">
+          <span>IDE</span>
+        </div>
+        <div class="mobile-menu-item has-submenu" data-item="file">
+          <span>File</span>
+          <svg
+            class="chevron-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          <div class="mobile-submenu">
+            <div class="mobile-submenu-item" data="new">New</div>
+            <div class="mobile-submenu-item" data="load">
+              <label for="mobile-loadFile"
+                >Load
+                <input type="file" id="mobile-loadFile" accept=".json" style="display: none" />
+              </label>
+            </div>
+            <div class="mobile-submenu-item" data="save">Save</div>
+            <div class="mobile-submenu-item" data="saveas">Save as</div>
+          </div>
+        </div>
+        <div class="mobile-menu-item" data-item="ai">
+          <span>AI</span>
+        </div>
+        <div class="mobile-menu-item has-submenu" data-item="themes">
+          <span>Themes</span>
+          <svg
+            class="chevron-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          <div class="mobile-submenu">
+            <div class="mobile-submenu-item" data-theme="dark">Dark Mode</div>
+            <div class="mobile-submenu-item" data-theme="light">Light Mode</div>
+            <div class="mobile-submenu-item" data-theme="forest">Forest Theme</div>
+            <div class="mobile-submenu-item" data-theme="midnight">Midnight Blue</div>
+          </div>
+        </div>
+        <div class="mobile-menu-item has-submenu" data-item="tools">
+          <span>Tools</span>
+          <svg
+            class="chevron-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          <div class="mobile-submenu">
+            <div class="mobile-submenu-item" data-tool="truthtable">Truth Table</div>
+            <div class="mobile-submenu-item" data-tool="kmap">K-Map</div>
+            <div class="mobile-submenu-item" data-tool="screenshot">Screenshot</div>
+            <div class="mobile-submenu-item" data-tool="upload-tt">Upload Truth Table Image</div>
+            <div class="mobile-submenu-item" data-tool="upload-kmap">Upload K-Map Image</div>
+          </div>
+        </div>
+        <div class="mobile-menu-item" data-item="settings">
+          <span>Settings</span>
+        </div>
+        <div class="mobile-menu-item" data-item="signin">
+          <span>Sign In</span>
+        </div>
+      </div>
+    </div>
     <div id="app">
+      <div class="mobile-header">
+        <div class="mobile-title">
+          <input type="text" class="docName" placeholder="Untitled" />
+        </div>
+
+        <button id="mobile-right-menu" class="hamburger-button">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
       <div class="docNameContainer">
         <div class="logo">
           <span>Logic Drawer</span>
@@ -1240,6 +1353,62 @@ module if_test(
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Hamburger menü öğelerini seçme
+        const mobileMenuBtn = document.getElementById("mobile-menu-button");
+        const mobileRightMenuBtn = document.getElementById("mobile-right-menu");
+        const mobileMenu = document.getElementById("mobile-menu");
+        const closeMenuBtn = document.getElementById("close-mobile-menu");
+
+        // Hamburger menüyü açma
+        if (mobileMenuBtn) {
+          mobileMenuBtn.addEventListener("click", function () {
+            console.log("Hamburger menü düğmesine tıklandı");
+
+            if(mobileMenu.classList.contains("open")) {
+              // Menü zaten açıksa, kapat
+              mobileMenu.classList.remove("open");
+              document.body.classList.remove("menu-open");
+            } else {
+              // Menü kapalıysa, aç
+              mobileMenu.classList.add("open");
+              document.body.classList.add("menu-open");
+            }
+           
+           
+          });
+        }
+
+        if (mobileRightMenuBtn) {
+          mobileRightMenuBtn.addEventListener("click", function () {
+            mobileMenu.classList.add("open");
+            document.body.classList.add("menu-open");
+          });
+        }
+
+        // Hamburger menüyü kapatma
+        if (closeMenuBtn) {
+          closeMenuBtn.addEventListener("click", function () {
+            mobileMenu.classList.remove("open");
+            document.body.classList.remove("menu-open");
+          });
+        }
+
+        // Alt menüleri tıklama
+        const menuItemsWithSubmenu = document.querySelectorAll(".mobile-menu-item.has-submenu");
+        menuItemsWithSubmenu.forEach(item => {
+          item.addEventListener("click", function (e) {
+            // Alt menü içindeki tıklamalarda ana menü tıklamasını engelle
+            if (e.target.closest(".mobile-submenu")) return;
+
+            // Tıklanan menüyü aç/kapat
+            this.classList.toggle("expanded");
+          });
+        });
+      });
+    </script>
 
     <!-- <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.36.1/min/vs/loader.js"></script> -->
 
