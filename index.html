@@ -1362,27 +1362,17 @@ module if_test(
         const mobileMenu = document.getElementById("mobile-menu");
         const closeMenuBtn = document.getElementById("close-mobile-menu");
 
-        // Hamburger menüyü açma
-        if (mobileMenuBtn) {
-          mobileMenuBtn.addEventListener("click", function () {
-            console.log("Hamburger menü düğmesine tıklandı");
-
-            if(mobileMenu.classList.contains("open")) {
-              // Menü zaten açıksa, kapat
-              mobileMenu.classList.remove("open");
-              document.body.classList.remove("menu-open");
-            } else {
-              // Menü kapalıysa, aç
-              mobileMenu.classList.add("open");
-              document.body.classList.add("menu-open");
-            }
-           
-           
-          });
-        }
+       
+        
 
         if (mobileRightMenuBtn) {
           mobileRightMenuBtn.addEventListener("click", function () {
+
+            if( mobileMenu.classList.contains("open")) {
+              mobileMenu.classList.remove("open");
+              document.body.classList.remove("menu-open");
+              return;
+            }
             mobileMenu.classList.add("open");
             document.body.classList.add("menu-open");
           });

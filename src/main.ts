@@ -94,6 +94,7 @@ async function initApp() {
 
   setupCanvasPolyfills();
   setUpLoginAndSignup();
+  setMobile();
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
   minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
 
@@ -340,6 +341,7 @@ function initCircuitBoard() {
   circuitBoard = new CircuitBoard(canvas, minimap);
   window.circuitBoard = circuitBoard;
   createExampleCircuit();
+  preventPinchZoom();
 }
 
 function setupComponentAddListeners() {
@@ -374,6 +376,7 @@ function setupComponentAddListeners() {
 
   function handleComponentTouchStart(event: TouchEvent) {
     event.preventDefault();
+    cleanup();
     
     const touch = event.touches[0];
     const type = (event.currentTarget as HTMLElement).getAttribute("data-type");
@@ -1309,6 +1312,75 @@ function updateUserInterface(isLoggedIn: boolean, userName?: string) {
 }
 async function getUserProfile() {
   return authService.currentUser;
+}
+function setMobile(){
+  
+  const mainMenuItems = document.querySelectorAll('.mobile-menu-item:not(.has-submenu)');
+  mainMenuItems.forEach(item => {
+    item.addEventListener('click', function(this: HTMLElement) {
+      const action = this.getAttribute('data-item');
+      console.log(`Ana menü öğesi tıklandı: ${action}`);
+      
+      // Ana menü öğesi işlevselliği
+      switch(action) {
+        case 'circuits':
+          // Devre seçiciyi aç
+          (document.querySelector('.storage') as HTMLElement)?.click();
+          break;
+          
+        case 'ide':
+          // Verilog IDE'yi aç
+          document.getElementById('open-verilog-editor')?.click();
+          break;
+          
+        case 'ai':
+          // AI asistanı aç
+          (document.querySelector('.aiLogo') as HTMLElement)?.click();
+          break;
+          
+        case 'settings':
+          // Ayarları aç
+          (document.querySelector('.settings-icon') as HTMLElement)?.click();
+          break;
+          
+        case 'signin':
+          
+          document.getElementById('auth-button')?.click();
+          break;
+      }
+      
+      // Alt menüsü olmayan öğelerde menüyü kapat
+      document.getElementById('mobile-menu')?.classList.remove('open');
+      document.body.classList.remove('menu-open');
+    });
+  });
+}
+function preventPinchZoom() {
+  // Canvas elementini seç
+  const canvas = document.getElementById('canvas'); // Canvas ID'nizi burada kullanın
+  
+  // Çift dokunma ile zoom'u engelle
+  document.addEventListener('dblclick', function(e) {
+    if (e.target !== canvas) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+  
+  // Pinch zoom'u engelle (canvas hariç)
+  document.addEventListener('touchmove', function(e) {
+    // Birden fazla dokunma varsa ve hedef canvas değilse
+    if (e.touches.length > 1 && e.target !== canvas) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+  
+  // Çift parmak dokunma - pinch başlangıcı
+  document.addEventListener('touchstart', function(e) {
+    // Birden fazla dokunma varsa ve hedef canvas değilse
+    if (e.touches.length > 1 && e.target !== canvas) {
+      e.preventDefault();
+    }
+  }, { passive: false });
 }
 function setUpLoginAndSignup() {
   const authModal = document.getElementById("auth-modal");
