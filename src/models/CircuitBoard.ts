@@ -2729,9 +2729,15 @@ export class CircuitBoard {
 
       for (const compData of circuitData.components) {
         const component = this.createComponentByType(compData.type, compData.state.position);
-
+        
         if(component instanceof Text){
             component.setText(compData.state.text || "");
+            var comp = this.getComponentById(compData.state.attachedToId);
+            
+            if(comp)
+              component.attachToComponent(comp);
+
+            component.setRelativeOffset(compData.state.relativeOffset || { x: 0, y: 0 });
         }
 
         if (component) {

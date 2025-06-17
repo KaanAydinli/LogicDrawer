@@ -169,7 +169,7 @@ Analyze the user's message and return ONLY ONE of these categories:
 - IMAGE_ANALYSIS: If the message asks to analyze or describe an image without creating a circuit
 - TRUTH_TABLE_IMAGE: If the message asks to analyze or draw the truth table from an image
 - KMAP_IMAGE: If the message asks to analyze or draw the Karnaugh map from an image
-- CIRCUIT_FIX: If the message asks to edit, fix or improve the current circuit also if they ask to create some type of circuit so agent can code it.
+- CIRCUIT_FIX: If the message asks to edit, fix or improve the current circuit also if they ask to create some type of circuit so agent can create it. They may ask to add a new thing remove a component change the component or create a new circuit.
 - GENERAL_INFORMATION: For questions about circuitry, programming, or other informational requests
 
 Reply with ONLY the category name, nothing else.`;

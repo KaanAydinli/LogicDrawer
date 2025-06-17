@@ -1674,7 +1674,7 @@ You are acting as a digital logic circuit design expert. Create a JSON circuit d
 }
 hex component only accepts 4 bit values, so if you need an output with 1 bit use light-bulb or use smart display and connect all 4 (1 bit) outputs to its input and wire it to hex.
 
-Add meaningful names to inputs and outputs of components using text component.
+Add meaningful names to inputs and outputs of components using text component. In text component attachedToId means the id of the component you want to attach the text to. Relative offset is used to position the text relative to the component.
 
 `;
 

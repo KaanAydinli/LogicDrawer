@@ -41,14 +41,14 @@ export class Text extends Component {
   attachToComponent(component: Component): void {
     this.attachedTo = component;
 
-    // Komponente göre göreceli pozisyonu hesapla
+    
     this.relativeOffset = {
       x: this.position.x - component.position.x,
       y: this.position.y - component.position.y,
     };
 
-    // Component ID'sini referans olarak sakla
-    this.id = `${component.id}-label`;
+  
+    
   }
 
   /**
@@ -277,6 +277,15 @@ export class Text extends Component {
       this.findAndAttachToNearestComponent(components);
     }
   }
+  public setRelativeOffset(offset: Point): void {
+    this.relativeOffset = offset;
+    if (this.attachedTo) {
+      this.position = {
+        x: this.attachedTo.position.x + offset.x,
+        y: this.attachedTo.position.y + offset.y
+      };
+    }
+  }
   
   // getState ve setState metodlarını güncelle
   getState(): any {
@@ -295,7 +304,7 @@ export class Text extends Component {
   setState(state: any): void {
     super.setState(state);
     
-    // Mevcut özellikler...
+    
     
     if (state.relativeOffset) {
       this.relativeOffset = state.relativeOffset;
