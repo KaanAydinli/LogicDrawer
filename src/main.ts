@@ -398,7 +398,6 @@ function setupComponentAddListeners() {
     });
   }
   function handleComponentTouchStart(event: TouchEvent) {
-    
     cleanup();
 
     const touch = event.touches[0];
@@ -1411,6 +1410,87 @@ function setMobile() {
       document.body.classList.remove("menu-open");
     });
   });
+  const mainMenuItemsWithSubMenus = document.querySelectorAll(".mobile-menu-item.has-submenu");
+
+  mainMenuItemsWithSubMenus.forEach(item => {
+    item.addEventListener("click", function (this: HTMLElement) {
+      const submenu = this.getAttribute("data-item");
+
+      switch (submenu) {
+        case "tools":
+          //: TODO
+          break;
+
+        case "file":
+          const filesSubMenu = item.querySelector(".mobile-submenu");
+          var fileOptions = filesSubMenu?.querySelectorAll(".mobile-submenu-item") as NodeListOf<HTMLElement>;
+          fileOptions.forEach(option => {
+            option.addEventListener("click", function (this: HTMLElement) {
+              const selectedFile = this.getAttribute("data");
+              if (!selectedFile) return;
+
+              fileOptions.forEach(opt => opt.classList.remove("active"));
+
+              this.classList.add("active");
+
+              if (selectedFile === "load") {
+                fileInput?.click();
+              } else if (selectedFile === "save") {
+                var text = inputText.value;
+                if (text === "") {
+                  text = "circuit";
+                }
+                const circuitData = circuitBoard.exportCircuit();
+                saveToMongoDB(text, circuitData);
+              } else if (selectedFile === "saveas") {
+                const veri = circuitBoard.extractVerilog();
+                var text = inputText.value;
+                if (text === "") {
+                  text = "circuit";
+                }
+                circuitBoard.saveVerilogToFile(veri, text + ".v");
+              } else if (selectedFile === "new") {
+                circuitBoard.clearCircuit();
+              }
+            });
+          });
+
+          break;
+
+        case "themes":
+
+          const themesSubMenu = item.querySelector(".mobile-submenu");
+          var themeOptions = themesSubMenu?.querySelectorAll(".mobile-submenu-item") as NodeListOf<HTMLElement>;
+          themeOptions.forEach(option => {
+            option.addEventListener("click", function (this: HTMLElement) {
+              const selectedTheme = this.getAttribute("data-theme");
+              if (!selectedTheme) return;
+
+              themeOptions.forEach(opt => opt.classList.remove("active"));
+
+              this.classList.add("active");
+
+              switch (selectedTheme) {
+                case "dark":
+                  applyTheme("dark");
+                  break;
+                case "light":
+                  applyTheme("light");
+                  break;
+                case "forest":
+                  applyTheme("forest");
+                  break;
+                   case "midnight":
+                  applyTheme("midnight");
+                  break;
+              }
+            });
+          }
+          );
+          break;
+      }
+    });
+  });
 }
 
 function setUpLoginAndSignup() {
@@ -1973,7 +2053,25 @@ function setTheme() {
     });
   });
 
-  function applyTheme(themeName: string): void {
+  
+
+  const savedTheme = localStorage.getItem("selectedTheme");
+  if (savedTheme) {
+    applyTheme(savedTheme);
+
+    const activeOption = document.querySelector(`.theme-option[data-theme="${savedTheme}"]`);
+    if (activeOption) {
+      activeOption.classList.add("active");
+    }
+  } else {
+    const defaultOption = document.querySelector('.theme-option[data-theme="midnight"]');
+    if (defaultOption) {
+      defaultOption.classList.add("active");
+      applyTheme("midnight");
+    }
+  }
+}
+function applyTheme(themeName: string): void {
     console.log(`Applying theme: ${themeName}`);
 
     document.body.classList.remove("theme-dark", "theme-light", "theme-forest", "theme-midnight");
@@ -2021,23 +2119,6 @@ function setTheme() {
 
     localStorage.setItem("selectedTheme", themeName);
   }
-
-  const savedTheme = localStorage.getItem("selectedTheme");
-  if (savedTheme) {
-    applyTheme(savedTheme);
-
-    const activeOption = document.querySelector(`.theme-option[data-theme="${savedTheme}"]`);
-    if (activeOption) {
-      activeOption.classList.add("active");
-    }
-  } else {
-    const defaultOption = document.querySelector('.theme-option[data-theme="midnight"]');
-    if (defaultOption) {
-      defaultOption.classList.add("active");
-      applyTheme("midnight");
-    }
-  }
-}
 
 inputText.addEventListener("keydown", event => {
   if (event.key === "Enter") {
