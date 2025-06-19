@@ -398,7 +398,7 @@ function setupComponentAddListeners() {
     });
   }
   function handleComponentTouchStart(event: TouchEvent) {
-    event.preventDefault();
+    
     cleanup();
 
     const touch = event.touches[0];
@@ -428,7 +428,7 @@ function setupComponentAddListeners() {
     shadowElement.style.pointerEvents = "none";
     shadowElement.style.width = "40px";
     shadowElement.style.height = "40px";
-    shadowElement.style.transform = "translate(-50%, -50%)";
+    shadowElement.style.transform = "translate(-100%, -100%)";
 
     shadowElement.style.left = `${clientX}px`;
     shadowElement.style.top = `${clientY}px`;

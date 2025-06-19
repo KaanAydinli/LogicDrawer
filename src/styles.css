@@ -149,7 +149,7 @@ body.keyboard-active .ai-chat-container.open {
   width: 250px;
   background-color: var(--secondary-bg);
   border-right: 1px solid var(--border-color);
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
 }
 
@@ -1936,7 +1936,7 @@ select {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 760px) {
   .ai-chat-container {
     width: 90%;
     height: 60%;
@@ -2109,4 +2109,7 @@ select {
   .ai-message, .user-message {
     max-width: 90%;
   }
+
+  
+  
 }
