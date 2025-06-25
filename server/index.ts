@@ -5,6 +5,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import os from "os";
 import path from "path";
 import { configureSecurityMiddleware } from "./middlewares/security";
 import { validateInput } from "./middlewares/validation";
@@ -93,5 +94,12 @@ app.get("*", (req, res) => {
 
 // Server'ı başlat
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+ 
+  const interfaces = os.networkInterfaces();
+  const ipAddress = Object.values(interfaces)
+    .flat()
+    .filter(details => details && details.family === 'IPv4' && !details.internal)[0]?.address || 'localhost';
+  
+  const serverUrl = `http://${ipAddress}:${PORT}`;
+  console.log(`Server is running at ${serverUrl}`);
 });
