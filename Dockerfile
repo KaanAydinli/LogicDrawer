@@ -17,7 +17,7 @@ RUN pip3 install --no-cache-dir --break-system-packages \
 COPY . .
 RUN npm install && npm run build \
  && cd server && npm install && npm run build \
- && chmod +x /app/detectCircuit.py
+ && chmod +x detectCircuit.py
 
 ENV PYTHONPATH=/app:/app/server \
     NODE_OPTIONS=--max_old_space_size=2048
