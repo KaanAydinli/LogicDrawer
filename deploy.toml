@@ -1,12 +1,13 @@
 [build]
 builder = "nixpacks"
-buildCommand = "python3-pip libgl1 libglib2.0-0 python3-opencv && pip3 install --break-system-packages ultralytics opencv-python-headless scikit-image numpy && npm install && npm run build && cd server && npm install && npm run build && chmod +x detectCircuit.py"
+buildCommand = "apt-get update && apt-get install -y python3-pip libgl1 libglib2.0-0 python3-opencv && pip3 install --break-system-packages ultralytics opencv-python-headless scikit-image numpy && npm ci && npm run build && cd server && npm ci && npm run build && chmod +x detectCircuit.py"
 
 [deploy]
 startCommand = "node server/dist/index.js"
 restartPolicyType = "ON_FAILURE"
 
 [nixpacks]
+node_version = "20"
 python_version = "3.10"
 
 [nixpacks.aptPkgs]
@@ -14,3 +15,4 @@ packages = ["libgl1", "libglib2.0-0", "python3-opencv"]
 
 [nixpacks.env]
 PYTHONPATH = "/app:/app/server"
+NODE_OPTIONS = "--max_old_space_size=2048"
