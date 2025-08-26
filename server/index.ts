@@ -29,27 +29,26 @@ app.use(
   })
 );
 
-// Middleware'ler
+/**
+ * Middlewares
+ */
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
 app.use(cookieParser());
 
-// CORS middleware
-
-// Şüpheli User-Agent'lar için middleware - BURAYA TAŞIYIN
+/**
+ * Middleware to detect suspicious User-Agents.
+ */
 app.use((req, res, next) => {
   const userAgent = req.headers["user-agent"] || "Unknown";
 
-  // Şüpheli User-Agent'lar için basit bir kontrol
+  // Simple check for suspicious User-Agents
   if (
     userAgent.includes("Hack") ||
     userAgent.includes("bot") ||
     userAgent.includes("curl") ||
     userAgent.length < 10
   ) {
-    console.warn(
-      `\x1b[41m\x1b[97m [UYARI] Şüpheli User-Agent: ${userAgent} | IP: ${req.ip} | Yol: ${req.path} \x1b[0m`
-    );
   }
 
   next();
@@ -57,25 +56,30 @@ app.use((req, res, next) => {
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
-    console.log("MongoDB connected successfully");
   })
   .catch(err => {
-    console.error("MongoDB connection error:", err);
-    console.log("Connection URI:", MONGODB_URI.replace(/:[^\/]+@/, ":****@")); // Şifreyi gizle
   });
 
-// Güvenlik middleware'leri
+/**
+ * Security middlewares
+ */
 configureSecurityMiddleware(app);
 
-// Genel input doğrulama
+/**
+ * General input validation
+ */
 app.use(validateInput);
 
-// Router'ları uygula
+/**
+ * Apply routers
+ */
 app.use("/api/auth", authRoutes);
 app.use("/api/circuits", circuitRoutes);
 app.use("/api", aiRoutes);
 
-// Sağlık kontrolü
+/**
+ * Health check endpoint
+ */
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -87,12 +91,16 @@ app.get("/health", (req, res) => {
 const distPath = path.join(__dirname, "../../dist");
 app.use(express.static(distPath));
 
-// API dışındaki tüm istekleri index.html'e yönlendir
+/**
+ * Redirect all non-API requests to index.html
+ */
 app.get("*", (req, res) => {
   res.sendFile(path.join(distPath, "index.html"));
 });
 
-// Server'ı başlat
+/**
+ * Start the server
+ */
 app.listen(PORT, () => {
  
   const interfaces = os.networkInterfaces();
@@ -101,5 +109,4 @@ app.listen(PORT, () => {
     .filter(details => details && details.family === 'IPv4' && !details.internal)[0]?.address || 'localhost';
   
   const serverUrl = `http://${ipAddress}:${PORT}`;
-  console.log(`Server is running at ${serverUrl}`);
 });

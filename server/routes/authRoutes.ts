@@ -1,3 +1,7 @@
+/**
+ * @file Defines the routes for user authentication.
+ */
+
 import express from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User";
@@ -6,23 +10,25 @@ import { authMiddleware, AuthRequest } from "../middlewares/auth";
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "a";
 
-// Kullanıcı kaydı
+/**
+ * Register a new user.
+ */
 router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // NoSQL injection kontrolü
+    // Basic input validation
     if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string") {
       return res.status(400).json({ error: "Invalid input format" });
     }
 
-    // Email formatı kontrolü
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Email format validation
+    const emailRegex = /^[^S@]+@[^S@]+\.[^S@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: "Invalid email format" });
     }
 
-    // XSS koruması
+    // XSS protection
     const sanitizedName = name.replace(/<[^>]*>?/gm, "");
 
     const existingUser = await User.findOne({ email });
@@ -57,20 +63,21 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Kullanıcı girişi
+/**
+ * Log in a user.
+ */
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // NoSQL injection kontrolü
+    // Basic input validation
     if (typeof email !== "string" || typeof password !== "string") {
       return res.status(400).json({ error: "Invalid email or password format" });
     }
 
     try {
-      const user = await User.findOne({ email })
-        .maxTimeMS(8000); // Reduce from your connection timeout
-       
+      const user = await User.findOne({ email }).maxTimeMS(8000); // Reduce from your connection timeout
+
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -101,16 +108,16 @@ router.post("/login", async (req, res) => {
         },
       });
     } catch (error) {
-      console.error("Login error:", error);
       return res.status(500).json({ error: "Database connection issue" });
     }
   } catch (error) {
-    console.error("Login error:", error);
     res.status(500).json({ error: "Server error during login" });
   }
 });
 
-// Kullanıcı çıkışı
+/**
+ * Log out a user.
+ */
 router.post("/logout", (req, res) => {
   res.clearCookie("auth_token", {
     httpOnly: true,
@@ -121,7 +128,9 @@ router.post("/logout", (req, res) => {
   res.json({ message: "Logged out successfully" });
 });
 
-// Kullanıcı bilgilerini getir
+/**
+ * Get user information.
+ */
 router.get("/me", (req, res) => {
   try {
     const token = req.cookies.auth_token;
@@ -142,16 +151,16 @@ router.get("/me", (req, res) => {
         res.json({ user });
       })
       .catch(err => {
-        console.error("Database error:", err);
         res.status(500).json({ error: "Server error fetching user data" });
       });
   } catch (error) {
-    console.error("Auth error:", error);
     res.status(401).json({ error: "Invalid token" });
   }
 });
 
-// Auth durumunu kontrol et
+/**
+ * Check authentication status.
+ */
 router.get("/check", authMiddleware, (req: AuthRequest, res) => {
   res.json({
     authenticated: true,
@@ -162,11 +171,13 @@ router.get("/check", authMiddleware, (req: AuthRequest, res) => {
   });
 });
 
-// Token yenile - Güvenli Versiyon
+/**
+ * Refresh authentication token (secure version).
+ */
 router.post("/refresh", authMiddleware, async (req: AuthRequest, res) => {
   try {
-    // authMiddleware ile token doğrulaması yapılıyor
-    // req.user üzerinden zaten doğrulanmış kullanıcı bilgisine erişebiliriz
+    // Token validation is handled by authMiddleware
+    // We can access the validated user info from req.user
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: "Authentication required" });
     }
@@ -176,24 +187,23 @@ router.post("/refresh", authMiddleware, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Yeni token oluştur
+    // Create a new token
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "24h" });
 
-    // Cookie olarak gönder (daha güvenli)
+    // Send as a cookie
     res.cookie("auth_token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 24 * 60 * 60 * 1000, // 24 saat
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
     });
 
     res.json({
       message: "Token refreshed successfully",
-      expiresIn: 24 * 60 * 60, // saniye cinsinden
+      expiresIn: 24 * 60 * 60, // in seconds
     });
   } catch (error) {
-    console.error("Token refresh error:", error);
     res.status(500).json({ error: "Error refreshing token" });
   }
 });

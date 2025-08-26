@@ -1,3 +1,7 @@
+/**
+ * @file Defines the routes for circuit management.
+ */
+
 import express from "express";
 import mongoose from "mongoose";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
@@ -7,87 +11,84 @@ import { validateCircuitData } from "../middlewares/validation";
 
 const router = express.Router();
 
-// Tüm router'a auth middleware uygula
+// Apply auth middleware to all routes
 router.use(authMiddleware);
 
-// Tüm devreleri getir
+/**
+ * Get all circuits for the authenticated user.
+ */
 router.get("/", async (req: AuthRequest, res) => {
   try {
     const ownCircuits = await Circuit.find({ userId: req.user?.id })
       .populate("userId", "name email")
       .sort({ createdAt: -1 });
-      
-    const sharedCircuits = await Circuit.find({ 
-      sharedWith: req.user?.id 
+
+    const sharedCircuits = await Circuit.find({
+      sharedWith: req.user?.id,
     })
-    .populate("userId", "name email")
-    .sort({ createdAt: -1 });
-    
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+
     const publicCircuits = await Circuit.find({
       userId: { $ne: req.user?.id },
-      isPublic: true
+      isPublic: true,
     })
-    .populate("userId", "name email")
-    .sort({ createdAt: -1 });
-    
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+
     const sharedCircuitsWithFlag = sharedCircuits.map(circuit => {
       const circuitObj = circuit.toObject();
       circuitObj.isShared = true;
       return circuitObj;
     });
-    
+
     const publicCircuitsWithFlag = publicCircuits.map(circuit => {
       const circuitObj = circuit.toObject();
       circuitObj.isPublic = true;
       return circuitObj;
     });
-    
+
     const allCircuits = [...ownCircuits, ...sharedCircuitsWithFlag, ...publicCircuitsWithFlag];
-    
+
     res.json(allCircuits);
   } catch (error) {
-    console.error("Error fetching circuits:", error);
     res.status(500).json({ error: "Failed to fetch circuits" });
   }
 });
 
-// Devre ara
+/**
+ * Search for circuits.
+ */
 router.get("/search", async (req: AuthRequest, res) => {
   try {
     const query = req.query.q as string;
-    
-    if (!query || typeof query !== 'string') {
+
+    if (!query || typeof query !== "string") {
       return res.status(400).json({ error: "Search query is required" });
     }
-    
-    const searchPattern = new RegExp(`^${query}`, 'i');
-    
+
+    const searchPattern = new RegExp(`^${query}`, "i");
+
     const matchingCircuits = await Circuit.find({
-      $or: [
-        { name: searchPattern },
-        { description: searchPattern }
-      ],
+      $or: [{ name: searchPattern }, { description: searchPattern }],
       $and: [
         {
-          $or: [
-            { userId: req.user?.id },
-            { sharedWith: req.user?.id },
-            { isPublic: true }
-          ]
-        }
-      ]
+          $or: [{ userId: req.user?.id }, { sharedWith: req.user?.id }, { isPublic: true }],
+        },
+      ],
     })
-    .populate("userId", "name email")
-    .sort({ createdAt: -1 });
-    
+      .populate("userId", "name email")
+      .sort({ createdAt: -1 });
+
     res.json(matchingCircuits);
   } catch (error) {
-    console.error("Error searching circuits:", error);
     res.status(500).json({ error: "Failed to search circuits" });
   }
 });
 
-// Benimle paylaşılan devreler
+/**
+ * Get circuits shared with me.
+ */
 router.get("/shared-with-me", async (req: AuthRequest, res) => {
   try {
     if (!req.user?.id) {
@@ -113,7 +114,9 @@ router.get("/shared-with-me", async (req: AuthRequest, res) => {
   }
 });
 
-// Herkese açık devreler
+/**
+ * Get public circuits.
+ */
 router.get("/public", async (req, res) => {
   try {
     const circuits = await Circuit.find({ isPublic: true })
@@ -126,7 +129,9 @@ router.get("/public", async (req, res) => {
   }
 });
 
-// Görünürlük güncelle
+/**
+ * Update visibility of a circuit.
+ */
 router.put("/:id/visibility", async (req: AuthRequest, res) => {
   try {
     const { isPublic } = req.body;
@@ -147,21 +152,23 @@ router.put("/:id/visibility", async (req: AuthRequest, res) => {
 
     res.json({
       isPublic: circuit.isPublic,
-      message: `Circuit is now ${circuit.isPublic ? 'public' : 'private'}`
+      message: `Circuit is now ${circuit.isPublic ? "public" : "private"}`,
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to update circuit visibility" });
   }
 });
 
-// Beğenme işlemi
+/**
+ * Like a circuit.
+ */
 router.post("/:id/like", async (req: AuthRequest, res) => {
   try {
     const circuitId = req.params.id;
     const userId = req.user?.id;
-    
+
     const circuit = await Circuit.findById(circuitId);
-    
+
     if (!circuit) {
       return res.status(404).json({ error: "Circuit not found" });
     }
@@ -169,7 +176,7 @@ router.post("/:id/like", async (req: AuthRequest, res) => {
     if (!circuit.likedBy) {
       circuit.likedBy = [];
     }
-    
+
     if (!userId) {
       return res.status(401).json({ error: "User not authenticated" });
     }
@@ -178,22 +185,24 @@ router.post("/:id/like", async (req: AuthRequest, res) => {
     if (circuit.likedBy.some(id => id.toString() === userIdStr)) {
       return res.status(400).json({ error: "You have already liked this circuit" });
     }
-    
+
     circuit.likedBy.push(new mongoose.Types.ObjectId(userId));
     circuit.likes = circuit.likedBy.length;
 
     await circuit.save();
-    
-    res.json({ 
-      message: "Circuit liked successfully", 
-      likes: circuit.likes 
+
+    res.json({
+      message: "Circuit liked successfully",
+      likes: circuit.likes,
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to like circuit" });
   }
 });
 
-// Devre indirme
+/**
+ * Download a circuit.
+ */
 router.get("/:id/download", async (req: AuthRequest, res) => {
   try {
     const circuitId = req.params.id;
@@ -215,7 +224,9 @@ router.get("/:id/download", async (req: AuthRequest, res) => {
   }
 });
 
-// Devre paylaşma
+/**
+ * Share a circuit.
+ */
 router.post("/:id/share", async (req: AuthRequest, res) => {
   try {
     const { username } = req.body;
@@ -230,7 +241,7 @@ router.post("/:id/share", async (req: AuthRequest, res) => {
     }
     const circuit = await Circuit.findOne({
       _id: req.params.id,
-      userId: req.user?.id
+      userId: req.user?.id,
     });
 
     if (!circuit) {
@@ -250,14 +261,14 @@ router.post("/:id/share", async (req: AuthRequest, res) => {
 
     res.json({
       message: `Circuit shared with ${username}`,
-      circuit
+      circuit,
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to share circuit" });
   }
 });
 
-// Yeni devre oluştur
+// Create a new circuit
 router.post("/", validateCircuitData, async (req: AuthRequest, res) => {
   try {
     if (!req.user?.id) {
@@ -287,6 +298,8 @@ router.post("/", validateCircuitData, async (req: AuthRequest, res) => {
     });
   }
 });
+
+// Add a comment to a circuit
 router.post("/:id/comments", async (req: AuthRequest, res) => {
   try {
     if (!req.user?.id) {
@@ -300,7 +313,7 @@ router.post("/:id/comments", async (req: AuthRequest, res) => {
       return res.status(400).json({ error: "Comment text is required" });
     }
 
-    // Kullanıcı adını doğrudan DB'den al
+    // Get user
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
@@ -311,72 +324,69 @@ router.post("/:id/comments", async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "Circuit not found" });
     }
 
-    // Yorumu devreye ekle
     circuit.comments.push({
       userId: new mongoose.Types.ObjectId(req.user.id),
       text,
       date: new Date(),
-      authorName: user.name 
+      authorName: user.name,
     });
     await circuit.save();
 
-    return res.status(201).json({ 
-      success: true, 
+    return res.status(201).json({
+      success: true,
       message: "Comment added successfully",
       comment: {
-       
         authorId: req.user.id,
         authorName: user.name,
         date: new Date(),
         text,
-       
-      }
+      },
     });
   } catch (error: any) {
     console.error("Error adding comment:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Failed to add comment",
-      details: error.message 
+      details: error.message,
     });
   }
 });
-
 
 // Get comments for a circuit
 router.get("/:id/comments", async (req: AuthRequest, res) => {
   try {
     const circuitId = req.params.id;
-    
-    // Kullanıcı bilgilerini populate ederek devre detaylarını getir
-    const circuit = await Circuit.findById(circuitId)
-      .populate({
-        path: 'comments.userId',
-        model: 'User',
-        select: 'name email'
-      });
-    
+
+    // Get circuit details with populated user information
+    const circuit = await Circuit.findById(circuitId).populate({
+      path: "comments.userId",
+      model: "User",
+      select: "name email",
+    });
+
     if (!circuit) {
       return res.status(404).json({ error: "Circuit not found" });
     }
 
-    // Promise.all ile tüm asenkron işlemleri bekle
-    const formattedComments = await Promise.all((circuit.comments || []).map(async comment => {
-      // Kullanıcıyı bul (populate işlemi çalışmadıysa)
-      const user = comment.userId && typeof comment.userId === 'object' 
-        ? comment.userId 
-        : await User.findById(comment.userId);
-      
-      return {
-        
-        authorId: comment.userId.toString(),
-        // Önce comment.authorName, sonra user.name, yoksa "Unknown User" kullan
-        authorName: comment.authorName || (user && typeof user === 'object' && 'name' in user ? user.name : "Unknown User"),
-        date: comment.date || comment.date || new Date(),
-        text: comment.text,
-        likes: 0
-      };
-    }));
-    
+    const formattedComments = await Promise.all(
+      (circuit.comments || []).map(async comment => {
+        const user =
+          comment.userId && typeof comment.userId === "object"
+            ? comment.userId
+            : await User.findById(comment.userId);
+
+        return {
+          authorId: comment.userId.toString(),
+
+          authorName:
+            comment.authorName ||
+            (user && typeof user === "object" && "name" in user ? user.name : "Unknown User"),
+          date: comment.date || comment.date || new Date(),
+          text: comment.text,
+          likes: 0,
+        };
+      })
+    );
+
     return res.json(formattedComments);
   } catch (error) {
     console.error("Error fetching comments:", error);
@@ -384,8 +394,7 @@ router.get("/:id/comments", async (req: AuthRequest, res) => {
   }
 });
 
-
-// Devre güncelle
+// Update circuit
 router.put("/:id", validateCircuitData, async (req: AuthRequest, res) => {
   try {
     const circuitId = req.params.id;
@@ -398,26 +407,23 @@ router.put("/:id", validateCircuitData, async (req: AuthRequest, res) => {
 
     const circuit = await Circuit.findOne({
       _id: circuitId,
-      $or: [
-        { userId: req.user?.id },
-        { sharedWith: user.name },
-      ]
+      $or: [{ userId: req.user?.id }, { sharedWith: user.name }],
     });
 
     if (!circuit) {
       const publicCircuit = await Circuit.findOne({
         _id: circuitId,
-        isPublic: true
+        isPublic: true,
       });
-      
+
       if (publicCircuit) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: "This is a public circuit. You need to fork it first.",
           circuitId: circuitId,
-          isForkable: true
+          isForkable: true,
         });
       }
-      
+
       return res.status(404).json({ error: "Circuit not found or you don't have permission" });
     }
 
@@ -425,14 +431,10 @@ router.put("/:id", validateCircuitData, async (req: AuthRequest, res) => {
       name: updateData.name,
       components: updateData.components,
       wires: updateData.wires,
-      dateModified: new Date()
+      dateModified: new Date(),
     };
 
-    const updatedCircuit = await Circuit.findByIdAndUpdate(
-      circuitId,
-      updates,
-      { new: true }
-    );
+    const updatedCircuit = await Circuit.findByIdAndUpdate(circuitId, updates, { new: true });
 
     res.json(updatedCircuit);
   } catch (error) {
@@ -440,7 +442,7 @@ router.put("/:id", validateCircuitData, async (req: AuthRequest, res) => {
   }
 });
 
-// Devre detayını getir
+// Get circuit details
 router.get("/:id", async (req: AuthRequest, res) => {
   try {
     const user = await User.findById(req.user?.id);
@@ -450,34 +452,34 @@ router.get("/:id", async (req: AuthRequest, res) => {
 
     let circuit = await Circuit.findOne({
       _id: req.params.id,
-      userId: req.user?.id
+      userId: req.user?.id,
     });
 
     if (!circuit) {
       circuit = await Circuit.findOne({
         _id: req.params.id,
-        sharedWith: user.name 
+        sharedWith: user.name,
       });
     }
 
     if (!circuit) {
       circuit = await Circuit.findOne({
         _id: req.params.id,
-        isPublic: true
+        isPublic: true,
       });
     }
 
     if (!circuit) {
       return res.status(404).json({ error: "Circuit not found or you don't have permission" });
     }
-    
+
     res.json(circuit);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch circuit" });
   }
 });
 
-// Devre sil
+// Delete circuit
 router.delete("/:id", async (req: AuthRequest, res) => {
   try {
     const circuit = await Circuit.findOneAndDelete({

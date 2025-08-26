@@ -1,3 +1,7 @@
+/**
+ * @file Defines the User model and schema for MongoDB.
+ */
+
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 
@@ -33,7 +37,9 @@ const userSchema = new mongoose.Schema({
 });
 
 
-// Şifre hashleme için pre-save hook
+/**
+ * Pre-save hook to hash the password before saving the user.
+ */
 userSchema.pre("save", async function(next) {
   if (!this.isModified("password")) return next();
   
@@ -46,7 +52,11 @@ userSchema.pre("save", async function(next) {
   }
 });
 
-// Şifre karşılaştırma metodu
+/**
+ * Method to compare a candidate password with the hashed password.
+ * @param {string} candidatePassword - The password to compare.
+ * @returns {Promise<boolean>} - True if the passwords match, false otherwise.
+ */
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };

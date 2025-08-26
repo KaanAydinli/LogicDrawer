@@ -1,17 +1,20 @@
+/**
+ * @file Defines the routes for AI-related functionalities.
+ */
+
 import express from "express";
 import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import multer from "multer";
-import { authMiddleware } from "../middlewares/auth";
 
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 
-
-
-// Upload için multer ayarları
+/**
+ * Multer settings for file uploads.
+ */
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -26,73 +29,66 @@ router.post("/analyze/roboflow", async (req, res) => {
 
     const base64Data = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
     const pythonScriptPath = path.join(__dirname, "..", "detectCircuit.py");
-    
-    // Python executable'ı belirle
-    const pythonExecutable = process.env.PYTHON_EXECUTABLE || 
-                          (process.platform === "win32" ? "python" : "python3");
 
-    // Python script'in varlığını kontrol et
+    // Determine the python executable
+    const pythonExecutable =
+      process.env.PYTHON_EXECUTABLE || (process.platform === "win32" ? "python" : "python3");
+
+    // Check if the python script exists
     if (!fs.existsSync(pythonScriptPath)) {
-      return res.status(500).json({ 
-        error: "Python script not found", 
-        path: pythonScriptPath 
+      return res.status(500).json({
+        error: "Python script not found",
+        path: pythonScriptPath,
       });
     }
-
-    console.log(`Starting Python script: ${pythonExecutable} ${pythonScriptPath}`);
 
     // Promise-based execution to properly handle async flow
     try {
       const result = await new Promise((resolve, reject) => {
         const pythonProcess = spawn(pythonExecutable, [pythonScriptPath], {
-          stdio: ['pipe', 'pipe', 'pipe'],
+          stdio: ["pipe", "pipe", "pipe"],
           env: {
             ...process.env,
             PYTHONUNBUFFERED: "1",
-            PYTHONIOENCODING: "utf-8"
-          }
+            PYTHONIOENCODING: "utf-8",
+          },
         });
 
         let scriptOutput = "";
         let scriptError = "";
 
         // Stdout handling
-        pythonProcess.stdout.on("data", (data) => {
+        pythonProcess.stdout.on("data", data => {
           scriptOutput += data.toString();
         });
 
         // Stderr handling
-        pythonProcess.stderr.on("data", (data) => {
-          console.log("Python stderr:", data.toString());
+        pythonProcess.stderr.on("data", data => {
           scriptError += data.toString();
         });
 
         // Error handling
-        pythonProcess.on("error", (err) => {
-          console.error(`Python process error: ${err.message}`);
+        pythonProcess.on("error", err => {
           reject(new Error(`Failed to start Python script: ${err.message}`));
         });
 
         // Process close handling
-        pythonProcess.on("close", (code) => {
+        pythonProcess.on("close", code => {
           if (code === 0) {
             try {
               // Extract only the valid JSON
-              const jsonStart = scriptOutput.indexOf('{');
-              const jsonEnd = scriptOutput.lastIndexOf('}') + 1;
-              
+              const jsonStart = scriptOutput.indexOf("{");
+              const jsonEnd = scriptOutput.lastIndexOf("}") + 1;
+
               if (jsonStart >= 0 && jsonEnd > jsonStart) {
                 const jsonString = scriptOutput.substring(jsonStart, jsonEnd);
-                console.log("Extracted JSON:", jsonString + "...");
-                
+
                 const result = JSON.parse(jsonString);
                 resolve(result);
               } else {
                 reject(new Error("No valid JSON found in Python output"));
               }
             } catch (e) {
-              console.error("Error parsing Python output:", e);
-              console.error("Raw output:", scriptOutput);
               reject(new Error(`Failed to parse Python output: ${(e as Error).message}`));
             }
           } else {
@@ -101,53 +97,47 @@ router.post("/analyze/roboflow", async (req, res) => {
         });
 
         // Stdin handling
-        pythonProcess.stdin.on('error', (err: NodeJS.ErrnoException) => {
-          console.error(`Stdin error: ${err.message}`);
+        pythonProcess.stdin.on("error", (err: NodeJS.ErrnoException) => {
           // EOF errors are expected when stream closes
-          if (err.code !== 'EOF') {
+          if (err.code !== "EOF") {
             reject(new Error(`Failed to write to Python script: ${err.message}`));
           }
         });
 
         // Send data to Python
         try {
-          console.log(`Sending ${base64Data.length} bytes to Python script`);
-          pythonProcess.stdin.write(base64Data, 'utf8');
+          pythonProcess.stdin.write(base64Data, "utf8");
           pythonProcess.stdin.end();
         } catch (writeError) {
-          console.error(`Write error: ${(writeError as Error).message}`);
-          reject(new Error(`Failed to send data to Python script: ${(writeError as Error).message}`));
+          reject(
+            new Error(`Failed to send data to Python script: ${(writeError as Error).message}`)
+          );
         }
       });
-      
+
       // Send the result
       res.json(result);
-      
     } catch (pythonError) {
       // Only respond if headers haven't been sent yet
       if (!res.headersSent) {
         res.status(500).json({
           error: "Python processing error",
-          details: (pythonError as Error).message
+          details: (pythonError as Error).message,
         });
       } else {
-        console.error("Headers already sent, cannot send error response");
       }
     }
-
   } catch (error) {
     // Only respond if headers haven't been sent yet
     if (!res.headersSent) {
       res.status(500).json({
         error: "Internal server error",
-        details: (error as Error).message
+        details: (error as Error).message,
       });
     } else {
-      console.error("Headers already sent, cannot send error response");
     }
   }
 });
-
 
 router.post("/classify-message", async (req, res) => {
   try {
@@ -201,8 +191,6 @@ Reply with ONLY the category name, nothing else.`;
 
       const data = await response.json();
 
-     
-
       if (!data.choices || !data.choices.length) {
         throw new Error("Empty response from Mistral API");
       }
@@ -228,7 +216,9 @@ Reply with ONLY the category name, nothing else.`;
   }
 });
 
-// Mistral ile metin üretme
+/**
+ * Generate text with Mistral.
+ */
 router.post("/generate/mistral", async (req, res) => {
   try {
     const { userPrompt, systemPrompt } = req.body;
@@ -293,7 +283,9 @@ router.post("/generate/mistral", async (req, res) => {
   }
 });
 
-// Gemini ile metin üretme
+/**
+ * Generate text with Gemini.
+ */
 router.post("/generate/gemini-text", async (req, res) => {
   try {
     const { prompt, systemPrompt, history } = req.body;
@@ -307,7 +299,7 @@ router.post("/generate/gemini-text", async (req, res) => {
       return res.status(500).json({ error: "Google API key not configured" });
     }
 
-     try {
+    try {
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
 
       let fullPrompt = prompt;
@@ -318,27 +310,25 @@ router.post("/generate/gemini-text", async (req, res) => {
             .map(msg => `${msg.role === "user" ? "User" : "AI"}: ${msg.content}`)
             .join("\n");
 
-          fullPrompt = `"The following is your System Prompt: "${systemPrompt}\n "Here is the conversation history with you and the user" \n${historyText}\n\This is the User Last Message: ${prompt}`;
+          fullPrompt = `"The following is your System Prompt: "${systemPrompt}\n "Here is the conversation history with you and the user" \n${historyText}\n\nThis is the User Last Message: ${prompt}`;
         } else {
           fullPrompt = `${systemPrompt}\n\n${prompt}`;
         }
       }
 
-
-      
       // Check if client requested streaming
-      const useStreaming = req.query.stream === 'true' || req.body.stream === true;
-      
+      const useStreaming = req.query.stream === "true" || req.body.stream === true;
+
       if (useStreaming) {
         // Set up headers for SSE
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+
         try {
           // Generate streaming content
           const streamingResponse = await model.generateContentStream(fullPrompt);
-          
+
           // Send chunks as they arrive
           for await (const chunk of streamingResponse.stream) {
             // Important: call text() function to get the actual text
@@ -347,7 +337,7 @@ router.post("/generate/gemini-text", async (req, res) => {
               res.write(`data: ${JSON.stringify({ chunk: textChunk })}\n\n`);
             }
           }
-          
+
           // Send end of stream signal
           res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
           res.end();
@@ -355,13 +345,15 @@ router.post("/generate/gemini-text", async (req, res) => {
           if (!res.headersSent) {
             return res.status(500).json({
               error: "Streaming error",
-              details: streamError instanceof Error ? streamError.message : String(streamError)
+              details: streamError instanceof Error ? streamError.message : String(streamError),
             });
           } else {
-            res.write(`data: ${JSON.stringify({ 
-              error: "Streaming error", 
-              details: streamError instanceof Error ? streamError.message : String(streamError) 
-            })}\n\n`);
+            res.write(
+              `data: ${JSON.stringify({
+                error: "Streaming error",
+                details: streamError instanceof Error ? streamError.message : String(streamError),
+              })}\n\n`
+            );
             res.end();
           }
         }

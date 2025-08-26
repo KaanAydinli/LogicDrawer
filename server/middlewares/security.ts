@@ -1,3 +1,7 @@
+/**
+ * @file Configures various security middlewares for the Express application.
+ */
+
 import { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -6,33 +10,34 @@ import xssFilters from "xss-filters";
 import hpp from "hpp";
 
 /**
- * Tüm güvenlik middleware'lerini tek bir fonksiyonda birleştiren yapı
+ * Configures and registers all security-related middlewares.
+ * @param {any} app - The Express application instance.
  */
 export const configureSecurityMiddleware = (app: any) => {
-  // HTTP güvenlik başlıkları - Helmet
+  // Set security-related HTTP headers
   app.use(
     helmet({
       contentSecurityPolicy: process.env.NODE_ENV === "production" ? undefined : false,
     })
   );
 
-  // Brute force koruması için rate limiting
+  // Rate limiting to prevent brute-force attacks
   const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 dakika
-    max: 10, // IP başına maksimum istek sayısı
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // Max requests per IP
     standardHeaders: true,
     legacyHeaders: false,
-    message: "Çok fazla giriş denemesi yapıldı. Lütfen 15 dakika sonra tekrar deneyin.",
+    message: "Too many login attempts. Please try again in 15 minutes.",
   });
 
-  // Auth rotalarına rate limiter uygulama
+  // Apply rate limiter to auth routes
   app.use("/api/auth/login", authLimiter);
   app.use("/api/auth/register", authLimiter);
 
-  // Genel API rate limiter
+  // General API rate limiter
   const apiLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 dakika
-    max: 100, // IP başına maksimum istek sayısı
+    windowMs: 60 * 1000, // 1 minute
+    max: 100, // Max requests per IP
     standardHeaders: true,
     legacyHeaders: false,
   });
@@ -40,20 +45,20 @@ export const configureSecurityMiddleware = (app: any) => {
   app.use("/api", apiLimiter);
 
   const generalLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 dakika
-    max: 150, // IP başına maksimum istek sayısı
+    windowMs: 60 * 1000, // 1 minute
+    max: 150, // Max requests per IP
     standardHeaders: true,
     legacyHeaders: false,
   });
   app.use(generalLimiter);
 
-  // NoSQL enjeksiyon saldırılarına karşı koruma
+  // Sanitize user input to prevent NoSQL injection attacks
   app.use(mongoSanitize());
 
-  // HTTP Parameter Pollution koruması
+  // Prevent HTTP Parameter Pollution
   app.use(hpp());
 
-  // Güvenlik başlıkları
+  // Set additional security headers
   app.use((req: Request, res: Response, next: NextFunction) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
@@ -63,15 +68,19 @@ export const configureSecurityMiddleware = (app: any) => {
 };
 
 /**
- * XSS koruması için string sanitize fonksiyonu
- * xss-clean yerine xss-filters kullanıyoruz
+ * Sanitizes a string to prevent XSS attacks.
+ * Uses xss-filters instead of the deprecated xss-clean.
+ * @param {string} str - The string to sanitize.
+ * @returns {string} - The sanitized string.
  */
 export const sanitizeString = (str: string): string => {
   return xssFilters.inHTMLData(str);
 };
 
 /**
- * Input temizleme fonksiyonu
+ * Recursively sanitizes an object or an array.
+ * @param {any} obj - The object or array to sanitize.
+ * @returns {any} - The sanitized object or array.
  */
 export const sanitizeObject = (obj: any): any => {
   if (typeof obj !== "object" || obj === null) {
