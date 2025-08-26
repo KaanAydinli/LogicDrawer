@@ -3,14 +3,12 @@ import { CircuitBoard } from "../models/CircuitBoard";
 import { KarnaughMap } from "../models/utils/KarnaughMap";
 import { VerilogCircuitConverter } from "../models/utils/VerilogCircuitConverter";
 import { apiBaseUrl } from "../services/apiConfig";
-import { ImageUploader } from "./ImageUploader"; // Import directly
+import { ImageUploader } from "./ImageUploader";
 
-// Base tool interface
 export interface Tool {
   execute(context: ToolContext): Promise<string>;
 }
 
-// Shared context for all tools
 export interface ToolContext {
   message: string;
   image?: string | null;
@@ -27,7 +25,6 @@ export class VerilogImportTool implements Tool {
         "Focus on the <VERILOG_CODE_GENERATION> section of your instructions for this task.";
       const verilogPrompt = `${focusInstruction}\n\nGenerate valid, clean Verilog code for the following circuit: ${context.message}`;
 
-      // Use the Gemini API to generate the code
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -45,15 +42,13 @@ export class VerilogImportTool implements Tool {
       const data = await response.json();
       const generatedText = data.text || "";
 
-      // Extract Verilog code from the generated response
       let code = this.extractVerilogFromPrompt(generatedText);
 
       const converter = new VerilogCircuitConverter(context.circuitBoard);
       const success = converter.importVerilogCode(code!);
 
       if (success) {
-        // return "I've successfully created the circuit from your Verilog code! You can see it on the canvas now.";
-        return generatedText;
+        return "I've successfully created the circuit from your Verilog code! You can see it on the canvas now.";
       } else {
         return "I found Verilog code but couldn't create a circuit from it. There might be syntax errors or unsupported features.";
       }
@@ -63,12 +58,9 @@ export class VerilogImportTool implements Tool {
     }
   }
 
-  // Helper method to extract Verilog code
   private extractVerilogFromPrompt(prompt: string): string | null {
-    // First remove all backtick characters from the text
     const cleanedPrompt = prompt.replace(/`/g, "");
 
-    // Simple approach to extract module content
     const moduleStartIndex = cleanedPrompt.indexOf("module");
     if (moduleStartIndex === -1) return null;
 
@@ -79,13 +71,11 @@ export class VerilogImportTool implements Tool {
   }
 }
 
-// Tool for fixing or creating circuits based on user descriptions
 export class CircuitFixTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
     try {
-      // Get existing circuit data if available
       let circuitJson = {};
-      if (typeof context.circuitBoard.exportCircuit=== 'function') {
+      if (typeof context.circuitBoard.exportCircuit === "function") {
         circuitJson = context.circuitBoard.exportCircuit();
       }
 
@@ -1679,8 +1669,10 @@ Add meaningful names to inputs and outputs of components using text component. I
 `;
 
       // Create augmented message with circuit data
-      const circuitData = Object.keys(circuitJson).length > 0 ? 
-        `\n\nCURRENT CIRCUIT:\n${JSON.stringify(circuitJson, null, 2)}` : '';
+      const circuitData =
+        Object.keys(circuitJson).length > 0
+          ? `\n\nCURRENT CIRCUIT:\n${JSON.stringify(circuitJson, null, 2)}`
+          : "";
       const augmentedMessage = `${circuitSpecPrompt}\n\n${context.message}${circuitData}`;
 
       // Call the Gemini API
@@ -1700,13 +1692,14 @@ Add meaningful names to inputs and outputs of components using text component. I
 
       const data = await response.json();
       const generatedText = data.text || "";
-      
+
       // Extract JSON string from response
       let jsonString = null;
-      const jsonMatch = generatedText.match(/```json\s*([\s\S]*?)\s*```/) || 
-                       generatedText.match(/```\s*([\s\S]*?)\s*```/) ||
-                       generatedText.match(/(\{[\s\S]*"components"[\s\S]*"wires"[\s\S]*\})/);
-      
+      const jsonMatch =
+        generatedText.match(/```json\s*([\s\S]*?)\s*```/) ||
+        generatedText.match(/```\s*([\s\S]*?)\s*```/) ||
+        generatedText.match(/(\{[\s\S]*"components"[\s\S]*"wires"[\s\S]*\})/);
+
       if (jsonMatch && jsonMatch[1]) {
         jsonString = jsonMatch[1].trim();
       } else {
@@ -1715,25 +1708,28 @@ Add meaningful names to inputs and outputs of components using text component. I
           jsonString = directJsonMatch[0].trim();
         }
       }
-      
+
       if (!jsonString) {
         return "I couldn't generate a valid circuit representation. Please provide more specific details.";
       }
-      
+
       console.log("Extracted JSON string:", jsonString + "...");
-      
+
       // Clear the current circuit
-      if (typeof context.circuitBoard.clearCircuit === 'function') {
+      if (typeof context.circuitBoard.clearCircuit === "function") {
         context.circuitBoard.clearCircuit();
       }
-      
+
       try {
         context.circuitBoard.importCircuit(jsonString);
         return "I've created/fixed the circuit based on your description. You can see it on the canvas now.";
       } catch (error) {
         console.error("Error importing circuit:", error);
-        return "I've designed a circuit based on your description, but couldn't automatically apply it. Here's the JSON representation:\n\n```json\n" + 
-          jsonString + "\n```";
+        return (
+          "I've designed a circuit based on your description, but couldn't automatically apply it. Here's the JSON representation:\n\n```json\n" +
+          jsonString +
+          "\n```"
+        );
       }
     } catch (error) {
       console.error("Error in CircuitFixTool:", error);

@@ -368,20 +368,17 @@ export class CircuitBoard {
     this.draggedComponent = null; // Clear dragged component on touch end
     this.isSelecting = false;
     const touch = event.changedTouches[0];
-    // If we have an active wire that needs to be connected
+
     if (this.currentWire && event.changedTouches.length > 0) {
       // Convert to world coordinates
       const worldPos = this.getTransformedMousePosition(touch.clientX, touch.clientY);
 
       console.log("Touch end at world position:", worldPos);
 
-      // Expand the touch target area for better port detection
-      const TOUCH_RADIUS = 30; // Larger radius for easier port targeting
+      const TOUCH_RADIUS = 30;
 
-      // Check all components for a port near the touch point
       let foundPort = null;
       for (const component of this.components) {
-        // Use an expanded hit area for touch
         const port = component.getPortAtPositionRadius(worldPos, TOUCH_RADIUS);
         if (port) {
           console.log("Found port for connection:", port);
@@ -480,59 +477,41 @@ export class CircuitBoard {
     this.components.push(component);
     this.draw();
   }
-  /**
-   * Tüm bileşenleri otomatik olarak düzenler ve grid'e hizalar
-   */
+
   public autoArrangeCircuit(): void {
     if (this.components.length === 0) {
-      console.log("Düzenlenecek bileşen yok.");
+      console.log("There are no components to arrange.");
       return;
     }
 
-    console.log("Devre otomatik olarak düzenleniyor...");
-
-    // 1. Önce her bileşeni en yakın grid çizgisine hizala
     this.snapAllComponentsToGrid();
 
-    // 2. Devre yapısını analiz et ve bileşenleri düzenle
     this.organizeCircuitLayout();
 
-    // 3. Tüm kabloları yeniden yönlendir
     this.rerouteAllWires();
 
-    // 4. Değişiklikleri ekrana yansıt
     this.simulate();
     this.draw();
 
-    console.log("Devre düzenleme tamamlandı.");
+    console.log("Circuit arrangement completed.");
   }
 
-  /**
-   * Tüm bileşenleri en yakın grid noktasına hizalar
-   */
   private snapAllComponentsToGrid(): void {
-    const gridSize = 20; // Grid boyutu (piksel)
+    const gridSize = 20;
 
     this.components.forEach(component => {
-      // Bileşenin mevcut pozisyonunu al
       const currentPos = component.position;
 
-      // En yakın grid noktasını hesapla
       const newX = Math.round(currentPos.x / gridSize) * gridSize;
       const newY = Math.round(currentPos.y / gridSize) * gridSize;
 
-      // Bileşeni yeni pozisyona taşı
       component.move({ x: newX, y: newY });
     });
 
     console.log("Tüm bileşenler grid'e hizalandı.");
   }
 
-  /**
-   * Devre yerleşimini optimize eden fonksiyon
-   */
   private organizeCircuitLayout(): void {
-    // Bileşenleri türlerine göre grupla
     const inputComponents: Component[] = [];
     const logicGateComponents: Component[] = [];
     const outputComponents: Component[] = [];
@@ -560,24 +539,17 @@ export class CircuitBoard {
       }
     });
 
-    // Giriş bileşenlerini sol tarafta düzenle
     this.organizeComponentsInColumn(inputComponents, 100, 100, 80);
 
-    // Mantık kapılarını ortada düzenle (katmanlar halinde)
     this.organizeLogicGatesByLayers(logicGateComponents, 300);
 
-    // Çıkış bileşenlerini sağ tarafta düzenle
     this.organizeComponentsInColumn(outputComponents, 800, 100, 80);
 
-    // Diğer bileşenleri ayrı bir alanda düzenle
     this.organizeComponentsInColumn(otherComponents, 50, 500, 100);
 
-    console.log("Devre yerleşimi optimize edildi.");
+    console.log("Circuit layout optimized.");
   }
 
-  /**
-   * Bileşenleri bir sütun halinde düzenler
-   */
   private organizeComponentsInColumn(
     components: Component[],
     startX: number,
@@ -589,14 +561,9 @@ export class CircuitBoard {
     });
   }
 
-  /**
-   * Mantık kapılarını katmanlar halinde düzenler
-   */
   private organizeLogicGatesByLayers(components: Component[], startX: number): void {
-    // Kapılar arasındaki mantıksal bağlantıları analiz et
     const gateLayers = this.analyzeGateLayers(components);
 
-    // Her katmandaki kapıları düzenle
     Object.keys(gateLayers).forEach(layerIndex => {
       const layerComponents = gateLayers[parseInt(layerIndex)];
       const layerX = startX + parseInt(layerIndex) * 150;
@@ -607,14 +574,10 @@ export class CircuitBoard {
     });
   }
 
-  /**
-   * Mantık kapıları arasındaki bağlantıları analiz ederek katmanlar oluşturur
-   */
   private analyzeGateLayers(gates: Component[]): { [layer: number]: Component[] } {
     const layeredGates: { [layer: number]: Component[] } = { 0: [] };
     const assignedGates = new Set<string>();
 
-    // İlk katmana giriş bağlantısı olmayan veya sadece giriş bileşenlerinden bağlantı alan kapıları yerleştir
     gates.forEach(gate => {
       const hasInputOnly = this.hasInputsOnlyFromInputComponents(gate);
       if (hasInputOnly) {
@@ -623,7 +586,6 @@ export class CircuitBoard {
       }
     });
 
-    // Geri kalan kapıları katmanlara yerleştir
     let currentLayer = 0;
     let allAssigned = false;
 
@@ -653,7 +615,6 @@ export class CircuitBoard {
       });
 
       if (!somethingChanged) {
-        // Eğer hiçbir kapı atanmadıysa, kalan tüm kapıları son katmana ekle
         gates.forEach(gate => {
           if (!assignedGates.has(gate.id)) {
             layeredGates[nextLayer].push(gate);
@@ -669,16 +630,12 @@ export class CircuitBoard {
     return layeredGates;
   }
 
-  /**
-   * Bir kapının tüm girişlerinin belirli bir katmana kadar atanmış olup olmadığını kontrol eder
-   */
   private areAllInputsAssigned(
     gate: Component,
     assignedGates: Set<string>,
     currentLayer: number,
     layeredGates: { [layer: number]: Component[] }
   ): boolean {
-    // Kapının girişlerini kontrol et
     const inputConnections = this.getInputConnections(gate);
 
     if (inputConnections.length === 0) return true;
@@ -688,7 +645,6 @@ export class CircuitBoard {
         return false;
       }
 
-      // Girişin hangi katmanda olduğunu kontrol et
       let foundInPreviousLayers = false;
       for (let layer = 0; layer <= currentLayer; layer++) {
         if (layeredGates[layer] && layeredGates[layer].some(g => g.id === sourceGate.id)) {
@@ -710,41 +666,38 @@ export class CircuitBoard {
 
       if (ioCount.inputs === 0) {
         alert(
-          "Truth table oluşturmak için devrede giriş bileşenleri (toggle, button, constant) gereklidir."
+          "There needs to be at least one input component (toggle, button, constant) in the circuit to generate a truth table."
         );
         return;
       }
 
       if (ioCount.outputs === 0) {
         alert(
-          "Truth table oluşturmak için devrede çıkış bileşenleri (light-bulb, led, hex) gereklidir."
+          "There needs to be at least one output component (light-bulb, led, hex) in the circuit to generate a truth table."
         );
         return;
       }
 
-      // Çok fazla giriş varsa uyarı ver
       if (ioCount.inputs > 10) {
         const confirmed = confirm(
-          `${ioCount.inputs} giriş için ${Math.pow(2, ioCount.inputs)} kombinasyon hesaplanacak. Bu işlem uzun sürebilir. Devam etmek istiyor musunuz?`
+          `${ioCount.inputs} inputs will be calculated for ${Math.pow(2, ioCount.inputs)} combinations. This process may take a long time. Do you want to continue?`
         );
         if (!confirmed) return;
       }
 
-      // Bileşenlere etiket ekle
+      // Add labels to components
       this.addLabelsToComponents();
 
-      // Truth table oluştur
+      // Generate truth table
       this.truthTableManager.generateTruthTable();
 
-      // Tabloyu göster
+      // Show table
       this.showTruthTableModal();
     } catch (error) {
-      alert(`Truth table oluşturulurken hata: ${error}`);
+      alert(`Error generating truth table: ${error}`);
     }
   }
-  /**
-   * HTML tablosunu Canvas'a render eder
-   */
+
   private renderTableToCanvas(
     ctx: CanvasRenderingContext2D,
     table: HTMLTableElement,
@@ -755,20 +708,17 @@ export class CircuitBoard {
     ctx.textBaseline = "middle";
 
     const rows = table.rows;
-    const headerHeight = 40; // Başlık satır yüksekliği
-    const rowHeight = 30; // Normal satır yüksekliği
+    const headerHeight = 40;
+    const rowHeight = 30;
 
-    // Kolon sayısını ve genişliğini hesapla
     const columnCount = rows[0]?.cells.length || 0;
     const columnWidth = (table.offsetWidth - padding * 2) / columnCount;
 
-    // Başlık satırını çiz
     if (rows.length > 0) {
-      ctx.fillStyle = "#222"; // Başlık arka plan rengi
+      ctx.fillStyle = "#222";
       ctx.fillRect(padding, padding, table.offsetWidth - padding * 2, headerHeight);
 
-      // Başlık metinlerini çiz
-      ctx.fillStyle = "#fff"; // Başlık metin rengi
+      ctx.fillStyle = "#fff";
       const headerRow = rows[0];
 
       for (let j = 0; j < headerRow.cells.length; j++) {
@@ -779,16 +729,14 @@ export class CircuitBoard {
       }
     }
 
-    // Veri satırlarını çiz
     for (let i = 1; i < rows.length; i++) {
       const isOdd = i % 2 === 1;
-      ctx.fillStyle = isOdd ? "#333" : "#282828"; // Satır arka plan rengi (çizgili)
+      ctx.fillStyle = isOdd ? "#333" : "#282828";
 
       const rowY = padding + headerHeight + (i - 1) * rowHeight;
       ctx.fillRect(padding, rowY, table.offsetWidth - padding * 2, rowHeight);
 
-      // Hücre metinlerini çiz
-      ctx.fillStyle = "#fff"; // Hücre metin rengi
+      ctx.fillStyle = "#fff";
       const row = rows[i];
 
       for (let j = 0; j < row.cells.length; j++) {
@@ -799,11 +747,9 @@ export class CircuitBoard {
       }
     }
 
-    // Tablo ızgarasını çiz
     ctx.strokeStyle = "#444";
     ctx.lineWidth = 1;
 
-    // Dikey çizgiler
     for (let j = 0; j <= columnCount; j++) {
       const lineX = padding + j * columnWidth;
       ctx.beginPath();
@@ -812,7 +758,6 @@ export class CircuitBoard {
       ctx.stroke();
     }
 
-    // Yatay çizgiler
     for (let i = 0; i <= rows.length; i++) {
       const lineY =
         i === 0
@@ -827,7 +772,6 @@ export class CircuitBoard {
       ctx.stroke();
     }
 
-    // Tablonun çevresini kalın çizgi olarak vurgula
     ctx.lineWidth = 2;
     ctx.strokeRect(
       padding,
@@ -836,9 +780,7 @@ export class CircuitBoard {
       headerHeight + (rows.length - 1) * rowHeight
     );
   }
-  /**
-   * Truth table modalını gösterir
-   */
+
   private showTruthTableModal(): void {
     if (document.querySelector(".truth-table-modal")) {
       document.body.removeChild(document.querySelector(".truth-table-modal")!);
@@ -846,7 +788,6 @@ export class CircuitBoard {
     const modal = document.createElement("div");
     modal.className = "truth-table-modal";
 
-    // Modal içeriği için stil tanımlayalım
     modal.style.position = "fixed";
     modal.style.top = "0";
     modal.style.left = "0";
@@ -858,7 +799,6 @@ export class CircuitBoard {
     modal.style.alignItems = "center";
     modal.style.zIndex = "1000";
 
-    // Modal içeriği
     const content = document.createElement("div");
     content.className = "modal-content";
     content.style.backgroundColor = "#151515";
@@ -869,7 +809,6 @@ export class CircuitBoard {
     content.style.maxHeight = "90%";
     content.style.overflow = "auto";
 
-    // Modal başlığı
     const header = document.createElement("div");
     header.style.display = "flex";
     header.style.justifyContent = "space-between";
@@ -893,17 +832,14 @@ export class CircuitBoard {
     header.appendChild(title);
     header.appendChild(closeButton);
 
-    // Tablo container
     const tableContainer = document.createElement("div");
     tableContainer.style.marginBottom = "20px";
     tableContainer.style.overflow = "auto";
 
-    // Truth table
     const table = this.truthTableManager.createTruthTableElement();
     table.style.borderCollapse = "collapse";
     table.style.width = "100%";
 
-    // Tablo stili
     const style = document.createElement("style");
     style.textContent = `
       .truth-table th, .truth-table td {
@@ -926,7 +862,6 @@ export class CircuitBoard {
 
     tableContainer.appendChild(table);
 
-    // Dışa aktarma butonları
     const exportContainer = document.createElement("div");
     exportContainer.style.display = "flex";
     exportContainer.style.gap = "10px";
@@ -953,22 +888,18 @@ export class CircuitBoard {
     exportPNG.style.borderRadius = "4px";
     exportPNG.style.cursor = "pointer";
     exportPNG.onclick = () => {
-      // HTML tablosunu bir görüntüye dönüştürme
       const tempCanvas = document.createElement("canvas");
-      const padding = 20; // Kenar boşluğu ekleyin
+      const padding = 20;
       tempCanvas.width = table.offsetWidth + padding * 2;
       tempCanvas.height = table.offsetHeight + padding * 2;
 
       const tempCtx = tempCanvas.getContext("2d")!;
 
-      // Arka plan rengini ayarla
       tempCtx.fillStyle = "#151515";
       tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-      // Truth Table'ı render et
       this.renderTableToCanvas(tempCtx, table as HTMLTableElement, padding);
 
-      // PNG olarak dışa aktar
       const dataUrl = tempCanvas.toDataURL("image/png");
       this.downloadFile(dataUrl, "truth-table.png", "image/png", true);
     };
@@ -976,18 +907,15 @@ export class CircuitBoard {
     exportContainer.appendChild(exportCSV);
     exportContainer.appendChild(exportPNG);
 
-    // Tüm öğeleri modala ekle
     content.appendChild(header);
     content.appendChild(tableContainer);
     content.appendChild(exportContainer);
     modal.appendChild(content);
 
-    // Modalı ekrana ekle
     document.body.appendChild(modal);
   }
   public showKarnaughMap(): void {
     try {
-      // IO bileşenlerini tespit et
       const ioCount = this.truthTableManager.identifyIOComponents();
 
       if (ioCount.inputs === 0) {
@@ -2061,7 +1989,7 @@ export class CircuitBoard {
           (component as any).toggle();
           this.simulate();
           break;
-        }  else if (component.onClick) {
+        } else if (component.onClick) {
           component.onClick(mousePos);
           this.simulate();
           break;
@@ -2729,15 +2657,14 @@ export class CircuitBoard {
 
       for (const compData of circuitData.components) {
         const component = this.createComponentByType(compData.type, compData.state.position);
-        
-        if(component instanceof Text){
-            component.setText(compData.state.text || "");
-            var comp = this.getComponentById(compData.state.attachedToId);
-            
-            if(comp)
-              component.attachToComponent(comp);
 
-            component.setRelativeOffset(compData.state.relativeOffset || { x: 0, y: 0 });
+        if (component instanceof Text) {
+          component.setText(compData.state.text || "");
+          var comp = this.getComponentById(compData.state.attachedToId);
+
+          if (comp) component.attachToComponent(comp);
+
+          component.setRelativeOffset(compData.state.relativeOffset || { x: 0, y: 0 });
         }
 
         if (component) {

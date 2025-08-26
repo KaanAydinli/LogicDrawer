@@ -1,4 +1,4 @@
-import { apiBaseUrl } from './apiConfig';
+import { apiBaseUrl } from "./apiConfig";
 
 export interface User {
   id: string;
@@ -12,9 +12,8 @@ export class AuthService {
   private _isAuthenticated: boolean = false;
   private _isInitialized: boolean = false;
   private _authInitPromise: Promise<boolean> | null = null;
-  
+
   private constructor() {
-    // Sayfa yüklendiğinde otomatik olarak kimlik doğrulama kontrolü başlatılır
     this._authInitPromise = this.checkAuthStatus();
   }
 
@@ -37,16 +36,15 @@ export class AuthService {
     return this._isInitialized;
   }
 
-  // Kimlik doğrulama sisteminin başlatılmasını beklemek için kullanılır
   public async waitForInitialization(): Promise<boolean> {
     if (this._isInitialized) {
       return this._isAuthenticated;
     }
-    
+
     if (this._authInitPromise) {
       return await this._authInitPromise;
     }
-    
+
     return await this.checkAuthStatus();
   }
 
@@ -54,16 +52,16 @@ export class AuthService {
     try {
       console.log("AuthService: Checking authentication status...");
       const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
-        credentials: 'include'
+        credentials: "include",
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         if (data.user) {
           this._currentUser = {
             id: data.user._id || data.user.id,
             name: data.user.name,
-            email: data.user.email
+            email: data.user.email,
           };
           this._isAuthenticated = true;
           console.log("AuthService: User authenticated:", this._currentUser);
@@ -90,12 +88,12 @@ export class AuthService {
   public async login(email: string, password: string): Promise<boolean> {
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
-        credentials: 'include'
+        credentials: "include",
       });
 
       if (response.ok) {
@@ -103,7 +101,7 @@ export class AuthService {
         this._currentUser = {
           id: data.user._id || data.user.id,
           name: data.user.name,
-          email: data.user.email
+          email: data.user.email,
         };
         this._isAuthenticated = true;
         return true;
@@ -119,14 +117,13 @@ export class AuthService {
   public async logout(): Promise<boolean> {
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/logout`, {
-        method: 'POST',
-        credentials: 'include'
+        method: "POST",
+        credentials: "include",
       });
 
-      // Yerel durumu sıfırla
       this._currentUser = null;
       this._isAuthenticated = false;
-      
+
       return response.ok;
     } catch (error) {
       console.error("Logout error:", error);
