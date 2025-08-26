@@ -920,17 +920,18 @@ export class CircuitBoard {
 
       if (ioCount.inputs === 0) {
         alert(
-          "K-Map oluşturmak için devrede giriş bileşenleri (toggle, button, constant) gereklidir."
+          "There needs to be at least one input component (toggle, button, constant) in the circuit."
         );
         return;
       }
 
       if (ioCount.outputs === 0) {
-        alert("K-Map oluşturmak için devrede çıkış bileşenleri (light-bulb, led, hex) gereklidir.");
+        alert(
+          "There needs to be at least one output component (light-bulb, led, hex) in the circuit to create a K-Map."
+        );
         return;
       }
 
-      // Truth table oluştur
       this.truthTableManager.generateTruthTable();
 
       // KMap oluştur
