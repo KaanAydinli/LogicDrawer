@@ -1,8 +1,5 @@
 import { Component, Point } from "../Component";
 
-/**
- * Text component for adding labels and annotations to the circuit
- */
 export class Text extends Component {
   private text: string;
   private fontSize: number;
@@ -14,7 +11,7 @@ export class Text extends Component {
   private editor: HTMLTextAreaElement | null = null;
   private attachedTo: Component | null = null;
   private relativeOffset: Point = { x: 0, y: 0 };
-  private snapDistance: number = 20; // Yapışma mesafesi
+  private snapDistance: number = 20;
 
   constructor(
     position: Point,
@@ -41,19 +38,12 @@ export class Text extends Component {
   attachToComponent(component: Component): void {
     this.attachedTo = component;
 
-    
     this.relativeOffset = {
       x: this.position.x - component.position.x,
       y: this.position.y - component.position.y,
     };
-
-  
-    
   }
 
-  /**
-   * Calculate the width of the text using canvas measurement
-   */
   private calculateTextWidth(): number {
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
@@ -64,14 +54,8 @@ export class Text extends Component {
     return metrics.width;
   }
 
-  /**
-   * Text components don't have any logic to evaluate
-   */
   evaluate(): void {}
 
-  /**
-   * Draw text on the canvas
-   */
   draw(ctx: CanvasRenderingContext2D): void {
     if (this.isEditing) return;
 
@@ -98,18 +82,12 @@ export class Text extends Component {
     ctx.restore();
   }
 
-  /**
-   * Handle double-click for editing
-   */
   onDoubleClick(point: Point, canvas: HTMLCanvasElement): void {
     if (this.containsPoint(point) && !this.isEditing) {
       this.showEditor(canvas);
     }
   }
 
-  /**
-   * Display a textarea for editing the text
-   */
   private showEditor(canvas: HTMLCanvasElement): void {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -205,74 +183,64 @@ export class Text extends Component {
     this.size.width = this.calculateTextWidth();
   }
 
-  
-
   setColor(color: string): void {
     this.color = color;
   }
- update(): void {
+  update(): void {
     if (this.attachedTo) {
       this.position = {
         x: this.attachedTo.position.x + this.relativeOffset.x,
-        y: this.attachedTo.position.y + this.relativeOffset.y
+        y: this.attachedTo.position.y + this.relativeOffset.y,
       };
     }
   }
-  
-  /**
-   * Mevcut drag metodunu override et
-   */
+
   drag(point: Point): void {
     if (this.dragging && !this.isEditing) {
       this.position = {
         x: point.x + this.dragOffset.x,
-        y: point.y + this.dragOffset.y
+        y: point.y + this.dragOffset.y,
       };
-      
-      // Eğer bir komponente bağlıysa ve sürüklüyorsa, bağlantıyı güncelle
+
       if (this.attachedTo) {
         this.relativeOffset = {
           x: this.position.x - this.attachedTo.position.x,
-          y: this.position.y - this.attachedTo.position.y
+          y: this.position.y - this.attachedTo.position.y,
         };
       }
     }
   }
   findAndAttachToNearestComponent(components: Component[]): boolean {
     if (this.isEditing) return false;
-    
+
     let closestComponent: Component | null = null;
     let minDistance = Infinity;
-    
+
     for (const component of components) {
-      // Text komponentini ve kendisini atla
       if (component === this || component.type === "text") continue;
-      
+
       const distance = Math.sqrt(
-        Math.pow(this.position.x - component.position.x, 2) + 
-        Math.pow(this.position.y - component.position.y, 2)
+        Math.pow(this.position.x - component.position.x, 2) +
+          Math.pow(this.position.y - component.position.y, 2)
       );
-      
+
       if (distance < minDistance && distance < this.snapDistance) {
         minDistance = distance;
         closestComponent = component;
       }
     }
-    
+
     if (closestComponent) {
       this.attachToComponent(closestComponent);
       return true;
     }
-    
+
     return false;
   }
-  /**
-   * Sürükleme bitince en yakın komponente yapıştırmayı dene
-   */
+
   endDrag(components: Component[]): void {
     this.dragging = false;
-    
-    // Eğer zaten bir komponente bağlı değilse, yakındaki bir komponente yapıştırmayı dene
+
     if (!this.attachedTo) {
       this.findAndAttachToNearestComponent(components);
     }
@@ -282,12 +250,10 @@ export class Text extends Component {
     if (this.attachedTo) {
       this.position = {
         x: this.attachedTo.position.x + offset.x,
-        y: this.attachedTo.position.y + offset.y
+        y: this.attachedTo.position.y + offset.y,
       };
     }
   }
-  
-  // getState ve setState metodlarını güncelle
   getState(): any {
     const baseState = super.getState();
     return {
@@ -297,21 +263,16 @@ export class Text extends Component {
       fontFamily: this.fontFamily,
       color: this.color,
       attachedToId: this.attachedTo ? this.attachedTo.id : null,
-      relativeOffset: this.relativeOffset
+      relativeOffset: this.relativeOffset,
     };
   }
-  
+
   setState(state: any): void {
     super.setState(state);
-    
-    
-    
+
     if (state.relativeOffset) {
       this.relativeOffset = state.relativeOffset;
     }
-    
-    // attachedToId işlemi, CircuitBoard tarafından yapılmalı çünkü
-    // burada diğer komponentlere erişimimiz yok
   }
   cancelEditing(): void {
     if (this.isEditing && this.editor) {

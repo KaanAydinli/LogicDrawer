@@ -7,183 +7,172 @@ export class Tutorial {
   private prevButton: HTMLButtonElement;
   private nextButton: HTMLButtonElement;
   private dontShowAgainCheckbox: HTMLInputElement;
-  
- constructor() {
-  this.modal = document.getElementById('tutorial-modal') as HTMLElement;
-  if (!this.modal) {
-    console.error("tutorial-modal elementi bulunamadı!");
-    throw new Error("tutorial-modal elementi bulunamadı");
-  }
-  
-  this.contentContainer = document.getElementById('tutorial-content') as HTMLElement;
-  if (!this.contentContainer) {
-    console.error("tutorial-content elementi bulunamadı!");
-    throw new Error("tutorial-content elementi bulunamadı");
-  }
-  
-  this.stepIndicators = document.getElementById('step-indicators') as HTMLElement;
-  this.prevButton = document.getElementById('prev-step') as HTMLButtonElement;
-  this.nextButton = document.getElementById('next-step') as HTMLButtonElement;
-  this.dontShowAgainCheckbox = document.getElementById('dont-show-again') as HTMLInputElement;
-  
-  // DOM'a erişmeden önce DOM'un tamamen yüklendiğinden emin olalım
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+
+  constructor() {
+    this.modal = document.getElementById("tutorial-modal") as HTMLElement;
+    if (!this.modal) {
+      throw new Error("tutorial-modal  does not exist");
+    }
+
+    this.contentContainer = document.getElementById("tutorial-content") as HTMLElement;
+    if (!this.contentContainer) {
+      throw new Error("tutorial-content does not exist");
+    }
+
+    this.stepIndicators = document.getElementById("step-indicators") as HTMLElement;
+    this.prevButton = document.getElementById("prev-step") as HTMLButtonElement;
+    this.nextButton = document.getElementById("next-step") as HTMLButtonElement;
+    this.dontShowAgainCheckbox = document.getElementById("dont-show-again") as HTMLInputElement;
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        this.setupTutorialSteps();
+        this.setupEventListeners();
+      });
+    } else {
       this.setupTutorialSteps();
       this.setupEventListeners();
-    });
-  } else {
-    this.setupTutorialSteps();
-    this.setupEventListeners();
+    }
   }
-}
-  
+
   private setupTutorialSteps() {
-     this.steps = [
-    {
-      title: "LogicDrawer'a Hoş Geldiniz!",
-      content: `
-        <p>LogicDrawer, dijital mantık devrelerini tasarlamanıza, simüle etmenize ve paylaşmanıza olanak tanıyan güçlü bir araçtır.</p>
-        <p>Bu kısa rehber, temel özellikleri tanıtacak ve başlamanıza yardımcı olacaktır.</p>
+    this.steps = [
+      {
+        title: "Welcome to LogicDrawer",
+        content: `
+        <p>LogicDrawer is a powerful tool that allows you to design, simulate, and share digital logic circuits.</p>
+        <p>This quick guide will introduce you to the basic features and help you get started.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/login.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
-      `
-    },
-    {
-      title: "Bileşenleri Sürükleyip Bırakma",
-      content: `
-        <p>Sol taraftaki panelden bileşenleri seçip, çalışma alanına sürükleyebilirsiniz.</p>
-        <p>And, Or, Not gibi mantık kapıları, anahtar ve LED gibi giriş/çıkış bileşenleri kullanarak devrelerinizi oluşturun.</p>
+      `,
+      },
+      {
+        title: "Dragging and Dropping Components",
+        content: `
+        <p>You can select components from the panel on the left and drag them into the workspace.</p>
+        <p>Use logic gates like And, Or, Not, as well as input/output components like switches and LEDs to build your circuits.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/dragdrop.mp4" type="video/mp4">
-          Tarayıcınız video etiketini desteklemiyor.
+          Your browser does not support the video tag.
         </video>
-        <p><strong>İpucu:</strong> Çift tıklayarak bir kapıyı döndürebilirsiniz.</p>
-      `
-    },
-    {
-      title: "Bileşenleri Bağlama",
-      content: `
-        <p>Bileşenlerin giriş/çıkış noktalarına tıklayıp, bağlantı yapmak istediğiniz diğer noktaya sürükleyerek kablo oluşturabilirsiniz.</p>
-        <p>Bağlantı sağlandıktan sonra kablolar otomatik olarak kendilerini düzelteceklerdir. </p>
+        <p><strong>Tip:</strong> You can rotate a gate by double-clicking on it.</p>
+      `,
+      },
+      {
+        title: "Connecting Components",
+        content: `
+        <p>You can create a connection by clicking on the input/output points of the components and dragging to the other point you want to connect.</p>
+        <p>Once the connection is established, the wires will automatically adjust themselves.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/connect.mp4" type="video/mp4">
-          Tarayıcınız video etiketini desteklemiyor.
+          Your browser does not support the video tag.
         </video>
-      `
-    },
-    {
-      title: "Simülasyon ve Test",
-      content: `
-        <p>Devrenizi oluşturduktan sonra, giriş değerlerini değiştirerek simülasyonu çalıştırabilirsiniz.</p>
-        <p>Anahtarlara tıklayarak değerlerini değiştirebilir, devrenizin davranışını gözlemleyebilirsiniz.</p>
+      `,
+      },
+      {
+        title: "Simulation and Testing",
+        content: `
+        <p>After creating your circuit, you can run the simulation by changing the input values.</p>
+        <p>You can click on the switches to change their values and observe the behavior of your circuit.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/toggle.mp4" type="video/mp4">
-          Tarayıcınız video etiketini desteklemiyor.
+          Your browser does not support the video tag.
         </video>
-      `
-    },
-    {
-      title: "AI Asistanı Kullanma",
-      content: `
-        <p>Sağ üst köşedeki AI butonuna tıklayarak yapay zeka asistanına erişebilirsiniz.</p>
-        <p>Verilog kodu yazdırma, K-Map ve Truth Table görsellerinden devreye geçiş yapma ve mantık devreleri hakkında bilgi almak için sohbet edebilirsiniz.</p>
-        <p>Aynı zamanda elle çizdiğiniz devre fotoğraflarını yükleyerek yapay zekanın o fotoğrafı, üzerinde oynayabileceğiniz devreye dönüştürmesini izleyebilirsiniz</p>
+      `,
+      },
+      {
+        title: "Using the AI Assistant",
+        content: `
+        <p>You can access the AI assistant by clicking the AI button in the top right corner.</p>
+        <p>You can chat with it to generate Verilog code, transition from K-Map and Truth Table visuals to the circuit, and get information about logic circuits.</p>
+        <p>You can also upload photos of circuits you drew by hand and watch the AI transform that photo into a circuit you can manipulate.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/ai.mp4" type="video/mp4">
-          Tarayıcınız video etiketini desteklemiyor.
+          Your browser does not support the video tag.
         </video>
-      `
-    },
-    {
-      title: "Devre Kaydetme ve Paylaşma",
-      content: `
-        <p>Hesabınıza giriş yaptıktan sonra, üst menüden devrelerinizi kaydedebilir ve başkalarıyla paylaşabilirsiniz.</p>
-        <p>Arkadaşınızın kullanıcı ismini kullanarak paylaştığınız devre üzerinde ortak bir şekilde çalışıp kaydedebilirsiniz</p>
-        <p>Ayrıca topluluk tarafından paylaşılan devrelere erişebilir, onları inceleyebilir ve kendi projelerinizde kullanabilirsiniz.</p>
+      `,
+      },
+      {
+        title: "Saving and Sharing Circuits",
+        content: `
+        <p>After logging into your account, you can save your circuits from the top menu and share them with others.</p>
+        <p>You can collaborate on the shared circuit using your friend's username and save your changes.</p>
+        <p>You can also access circuits shared by the community, review them, and use them in your own projects.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
           <source src="assets/repository.mp4" type="video/mp4">
-          Tarayıcınız video etiketini desteklemiyor.
+          Your browser does not support the video tag.
         </video>
-      `
-    },
-    {
-      title: "Hazırsınız!",
-      content: `
-        <p>Temel özellikleri öğrendiniz! Şimdi kendi dijital mantık devrelerinizi oluşturmaya başlayabilirsiniz.</p>
-        <p>Daha fazla yardıma ihtiyacınız olursa, sağ alt köşedeki yardım butonuna tıklayarak bu rehbere istediğiniz zaman erişebilirsiniz.</p>
-        <p>İyi eğlenceler!</p>
-      `
-    }
-  ];
-    
-    // Step indicators oluştur
-    this.stepIndicators.innerHTML = '';
+      `,
+      },
+      {
+        title: "You're Ready!",
+        content: `
+        <p>You have learned the basic features! Now you can start creating your own digital logic circuits.</p>
+        <p>If you need more help, you can access this guide anytime by clicking the help button in the bottom right corner.</p>
+        <p>Have fun!</p>
+      `,
+      },
+    ];
+
+    this.stepIndicators.innerHTML = "";
     this.steps.forEach((_, index) => {
-      const dot = document.createElement('div');
-      dot.className = 'step-dot';
-      dot.addEventListener('click', () => this.goToStep(index));
+      const dot = document.createElement("div");
+      dot.className = "step-dot";
+      dot.addEventListener("click", () => this.goToStep(index));
       this.stepIndicators.appendChild(dot);
     });
-    
+
     this.updateContent();
   }
-  
+
   private setupEventListeners() {
-    // Kapat butonları
-    document.querySelector('.close-tutorial')?.addEventListener('click', () => this.hide());
-    document.getElementById('tutorial-close')?.addEventListener('click', () => this.hide());
-    
-    // Navigasyon butonları
-    this.prevButton.addEventListener('click', () => this.previousStep());
-    this.nextButton.addEventListener('click', () => this.nextStep());
-    
-    // Don't show again checkbox
-    this.dontShowAgainCheckbox.addEventListener('change', () => {
+    document.querySelector(".close-tutorial")?.addEventListener("click", () => this.hide());
+    document.getElementById("tutorial-close")?.addEventListener("click", () => this.hide());
+
+    this.prevButton.addEventListener("click", () => this.previousStep());
+    this.nextButton.addEventListener("click", () => this.nextStep());
+
+    this.dontShowAgainCheckbox.addEventListener("change", () => {
       if (this.dontShowAgainCheckbox.checked) {
-        localStorage.setItem('tutorialShown', 'true');
+        localStorage.setItem("tutorialShown", "true");
       } else {
-        localStorage.removeItem('tutorialShown');
+        localStorage.removeItem("tutorialShown");
       }
     });
   }
-  
+
   private updateContent() {
     const step = this.steps[this.currentStep];
-    
-    document.getElementById('tutorial-title')!.textContent = step.title;
+
+    document.getElementById("tutorial-title")!.textContent = step.title;
     this.contentContainer.innerHTML = step.content;
-    
-    // Update buttons
+
     this.prevButton.disabled = this.currentStep === 0;
-    this.nextButton.textContent = this.currentStep === this.steps.length - 1 ? 'Bitir' : 'Sonraki';
-    
-    // Update indicators
+    this.nextButton.textContent = this.currentStep === this.steps.length - 1 ? "Bitir" : "Sonraki";
+
     Array.from(this.stepIndicators.children).forEach((dot, index) => {
-      dot.classList.toggle('active', index === this.currentStep);
+      dot.classList.toggle("active", index === this.currentStep);
     });
   }
-  
+
   public show() {
-    
-    this.modal.style.display = 'block';
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
+    this.modal.style.display = "block";
+    document.body.style.overflow = "hidden";
   }
-  
+
   public hide() {
-    this.modal.style.display = 'none';
-    
+    this.modal.style.display = "none";
   }
-  
+
   public previousStep() {
     if (this.currentStep > 0) {
       this.currentStep--;
       this.updateContent();
     }
   }
-  
+
   public nextStep() {
     if (this.currentStep < this.steps.length - 1) {
       this.currentStep++;
@@ -192,16 +181,16 @@ export class Tutorial {
       this.hide();
     }
   }
-  
+
   public goToStep(stepIndex: number) {
     if (stepIndex >= 0 && stepIndex < this.steps.length) {
       this.currentStep = stepIndex;
       this.updateContent();
     }
   }
-  
+
   public shouldShowTutorial(): boolean {
-    return localStorage.getItem('tutorialShown') !== 'true';
+    return localStorage.getItem("tutorialShown") !== "true";
   }
 }
 

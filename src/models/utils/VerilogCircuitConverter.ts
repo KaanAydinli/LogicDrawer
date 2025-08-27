@@ -53,9 +53,9 @@ export class VerilogCircuitConverter {
       this.organizeAndPositionComponents(module, signalLayers);
       this.buildCircuit(module);
 
-      for(const component in this.components){
+      for (const component in this.components) {
         const comp = this.components[component];
-        
+
         comp.selected = true;
 
         this.circuitBoard.selectedComponents.push(comp);
@@ -441,41 +441,33 @@ export class VerilogCircuitConverter {
           case "mux2":
             component = new Mux2(position);
 
-            // Component'i ekle
             this.components[gate.output] = component;
             this.outputPorts[gate.output] = component.outputs[0];
             this.circuitBoard.addComponent(component);
 
-            // Veri girişlerini bağla (0 ve 1 girişleri)
             for (let i = 0; i < Math.min(gate.inputs.length, 2); i++) {
               const inputName = gate.inputs[i];
               this.connectGateInputToComponent(inputName, component, i);
             }
 
-            // Seçim (select) sinyalini bağla (2. giriş)
             if (gate.controlSignal) {
               this.connectControlSignal(gate.controlSignal, component, 2);
             }
 
-            // Diğer kapılarda olduğu gibi devam etmemesi için erkenden dön
             continue;
           case "mux4":
             component = new Mux4(position);
 
-            // Component'i ekle
             this.components[gate.output] = component;
             this.outputPorts[gate.output] = component.outputs[0];
             this.circuitBoard.addComponent(component);
 
-            // Veri girişlerini bağla (0, 1, 2, 3 girişleri)
             for (let i = 0; i < Math.min(gate.inputs.length, 4); i++) {
               const inputName = gate.inputs[i];
               this.connectGateInputToComponent(inputName, component, i);
             }
 
-            // Seçim sinyalini bağla
             if (gate.controlSignal) {
-              // MUX4 2-bit kontrol girişi gerektirir - select0 ve select1
               this.connectControlSignalForMux4(gate.controlSignal, component, gate.conditions);
             }
 
@@ -483,24 +475,20 @@ export class VerilogCircuitConverter {
           case "dflipflop":
             component = new DFlipFlop(position);
 
-            // Component'i ekle
             this.components[gate.output] = component;
-            // DFF'nin Q çıkışını (index 0) outputPorts'a ekle
+
             this.outputPorts[gate.output] = component.outputs[0];
             this.circuitBoard.addComponent(component);
 
-            // Girişleri bağla:
-            // gate.inputs[0] -> D girişi (component.inputs[0])
-            // gate.inputs[1] -> CLK girişi (component.inputs[1])
             if (gate.inputs.length >= 2) {
-              this.connectGateInputToComponent(gate.inputs[0], component, 0); // D girişi
-              this.connectGateInputToComponent(gate.inputs[1], component, 1); // CLK girişi
+              this.connectGateInputToComponent(gate.inputs[0], component, 0);
+              this.connectGateInputToComponent(gate.inputs[1], component, 1);
             } else {
               console.error(
                 `DFlipFlop gate '${gate.name || gate.output}' has insufficient inputs.`
               );
             }
-            // DFF için özel bağlantı mantığı burada bitti, genel bağlantıya geçme
+
             continue;
           default:
             console.error(`Unsupported gate type: ${gate.type}`);
@@ -574,28 +562,22 @@ export class VerilogCircuitConverter {
   }
 
   private connectGateInputs(gate: VerilogGate, component: Component): void {
-    // Special handling for DFlipFlop is preserved
     if (gate.type === "dflipflop") {
-      // DFF special handling - already working, no changes needed
       if (gate.inputs.length >= 2) {
-        this.connectGateInputToComponent(gate.inputs[0], component, 0); // D input
-        this.connectGateInputToComponent(gate.inputs[1], component, 1); // CLK input
+        this.connectGateInputToComponent(gate.inputs[0], component, 0);
+        this.connectGateInputToComponent(gate.inputs[1], component, 1);
       } else {
         console.error(`DFlipFlop gate '${gate.name || gate.output}' has insufficient inputs.`);
       }
       return;
     }
 
-    // Check if we need to expand input count for logic gates
     if (this.isLogicGate(gate.type) && gate.inputs.length > component.inputs.length) {
       this.expandGateInputs(component, gate.inputs.length);
 
-      // Important: Re-register the component's output port after expansion
-      // This ensures the output port reference remains valid
       this.outputPorts[gate.output] = component.outputs[0];
     }
 
-    // Create connections for each input, using indexes that match the gate's inputs
     for (let j = 0; j < gate.inputs.length; j++) {
       if (j >= component.inputs.length) {
         console.error(
@@ -606,30 +588,24 @@ export class VerilogCircuitConverter {
 
       const inputName = gate.inputs[j];
 
-      // Skip feedback connections as before
       if (this.feedbackWires.some(fw => fw.source === gate.output && fw.target === inputName)) {
         continue;
       }
 
-      // Handle constants
       if (this.isConstant(inputName)) {
         this.connectConstantValue(inputName, component, j);
         continue;
       }
 
-      // Connect regular inputs
       let sourcePort = this.outputPorts[inputName];
 
       if (!sourcePort) {
-        // Try to find bit-selected signals
         const bitSelectionMatch = inputName.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
         if (bitSelectionMatch) {
           const [, baseName, msb, lsb] = bitSelectionMatch;
 
-          // Try direct bit reference first
           sourcePort = this.outputPorts[inputName];
 
-          // If not found, try base signal for single-bit cases
           if (!sourcePort && !lsb && parseInt(msb) === 0) {
             sourcePort = this.outputPorts[baseName];
           }
@@ -645,7 +621,6 @@ export class VerilogCircuitConverter {
           `Source port for ${inputName} not found, creating auto-toggle for ${gate.output}`
         );
 
-        // Create auto-toggle as before
         const position = this.findUnusedPosition();
         const toggle = new ToggleSwitch(position);
 
@@ -667,7 +642,7 @@ export class VerilogCircuitConverter {
   }
 
   private expandGateInputs(component: Component, targetInputCount: number): void {
-    const logicGate = component as any; // Cast to access LogicGate methods
+    const logicGate = component as any;
 
     if (typeof logicGate.increaseInputCount === "function") {
       while (component.inputs.length < targetInputCount && component.inputs.length < 8) {
@@ -692,11 +667,11 @@ export class VerilogCircuitConverter {
 
       if (!sourcePort) {
         console.warn(`Source gate found but no output port registered for ${sourceGate.output}`);
-        // Try to get reference from the component directly
+
         const sourceComponent = this.components[sourceGate.output];
         if (sourceComponent && sourceComponent.outputs.length > 0) {
           sourcePort = sourceComponent.outputs[0];
-          // Register this port for future use
+
           this.outputPorts[sourceGate.output] = sourcePort;
         }
       }
@@ -706,7 +681,6 @@ export class VerilogCircuitConverter {
       if (!sourcePort && bitSelectionMatch) {
         const [, baseName, bitIndex] = bitSelectionMatch;
 
-        // Additional search for multi-bit outputs
         for (const [name, port] of Object.entries(this.outputPorts)) {
           if (name === actualOutputName || name.startsWith(`${baseName}[${bitIndex}]`)) {
             sourcePort = port;
@@ -724,7 +698,6 @@ export class VerilogCircuitConverter {
     } else {
       console.error(`Source port for output ${outputName} not found, creating fallback toggle`);
 
-      // Create auto-toggle as fallback
       const position = this.findUnusedPosition();
       const toggle = new ToggleSwitch(position);
       this.components[`auto_${actualOutputName}`] = toggle;
@@ -747,25 +720,20 @@ export class VerilogCircuitConverter {
     component: Component,
     inputIndex: number
   ): void {
-    // Sayısal sabit değer mi kontrol et (0, 1, 2'b00, vb.)
     var trimmedInputName = inputName.trim();
     if (this.isConstant(trimmedInputName)) {
       this.connectConstantValue(trimmedInputName, component, inputIndex);
       return;
     }
 
-    // Normal sinyal bağlantısı
     let sourcePort = this.outputPorts[trimmedInputName];
 
     if (!sourcePort) {
-      // For bit selections like a[0], a[1], etc.
       const bitSelectionMatch = trimmedInputName.match(/^(\w+)\[(\d+)(?::(\d+))?\]$/);
       if (bitSelectionMatch) {
-        // Try again with exact match (trim to be safe)
         const exactBitName = trimmedInputName.trim();
         sourcePort = this.outputPorts[exactBitName];
 
-        // If still not found, try with normalized name
         if (!sourcePort) {
           const [, baseName, bitIndex] = bitSelectionMatch;
           const normalizedName = `${baseName.trim()}[${bitIndex.trim()}]`;
@@ -783,14 +751,12 @@ export class VerilogCircuitConverter {
         `Source port for ${inputName} not found, needed for component ${component.id} input ${inputIndex}. Creating auto-toggle.`
       );
 
-      // Otomatik oluşturulan toggle switch ile bağla
       const position = this.findUnusedPosition();
       const toggle = new ToggleSwitch(position);
 
-      // Otomatik oluşturulan toggle'ları ayırt etmek için isim verelim
-      const autoCompName = `auto_${inputName.replace(/[\[\]:]/g, "_")}`; // Geçersiz karakterleri değiştir
+      const autoCompName = `auto_${inputName.replace(/[\[\]:]/g, "_")}`;
       this.components[autoCompName] = toggle;
-      this.outputPorts[inputName] = toggle.outputs[0]; // Orijinal sinyal adıyla kaydet
+      this.outputPorts[inputName] = toggle.outputs[0];
       this.circuitBoard.addComponent(toggle);
 
       const wire = new Wire(toggle.outputs[0]);
@@ -882,7 +848,6 @@ export class VerilogCircuitConverter {
         const derivedBit0Name = `${baseName}[${bit0Index}]`;
         const derivedBit1Name = `${baseName}[${bit1Index}]`;
 
-       
         this.connectGateInputToComponent(derivedBit0Name, component, 4);
         this.connectGateInputToComponent(derivedBit1Name, component, 5);
         return;
@@ -892,7 +857,6 @@ export class VerilogCircuitConverter {
     }
 
     if (conditions && conditions.length > 0) {
-      
       this.connectMux4SelectionsBasedOnCaseValues(conditions, component);
       return;
     }
@@ -974,7 +938,7 @@ export class VerilogCircuitConverter {
 
       const infoPos = { x: mux.position.x, y: mux.position.y - 80 };
       const infoLabel = new Text(infoPos, caseInfoText, 14);
-      
+
       this.circuitBoard.addComponent(infoLabel);
     }
   }
@@ -1079,8 +1043,6 @@ export class VerilogCircuitConverter {
     const wire = new Wire(constantComponent.outputs[0]);
     wire.connect(component.inputs[inputIndex]);
     this.circuitBoard.addWire(wire);
-
-    
   }
 
   private isConstant(value: string): boolean {
@@ -1135,7 +1097,6 @@ export class VerilogCircuitConverter {
     multiBitInputs.forEach((input, signalIndex) => {
       if (!input.bitWidth) return;
 
-     
       const baseX = inputBaseX + signalIndex * horizontalSpacing;
       this.componentPositions.set(input.name, { x: baseX, y: inputBaseY });
 
@@ -1175,12 +1136,10 @@ export class VerilogCircuitConverter {
     multiBitOutputs.forEach((output, signalIndex) => {
       if (!output.bitWidth) return;
 
-    
       const baseX = outputBaseX + signalIndex * horizontalSpacing;
       const baseY = outputBaseY;
       this.componentPositions.set(output.name, { x: baseX, y: baseY });
     });
-
   }
 
   private isPositionUsed(x: number, y: number): boolean {
@@ -1193,7 +1152,6 @@ export class VerilogCircuitConverter {
   }
 
   private connectFeedbackWires(): void {
- 
     const feedbackPairs = new Map<string, string[]>();
 
     for (const { source, target } of this.feedbackWires) {
@@ -1232,7 +1190,6 @@ export class VerilogCircuitConverter {
             continue;
           }
 
-          
           const wire = new Wire(sourcePort);
           wire.connect(targetComponent.inputs[inputIndex]);
           this.circuitBoard.addWire(wire);
@@ -1249,7 +1206,6 @@ export class VerilogCircuitConverter {
 
           if (targetComponent.inputs[inputIndex].isConnected) continue;
 
-          
           const wire = new Wire(sourcePort);
           wire.connect(targetComponent.inputs[inputIndex]);
           this.circuitBoard.addWire(wire);

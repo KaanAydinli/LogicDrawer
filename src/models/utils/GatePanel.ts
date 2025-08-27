@@ -1,12 +1,12 @@
 import { CircuitBoard } from "../CircuitBoard";
 import { Component } from "../Component";
 import { LogicGate } from "../LogicGate";
-import { Wire } from "../Wire"; // Add this import
+import { Wire } from "../Wire";
 
 export class GatePanel {
   private panelElement: HTMLElement;
   private selectedComponent: Component | null = null;
-  private selectedWire: Wire | null = null; // Add this to track selected wire
+  private selectedWire: Wire | null = null;
   private circuitBoard: CircuitBoard;
   private onPropertiesChanged: () => void;
 
@@ -29,11 +29,10 @@ export class GatePanel {
     });
 
     this.addStyles();
-    // Add touch-friendly styles
+
     this.addTouchStyles();
   }
 
-  // Add touch-specific styles for better tablet experience
   private addTouchStyles(): void {
     const touchStyle = document.createElement("style");
     touchStyle.textContent = `
@@ -75,7 +74,7 @@ export class GatePanel {
       this.selectedWire = element;
       this.selectedComponent = null;
     }
-    
+
     this.panelElement.style.display = "block";
     this.render();
   }
@@ -89,7 +88,7 @@ export class GatePanel {
   private hideUIOnly(): void {
     this.panelElement.style.display = "none";
   }
-  
+
   private addStyles(): void {
     const style = document.createElement("style");
     style.textContent = `
@@ -258,10 +257,12 @@ export class GatePanel {
         
         `;
 
-    if(this.selectedComponent.type === "toggle" || this.selectedComponent.type === "button" || this.selectedComponent.type === "light-bulb") {
-
-    }
-    else{
+    if (
+      this.selectedComponent.type === "toggle" ||
+      this.selectedComponent.type === "button" ||
+      this.selectedComponent.type === "light-bulb"
+    ) {
+    } else {
       htmlContent += `
         <div class="property-group">
           <label>Bit Width:</label>
@@ -327,7 +328,7 @@ export class GatePanel {
         </button>
       </div>
     </div>`;
-    
+
     this.panelElement.innerHTML = htmlContent;
 
     document.getElementById("close-panel")?.addEventListener("click", event => {
@@ -450,7 +451,7 @@ export class GatePanel {
         </button>
       </div>
     </div>`;
-    
+
     this.panelElement.innerHTML = htmlContent;
 
     // Add event listeners

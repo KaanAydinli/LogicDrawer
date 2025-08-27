@@ -16,7 +16,6 @@ export class TruthTableManager {
     this.circuitBoard = circuitBoard;
   }
 
-
   public identifyIOComponents(): { inputs: number; outputs: number } {
     this.inputComponents = [];
     this.outputComponents = [];
@@ -45,7 +44,6 @@ export class TruthTableManager {
     };
   }
 
-
   private generateInputCombinations(): boolean[][] {
     const inputCount = this.inputComponents.length;
     const totalCombinations = Math.pow(2, inputCount);
@@ -66,7 +64,6 @@ export class TruthTableManager {
     return combinations;
   }
 
-
   private applyInputCombination(combination: boolean[]): void {
     for (let i = 0; i < this.inputComponents.length; i++) {
       const component = this.inputComponents[i];
@@ -80,9 +77,6 @@ export class TruthTableManager {
     }
   }
 
-  /**
-   * Devre çıkışlarındaki değerleri okur
-   */
   private readOutputValues(): boolean[] {
     var outputValues: boolean[] = [];
 
@@ -99,9 +93,6 @@ export class TruthTableManager {
     return outputValues;
   }
 
-  /**
-   * Truth table'ı oluşturur
-   */
   public generateTruthTable(): void {
     this.identifyIOComponents();
 
@@ -135,9 +126,6 @@ export class TruthTableManager {
     this.restoreCircuitState(originalState);
   }
 
-  /**
-   * Devrenin mevcut durumunu kaydeder
-   */
   private saveCircuitState(): Map<string, boolean> {
     const state = new Map<string, boolean>();
 
@@ -156,9 +144,6 @@ export class TruthTableManager {
     return new KarnaughMap(this.truthTable, inputLabels, outputLabels, outputIndex);
   }
 
-  /**
-   * Devreyi kaydedilen duruma geri getirir
-   */
   private restoreCircuitState(state: Map<string, boolean>): void {
     for (const component of this.inputComponents) {
       if (state.has(component.id)) {
@@ -173,23 +158,14 @@ export class TruthTableManager {
     this.circuitBoard.simulate();
   }
 
-  /**
-   * Giriş bileşenlerini döndürür
-   */
   public getInputComponents(): Component[] {
     return this.inputComponents;
   }
 
-  /**
-   * Çıkış bileşenlerini döndürür
-   */
   public getOutputComponents(): Component[] {
     return this.outputComponents;
   }
 
-  /**
-   * Bir bileşen için alfabetik etiket oluşturur
-   */
   public getAlphabeticLabel(component: Component): string {
     if (this.inputComponents.includes(component)) {
       const index = this.inputComponents.indexOf(component);
@@ -204,9 +180,6 @@ export class TruthTableManager {
     return component.id;
   }
 
-  /**
-   * Bileşen için etiket oluşturur
-   */
   private getComponentLabel(component: Component): string {
     if ((component as any).label) {
       return (component as any).label;
@@ -215,9 +188,6 @@ export class TruthTableManager {
     return this.getAlphabeticLabel(component);
   }
 
-  /**
-   * Truth table'ı HTML tablosu olarak oluşturur
-   */
   public createTruthTableElement(): HTMLElement {
     const table = document.createElement("table");
     table.className = "truth-table";
@@ -259,9 +229,6 @@ export class TruthTableManager {
     return table;
   }
 
-  /**
-   * Truth table'ı CSV formatında dışa aktarır
-   */
   public exportToCSV(): string {
     const rows: string[] = [];
 

@@ -172,7 +172,6 @@ export class VerilogParser {
     inputs.push(...bodyInputs);
     outputs.push(...bodyOutputs);
 
-
     if (inputs.length === 0) {
       console.warn("No input ports defined or detected in the module.");
       throw new Error("No input ports defined in the module");
@@ -184,7 +183,6 @@ export class VerilogParser {
     return { inputs: inputs, outputs: outputs, wires: wires };
   }
 
-  
   private collectPortsWithBitWidths(source: string, regex: RegExp): VerilogPort[] {
     const results: VerilogPort[] = [];
     let match;
@@ -207,7 +205,6 @@ export class VerilogParser {
         .map(s => s.trim())
         .filter(Boolean);
       for (const part of parts) {
-        // Redundant 'part;' line removed
         const nameMatch = part.match(/(?:\[\s*(\d+)\s*:\s*(\d+)\s*\]\s*)?(\w+)/);
         if (nameMatch) {
           const [, partMsbStr, partLsbStr, name] = nameMatch;
@@ -305,7 +302,7 @@ export class VerilogParser {
     let assignmentMatch;
 
     while ((assignmentMatch = assignmentRegex.exec(alwaysBody)) !== null) {
-      const [ target, expression] = assignmentMatch;
+      const [target, expression] = assignmentMatch;
       const cleanTarget = this.cleanSignalName(target);
       const cleanExpression = expression.trim();
 
@@ -676,9 +673,6 @@ export class VerilogParser {
     return gates;
   }
 
-  /**
-   * Basit bir ifade mi kontrol eder (tek operatör içeren)
-   */
   private isSimpleExpression(expr: string): boolean {
     return (
       (expr.includes("&") && !expr.includes("|") && !expr.includes("^") && !expr.includes("~")) ||
@@ -688,9 +682,6 @@ export class VerilogParser {
     );
   }
 
-  /**
-   * Basit ifadeleri işler (AND, OR, XOR, NOT)
-   */
   private processSimpleExpression(expr: string, output: string, gates: VerilogGate[]): void {
     if (expr.includes("&") && !expr.includes("|") && !expr.includes("^")) {
       const inputs = expr.split("&").map(s => this.cleanSignalName(s));
@@ -799,9 +790,6 @@ export class VerilogParser {
     return groups;
   }
 
-  /**
-   * Ternary ifadeleri işler (? :)
-   */
   private processTernaryExpression(
     expr: string,
     output: string,
@@ -884,23 +872,17 @@ export class VerilogParser {
       type: "mux2",
       name: `assign_mux2_${output}_${gateCounter}`,
       output: output,
-      inputs: [finalFalseSignal, finalTrueSignal], // Note: falseExpr is first input, trueExpr is second input
+      inputs: [finalFalseSignal, finalTrueSignal],
       controlSignal: finalConditionSignal,
     };
     console.log(`Created final MUX2 for ternary (complex):`, JSON.stringify(finalMuxGate));
     gates.push(finalMuxGate);
   }
 
-  /**
-   * Basit bir tanımlayıcı mı? (sadece değişken adı)
-   */
   private isSimpleIdentifier(expr: string): boolean {
     return /^\s*[a-zA-Z_]\w*\s*$/.test(expr) && !expr.includes("[") && !expr.includes("(");
   }
 
-  /**
-   * Ternary operatörü parçalar
-   */
   private splitTernary(expr: string): string[] {
     let depth = 0;
     let questionIdx = -1;
@@ -1003,9 +985,6 @@ export class VerilogParser {
     }
   }
 
-  /**
-   * Karmaşık ifadeleri işler (operatör önceliğine göre)
-   */
   private processComplexExpression(
     expr: string,
     output: string,
@@ -1032,7 +1011,7 @@ export class VerilogParser {
 
       if (char === "(") {
         if (current) {
-          tokens.push(current.trim()); // Add trim here
+          tokens.push(current.trim());
           current = "";
         }
         tokens.push(char);
@@ -1042,7 +1021,7 @@ export class VerilogParser {
 
       if (char === ")") {
         if (current) {
-          tokens.push(current.trim()); // Add trim here
+          tokens.push(current.trim());
           current = "";
         }
         tokens.push(char);
@@ -1052,7 +1031,7 @@ export class VerilogParser {
 
       if (char === "&" || char === "|" || char === "^" || char === "~") {
         if (current) {
-          tokens.push(current.trim()); // Add trim here
+          tokens.push(current.trim());
           current = "";
         }
         tokens.push(char);
@@ -1060,9 +1039,8 @@ export class VerilogParser {
       }
 
       if (/\s/.test(char)) {
-        // Only push current token if it's not empty
         if (current.trim()) {
-          tokens.push(current.trim()); // Add trim here
+          tokens.push(current.trim());
           current = "";
         }
         continue;
@@ -1072,7 +1050,7 @@ export class VerilogParser {
     }
 
     if (current) {
-      tokens.push(current.trim()); // Add trim here
+      tokens.push(current.trim());
     }
 
     return tokens;
@@ -1159,7 +1137,6 @@ export class VerilogParser {
 
           stack.push(tempOut);
         } else {
-          // Binary operator
           const right = stack.pop()!;
           const left = stack.pop()!;
           const tempOut = generateTempName(token);
@@ -1178,7 +1155,6 @@ export class VerilogParser {
       }
     }
 
-    // Connect final result to output
     const finalResult = stack.pop()!;
     if (finalResult !== output) {
       gates.push({
@@ -1190,14 +1166,12 @@ export class VerilogParser {
     }
   }
 
-
   private cleanSignalName(name: string): string {
-    const trimmedName = name.trim(); // Trim upfront
-    // If it's a Verilog constant (e.g., 1'b0, 4'hF, etc.), return it as is but trimmed
+    const trimmedName = name.trim();
+
     if (/^\d+'[bdh][0-9a-fA-F_xzXZ]*$/.test(trimmedName)) {
       return trimmedName;
     }
-    // For all other signal names, return the trimmed version.
     return trimmedName;
   }
 
@@ -1231,9 +1205,6 @@ export class VerilogParser {
     return gates;
   }
 
-  /**
-   * İfadedeki operatör sayısını sayar
-   */
   private countOperators(expr: string): number {
     let count = 0;
     for (let i = 0; i < expr.length; i++) {

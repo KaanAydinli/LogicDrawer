@@ -934,22 +934,16 @@ export class CircuitBoard {
 
       this.truthTableManager.generateTruthTable();
 
-      // KMap oluştur
       const kmap = this.truthTableManager.createKarnaughMap();
 
-      // Minimum grupları bul
       kmap.findMinimalGroups();
 
-      // KMap modalını göster
       this.showKarnaughMapModal(kmap);
     } catch (error) {
       alert(`K-Map oluşturulurken hata: ${error}`);
     }
   }
 
-  /**
-   * K-Map modalını gösterir
-   */
   private showKarnaughMapModal(kmap: KarnaughMap): void {
     if (document.querySelector(".kmap-modal")) {
       document.body.removeChild(document.querySelector(".kmap-modal")!);
@@ -964,51 +958,49 @@ export class CircuitBoard {
     modal.style.left = "0";
     modal.style.width = "100%";
     modal.style.height = "100%";
-    modal.style.backgroundColor = "rgba(0, 0, 0, 0.8)"; // Darker background
+    modal.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
     modal.style.display = "flex";
     modal.style.justifyContent = "center";
     modal.style.alignItems = "center";
     modal.style.zIndex = "1000";
 
-    // Modal content
     const content = document.createElement("div");
     content.className = "modal-content";
-    content.style.backgroundColor = "#1e1e1e"; // Darker background
-    content.style.border = "1px solid #555"; // Lighter border
-    content.style.borderRadius = "8px"; // Rounded corners
-    content.style.padding = "25px"; // More padding
-    content.style.maxWidth = "800px"; // Wider
+    content.style.backgroundColor = "#1e1e1e";
+    content.style.border = "1px solid #555";
+    content.style.borderRadius = "8px";
+    content.style.padding = "25px";
+    content.style.maxWidth = "800px";
     content.style.width = "90%";
     content.style.maxHeight = "90%";
     content.style.overflow = "auto";
-    content.style.boxShadow = "0 8px 24px rgba(0,0,0,0.5)"; // Stronger shadow
+    content.style.boxShadow = "0 8px 24px rgba(0,0,0,0.5)";
 
-    // Modal header with better styling
     const header = document.createElement("div");
     header.style.display = "flex";
     header.style.justifyContent = "space-between";
     header.style.alignItems = "center";
     header.style.marginBottom = "20px";
-    header.style.borderBottom = "1px solid #444"; // Add a bottom border
-    header.style.paddingBottom = "15px"; // Add padding
+    header.style.borderBottom = "1px solid #444";
+    header.style.paddingBottom = "15px";
 
     const title = document.createElement("h2");
     title.innerText = "Karnaugh Map";
     title.style.color = "#fff";
     title.style.margin = "0";
-    title.style.fontSize = "24px"; // Larger font
-    title.style.fontWeight = "600"; // Semibold
+    title.style.fontSize = "24px";
+    title.style.fontWeight = "600";
 
     const closeButton = document.createElement("button");
     closeButton.innerText = "×";
     closeButton.style.background = "none";
     closeButton.style.border = "none";
-    closeButton.style.fontSize = "28px"; // Larger font
+    closeButton.style.fontSize = "28px";
     closeButton.style.color = "#fff";
     closeButton.style.cursor = "pointer";
-    closeButton.style.padding = "5px 12px"; // More padding
-    closeButton.style.borderRadius = "4px"; // Rounded corners
-    closeButton.style.transition = "background-color 0.2s"; // Smooth hover
+    closeButton.style.padding = "5px 12px";
+    closeButton.style.borderRadius = "4px";
+    closeButton.style.transition = "background-color 0.2s";
     closeButton.onmouseover = () => {
       closeButton.style.backgroundColor = "rgba(255,255,255,0.1)";
     };
@@ -1020,7 +1012,6 @@ export class CircuitBoard {
     header.appendChild(title);
     header.appendChild(closeButton);
 
-    // K-Map container with shadow
     const kmapContainer = document.createElement("div");
     kmapContainer.style.marginBottom = "25px";
     kmapContainer.style.backgroundColor = "#222";
@@ -1028,29 +1019,26 @@ export class CircuitBoard {
     kmapContainer.style.padding = "20px";
     kmapContainer.style.boxShadow = "0 4px 12px rgba(0,0,0,0.2)";
 
-    // Render K-Map
     const kmapElement = kmap.renderKMap();
     kmapContainer.appendChild(kmapElement);
 
-    // Button container with better styling
     const buttonContainer = document.createElement("div");
     buttonContainer.style.display = "flex";
-    buttonContainer.style.gap = "15px"; // More spacing
+    buttonContainer.style.gap = "15px";
     buttonContainer.style.marginTop = "25px";
-    buttonContainer.style.justifyContent = "center"; // Center the buttons
+    buttonContainer.style.justifyContent = "center";
 
-    // Create circuit button with better styling
     const createCircuitButton = document.createElement("button");
     createCircuitButton.innerText = "Create Circuit From K-Map";
-    createCircuitButton.style.padding = "12px 20px"; // More padding
+    createCircuitButton.style.padding = "12px 20px";
     createCircuitButton.style.backgroundColor = "#4CAF50";
     createCircuitButton.style.color = "white";
     createCircuitButton.style.border = "none";
-    createCircuitButton.style.borderRadius = "6px"; // More rounded
+    createCircuitButton.style.borderRadius = "6px";
     createCircuitButton.style.cursor = "pointer";
-    createCircuitButton.style.fontSize = "16px"; // Larger font
+    createCircuitButton.style.fontSize = "16px";
     createCircuitButton.style.fontWeight = "bold";
-    createCircuitButton.style.transition = "background-color 0.2s, transform 0.1s"; // Smooth hover
+    createCircuitButton.style.transition = "background-color 0.2s, transform 0.1s";
     createCircuitButton.onmouseover = () => {
       createCircuitButton.style.backgroundColor = "#66bb6a";
     };
@@ -1068,24 +1056,23 @@ export class CircuitBoard {
         "This will clear your current circuit and create a new one based on this K-Map. Continue?"
       );
       if (confirmCreate) {
-        this.clearCircuit(); // Clear current circuit
-        kmap.createCircuitFromExpression(this); // Create new circuit
-        document.body.removeChild(modal); // Close modal
+        this.clearCircuit();
+        kmap.createCircuitFromExpression(this);
+        document.body.removeChild(modal);
       }
     };
 
-    // Export image button with better styling
     const exportImageButton = document.createElement("button");
     exportImageButton.innerText = "Export as Image";
-    exportImageButton.style.padding = "12px 20px"; // More padding
+    exportImageButton.style.padding = "12px 20px";
     exportImageButton.style.backgroundColor = "#2196F3";
     exportImageButton.style.color = "white";
     exportImageButton.style.border = "none";
-    exportImageButton.style.borderRadius = "6px"; // More rounded
+    exportImageButton.style.borderRadius = "6px";
     exportImageButton.style.cursor = "pointer";
-    exportImageButton.style.fontSize = "16px"; // Larger font
+    exportImageButton.style.fontSize = "16px";
     exportImageButton.style.fontWeight = "bold";
-    exportImageButton.style.transition = "background-color 0.2s, transform 0.1s"; // Smooth hover
+    exportImageButton.style.transition = "background-color 0.2s, transform 0.1s";
     exportImageButton.onmouseover = () => {
       exportImageButton.style.backgroundColor = "#42a5f5";
     };
@@ -1099,29 +1086,24 @@ export class CircuitBoard {
       exportImageButton.style.transform = "scale(1)";
     };
     exportImageButton.onclick = () => {
-      // Create a canvas from the K-Map for better image export
       this.exportKMapAsImage(kmapContainer);
     };
 
     buttonContainer.appendChild(createCircuitButton);
     buttonContainer.appendChild(exportImageButton);
 
-    // Add everything to the modal
     content.appendChild(header);
     content.appendChild(kmapContainer);
     content.appendChild(buttonContainer);
     modal.appendChild(content);
 
-    // Add modal to document body
     document.body.appendChild(modal);
   }
 
   private exportKMapAsImage(kmapContainer: HTMLElement): void {
-    // Create a canvas for rendering
     const tempCanvas = document.createElement("canvas");
     const padding = 30;
 
-    // Find the actual K-Map table in the container
     const kmapTable = kmapContainer.querySelector(".kmap-table") as HTMLTableElement;
     const kmapTitle = kmapContainer.querySelector("h3") as HTMLElement;
     const kmapExpr = kmapContainer.querySelector(".kmap-boolean-expression") as HTMLElement;
@@ -1131,11 +1113,9 @@ export class CircuitBoard {
       return;
     }
 
-    // Set canvas dimensions based on content
     const width = kmapTable.offsetWidth + padding * 2;
     const height = kmapTable.offsetHeight + padding * 2;
 
-    // Add extra height for title and expression
     const titleHeight = kmapTitle ? 50 : 0;
     const exprHeight = kmapExpr ? 60 : 0;
 
@@ -1144,11 +1124,9 @@ export class CircuitBoard {
 
     const tempCtx = tempCanvas.getContext("2d")!;
 
-    // Draw background
     tempCtx.fillStyle = "#1e1e1e";
     tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-    // Draw title if exists
     let yOffset = padding;
     if (kmapTitle) {
       tempCtx.font = "bold 18px Arial";
@@ -1158,7 +1136,6 @@ export class CircuitBoard {
       yOffset += titleHeight;
     }
 
-    // Collect K-Map data from the table
     const rows = kmapTable.rows;
     const rowCount = rows.length;
     const colCount = rows[0]?.cells.length || 0;
@@ -1170,10 +1147,8 @@ export class CircuitBoard {
 
     const cellSize = Math.min((width - padding * 2) / colCount, (height - padding * 2) / rowCount);
 
-    // Render K-Map table to canvas
     this.renderKMapToCanvas(tempCtx, kmapTable, yOffset, cellSize);
 
-    // Draw expression if exists
     if (kmapExpr && kmapExpr.textContent) {
       yOffset += height - padding;
       tempCtx.font = "16px monospace";
@@ -1186,7 +1161,6 @@ export class CircuitBoard {
       );
     }
 
-    // Export as PNG
     const dataUrl = tempCanvas.toDataURL("image/png");
     this.downloadFile(dataUrl, "karnaugh-map.png", "image/png", true);
   }
@@ -1342,12 +1316,12 @@ export class CircuitBoard {
       wire.autoRoute(this.components);
     });
 
-    console.log("Tüm kablolar yeniden yönlendirildi.");
+    console.log("Redirection completed.");
   }
 
   public extractVerilog(): string {
     if (this.components.length === 0) {
-      return "// Boş devre";
+      return "// Empty circuit";
     }
 
     const inputs: Component[] = [];
@@ -1580,7 +1554,6 @@ export class CircuitBoard {
   }
 
   private getWireNameForComponent(component: Component): string {
-    // Bileşen türüne göre anlamlı isim oluştur
     switch (component.type) {
       case "toggle":
         return `i_sw_${component.id.slice(-2)}`;
@@ -1892,7 +1865,6 @@ export class CircuitBoard {
   public removeWiresByPort(port: Port): void {
     const wiresToRemove: Wire[] = [];
 
-    // Find all wires connected to this port
     this.wires.forEach(wire => {
       if ((wire.from && wire.from.id === port.id) || (wire.to && wire.to.id === port.id)) {
         wiresToRemove.push(wire);
@@ -1901,7 +1873,6 @@ export class CircuitBoard {
 
     // Remove each wire
     wiresToRemove.forEach(wire => {
-      // Disconnect the wire (updates port.isConnected)
       wire.disconnect();
 
       // Remove from wires array

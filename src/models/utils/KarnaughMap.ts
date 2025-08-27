@@ -23,9 +23,6 @@ export class KarnaughMap {
     this.kmap = this.createKMap(outputIndex);
   }
 
-  /**
-   * Truth Table'dan K-Map oluşturur
-   */
   private createKMap(outputIndex: number): boolean[][] {
     let rows = 1;
     let cols = 1;
@@ -60,9 +57,6 @@ export class KarnaughMap {
     return kmap;
   }
 
-  /**
-   * Giriş değerlerinden K-Map satır ve sütun indekslerini hesaplar
-   */
   private getKMapIndices(inputs: boolean[]): { row: number; col: number } {
     if (this.inputCount === 1) {
       return {
@@ -94,9 +88,6 @@ export class KarnaughMap {
     return grayCodeIndices[binary];
   }
 
-  /**
-   * K-Map üzerindeki grupları tespit eder ve minimuma indirir
-   */
   public findMinimalGroups(): string {
     this.groups = [];
 
@@ -172,9 +163,6 @@ export class KarnaughMap {
     return this.generateBooleanExpression();
   }
 
-  /**
-   * Kesişen grupları da dikkate alarak en iyi grup kombinasyonunu seçer
-   */
   private selectOptimalGroups(
     candidateGroups: { cells: { row: number; col: number }[]; term: string }[],
     allMinterms: { row: number; col: number }[]
@@ -255,9 +243,6 @@ export class KarnaughMap {
     this.groups = selectedGroups;
   }
 
-  /**
-   * Harita kenarlarını kapsayan grupları bulur
-   */
   private findEdgeWrappingGroups(
     candidateGroups: { cells: { row: number; col: number }[]; term: string }[],
     rows: number,
@@ -318,9 +303,6 @@ export class KarnaughMap {
     }
   }
 
-  /**
-   * Belirli bir noktadan dikdörtgen bir grup oluşturulabilir mi kontrol eder
-   */
   private canFormRectangularGroup(
     startRow: number,
     startCol: number,
@@ -392,9 +374,6 @@ export class KarnaughMap {
     return term || "1";
   }
 
-  /**
-   * Belirli bir hücrenin giriş değerlerini hesaplar
-   */
   private getCellInputValues(row: number, col: number): boolean[] {
     const inputs: boolean[] = [];
 
@@ -452,9 +431,6 @@ export class KarnaughMap {
     return inputs;
   }
 
-  /**
-   * Minimum Boolean ifadeyi oluşturur
-   */
   private generateBooleanExpression(): string {
     if (this.groups.length === 0) {
       if (this.getAllMinterms().length === 0 && this.kmap.length > 0 && this.kmap[0].length > 0)
@@ -514,9 +490,6 @@ export class KarnaughMap {
     return this.getAllMinterms().length === totalCells;
   }
 
-  /**
-   * K-Map'i HTML tablosu olarak render eder
-   */
   public renderKMap(): HTMLElement {
     const container = document.createElement("div");
     container.className = "kmap-container";
@@ -904,9 +877,6 @@ export class KarnaughMap {
     return container;
   }
 
-  /**
-   * Sütun başlığını oluşturur
-   */
   private getColumnHeader(col: number): string {
     if (this.inputCount === 1) {
       return col === 0 ? "0" : "1";
@@ -918,9 +888,6 @@ export class KarnaughMap {
     }
   }
 
-  /**
-   * Satır başlığını oluşturur
-   */
   private getRowHeader(row: number): string {
     if (this.kmap.length <= 1) return "";
 
@@ -936,9 +903,6 @@ export class KarnaughMap {
     return "";
   }
 
-  /**
-   * Boolean ifadeden devre oluşturma
-   */
   public createCircuitFromExpression(circuitBoard: any): void {
     const booleanExpr = this.generateBooleanExpression();
 
