@@ -1,6 +1,6 @@
 # LogicDrawer - Interactive Digital Logic Circuit Designer
 
-![LogicDrawer Logo](src/images/LogicDrawerImg.png)
+![LogicDrawer Logo](public/images/LogicDrawerImg.png)
 
 [![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](package.json)
 [![Status](https://img.shields.io/badge/status-public-brightgreen.svg)]()
