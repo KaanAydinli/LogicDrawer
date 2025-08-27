@@ -20,11 +20,10 @@ export class ToggleSwitch extends Component {
       component: this,
     });
   }
-  // Add these methods to your ToggleSwitch class
 
   protected getComponentSpecificState(): any {
     return {
-      on: this.on, // Assuming your toggle switch has an 'on' property
+      on: this.on,
     };
   }
 
