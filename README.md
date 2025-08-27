@@ -2,8 +2,8 @@
 
 ![LogicDrawer Logo](public/images/LogicDrawerImg.png)
 
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](package.json)
-[![Status](https://img.shields.io/badge/status-public-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-1.0.0-yellow.svg)](package.json)
+[![Website](https://img.shields.io/badge/website-online-brightgreen.svg)]()
 [![Node.js](https://img.shields.io/badge/Node.js-16+-blue.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue.svg)](https://www.typescriptlang.org/)
 
