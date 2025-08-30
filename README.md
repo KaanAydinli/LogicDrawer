@@ -2,7 +2,7 @@
 
 ![LogicDrawer Logo](public/images/LogicDrawerImg.png)
 
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.0.1-green.svg)](package.json)
 [![Status](https://img.shields.io/badge/status-public-brightgreen.svg)]()
 [![Node.js](https://img.shields.io/badge/Node.js-16+-blue.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue.svg)](https://www.typescriptlang.org/)
@@ -40,7 +40,7 @@ git clone https://github.com/KaanAydinli/LogicDrawer.git
 cd LogicDrawer
 npm install
 cd server && npm install && cd ..
-cp server/.env.example server/.env # Edit .env as needed
+cp .env.example .env # Edit .env as needed
 npm run dev:all   # Start frontend + backend
 Open your browser at: http://localhost:4000
 ```
