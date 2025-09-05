@@ -55,10 +55,8 @@ app.use((req, res, next) => {
 });
 mongoose
   .connect(MONGODB_URI)
-  .then(() => {
-  })
-  .catch(err => {
-  });
+  .then(() => {})
+  .catch(err => {});
 
 /**
  * Security middlewares
@@ -95,18 +93,23 @@ app.use(express.static(distPath));
  * Redirect all non-API requests to index.html
  */
 app.get("*", (req, res) => {
-  res.sendFile(path.join(distPath, "index.html"));
+  if (req.path.includes(".") || req.path.startsWith("/api/")) {
+    res.status(404).send("Not Found");
+    return;
+  }
+  res.sendFile(path.join(distPath, "logic.html"));
 });
 
 /**
  * Start the server
  */
 app.listen(PORT, () => {
- 
   const interfaces = os.networkInterfaces();
-  const ipAddress = Object.values(interfaces)
-    .flat()
-    .filter(details => details && details.family === 'IPv4' && !details.internal)[0]?.address || 'localhost';
-  
+  const ipAddress =
+    Object.values(interfaces)
+      .flat()
+      .filter(details => details && details.family === "IPv4" && !details.internal)[0]?.address ||
+    "localhost";
+
   const serverUrl = `http://${ipAddress}:${PORT}`;
 });

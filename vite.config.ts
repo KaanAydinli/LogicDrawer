@@ -1,26 +1,29 @@
-import { defineConfig } from 'vite';
-import { defineConfig as defineVitestConfig } from 'vitest/config'; // Vitest config tipini import et
+import { defineConfig } from "vite";
+import { defineConfig as defineVitestConfig } from "vitest/config";
+import { resolve } from "path";
 
-// Basitleştirilmiş config
 export default defineConfig({
   server: {
     hmr: {
-      overlay: true
+      overlay: true,
     },
     watch: {
-      usePolling: true
+      usePolling: true,
     },
-
   },
   build: {
-    sourcemap: false,
-    outDir: 'dist'
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "index.html"),
+        app: resolve(__dirname, "logic.html"),
+      },
+    },
+    outDir: "dist",
   },
-  // Vitest yapılandırmasını buraya ekleyin
   test: {
-    root: '.', // Proje kök dizinini belirtir (genellikle '.' yeterlidir)
-    include: ['tests/**/*.{test,spec}.?(c|m)[jt]s?(x)'], // Test dosyalarının aranacağı yer
-    globals: true, // describe, it, expect gibi global değişkenleri etkinleştirir
-    environment: 'node', // Veya 'jsdom' (DOM gerekiyorsa)
-  }
+    root: ".",
+    include: ["tests/**/*.{test,spec}.?(c|m)[jt]s?(x)"],
+    globals: true,
+    environment: "node",
+  },
 });

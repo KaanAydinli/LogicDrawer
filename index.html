@@ -3,28 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Logic Drawer</title>
-    <link rel="stylesheet" href="/src/styles.css" />
-    <link rel="icon" type="image/png" href="/public/images/drawerLogo.png" />
-
+    <title>LogicDrawer – AI-Powered Logic Circuit Designer</title>
     <meta
       name="description"
-      content="Design, simulate and analyze digital logic circuits with LogicDrawer. The most intuitive circuit drawer with real-time simulation, truth tables, K-maps and AI-powered features."
+      content="Design logic circuits with AI assistance. A premium, futuristic landing page for LogicDrawer."
     />
-    <meta
-      name="keywords"
-      content="logic drawer, Logic Drawer , circuit drawer, logic circuit designer, digital logic simulator, truth table generator, karnaugh map, verilog, logic gate simulator, logic circuit drawer, mantık devresi, mantık devresi simülasyonu, free logic circuit simulator, online logic circuit simulator, digital logic design, digital logic education, interactive logic circuit designer, AI logic circuit designer, AI circuit drawer, AI logic simulation, truth table, K-map, Karnaugh map, logic circuit analysis, digital logic circuits, digital logic design tool, digital logic education tool, digital logic simulation tool, interactive circuit designer, online circuit designer"
-    />
-    <link rel="canonical" href="https://www.logicdrawer.app" />
-
-    <!-- Open Graph / Social Media -->
-    <meta property="og:title" content="LogicDrawer - Interactive Logic Circuit Designer" />
-    <meta
-      property="og:description"
-      content="The most intuitive circuit drawer for digital logic design, education and simulation"
-    />
-    <meta property="og:url" content="https://logicdrawer.app" />
-
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -38,1328 +21,246 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
+    <link rel="stylesheet" href="./landing.css" />
   </head>
-
   <body>
-    <div id="tutorial-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2 id="tutorial-title">Welcome to LogicDrawer!</h2>
-          <span class="close-tutorial">&times;</span>
-        </div>
-        <div class="modal-body">
-          <div class="tutorial-navigation">
-            <button id="prev-step" disabled>Previous</button>
-            <div id="step-indicators"></div>
-            <button id="next-step">Next</button>
-          </div>
-          <div id="tutorial-content"></div>
-        </div>
-        <div class="modal-footer">
-          <label><input type="checkbox" id="dont-show-again" /> Don't show again</label>
-        </div>
-      </div>
-    </div>
-
-    <div id="mobile-menu" class="mobile-menu">
-      <div class="mobile-menu-header">
-        <button id="close-mobile-menu" class="close-mobile-menu">&times;</button>
-        <h3>Menu</h3>
-      </div>
-      <div class="mobile-menu-content">
-        <div class="mobile-menu-item" data-item="circuits">
-          <span>Circuits</span>
-        </div>
-        <div class="mobile-menu-item" data-item="ide">
-          <span>IDE</span>
-        </div>
-        <div class="mobile-menu-item has-submenu" data-item="file">
-          <span>File</span>
-          <svg
-            class="chevron-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-          <div class="mobile-submenu">
-            <div class="mobile-submenu-item" data="new">New</div>
-            <div class="mobile-submenu-item" data="load">
-              <label for="mobile-loadFile"
-                >Load
-                <input type="file" id="mobile-loadFile" accept=".json" style="display: none" />
-              </label>
-            </div>
-            <div class="mobile-submenu-item" data="save">Save</div>
-            <div class="mobile-submenu-item" data="saveas">Save as</div>
-          </div>
-        </div>
-        <div class="mobile-menu-item" data-item="ai">
-          <span>AI</span>
-        </div>
-        <div class="mobile-menu-item has-submenu" data-item="themes">
-          <span>Themes</span>
-          <svg
-            class="chevron-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-          <div class="mobile-submenu">
-            <div class="mobile-submenu-item" data-theme="dark">Dark Mode</div>
-            <div class="mobile-submenu-item" data-theme="light">Light Mode</div>
-            <div class="mobile-submenu-item" data-theme="forest">Forest Theme</div>
-            <div class="mobile-submenu-item" data-theme="midnight">Midnight Blue</div>
-          </div>
-        </div>
-        <div class="mobile-menu-item has-submenu" data-item="tools">
-          <span>Tools</span>
-          <svg
-            class="chevron-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-          <div class="mobile-submenu">
-            <div class="mobile-submenu-item" data-tool="truthtable">Truth Table</div>
-            <div class="mobile-submenu-item" data-tool="kmap">K-Map</div>
-            <div class="mobile-submenu-item" data-tool="screenshot">Screenshot</div>
-            <div class="mobile-submenu-item" data-tool="upload-tt">Upload Truth Table Image</div>
-            <div class="mobile-submenu-item" data-tool="upload-kmap">Upload K-Map Image</div>
-          </div>
-        </div>
-        <div class="mobile-menu-item" data-item="settings">
-          <span>Settings</span>
-        </div>
-        <div class="mobile-menu-item" data-item="signin">
-          <span>Sign In</span>
-        </div>
-      </div>
-    </div>
-    <div id="app">
-      <div class="mobile-header">
-        <div class="mobile-title">
-          <input type="text" class="docName" placeholder="Untitled" />
-        </div>
-
-        <button id="mobile-right-menu" class="hamburger-button">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <line x1="3" y1="12" x2="21" y2="12"></line>
-            <line x1="3" y1="18" x2="21" y2="18"></line>
-          </svg>
+    <div class="page-glow"></div>
+    <div class="bg-circuit" aria-hidden="true"></div>
+    <header class="nav" id="nav">
+      <div class="nav-inner">
+        <a href="#top" class="brand">
+          <span>LogicDrawer</span>
+        </a>
+        <nav class="nav-links">
+          <a href="#circuits">Public Circuits</a>
+          <a href="#faq">FAQ</a>
+          <a href="https://github.com/" target="_blank" rel="noopener" class="ghost">GitHub</a>
+        </nav>
+        <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false">
+          <span></span><span></span><span></span>
         </button>
       </div>
-      <div class="docNameContainer">
-        <div class="logo">
-          <span>Logic Drawer</span>
-        </div>
-        <input type="text" class="docName" placeholder="Untitled" />
-
-        <div class="rightContainer">
-          <div class="buttonGroup">
-            <div class="storage">Circuits</div>
-            <div id="open-verilog-editor" class="verilog-button">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M18 6L6 18M18 18L6 6"></path>
-                <path d="M18 2h-3v4h3v3h4V2h-4z"></path>
-                <path d="M6 13H2v9h9v-4H6v-5z"></path>
-              </svg>
-              IDE
-            </div>
-            <div class="fileContainer">
-              <div class="file">File</div>
-              <div class="file-dropdown">
-                <div class="fileOption" data="new">New</div>
-
-                <div class="fileOption">
-                  <label for="loadFile" class="load"
-                    >Load
-                    <input type="file" id="loadFile" accept=".json" style="display: none" />
-                  </label>
-                </div>
-
-                <div class="fileOption" data="save">Save</div>
-                <div class="fileOption" data="saveas">Save as</div>
-              </div>
-            </div>
-
-            <div class="aiLogo">AI</div>
-
-            <div class="theme-container">
-              <div id="test" class="Theme">Themes</div>
-              <div class="theme-dropdown">
-                <div class="theme-option" data-theme="dark">Dark Mode</div>
-                <div class="theme-option" data-theme="light">Light Mode</div>
-                <div class="theme-option" data-theme="forest">Forest Theme</div>
-                <div class="theme-option" data-theme="midnight">Midnight Blue</div>
-              </div>
-            </div>
-
-            <div class="toolsContainer">
-              <span class="tools">Tools</span>
-              <div class="tools-dropdown">
-                <div class="tools-option" data-tool="truthtable">Truth Table</div>
-                <div class="tools-option" data-tool="kmap">K-Map</div>
-                <div class="tools-option" data-tool="screenshot">Screenshot</div>
-                <div class="tools-option" data-tool="upload-tt">Upload Truth Table Image</div>
-                <div class="tools-option" data-tool="upload-kmap">Upload K-Map Image</div>
-              </div>
-            </div>
-            <div class="settings-icon">
-              <i class="fa-solid fa-gear"></i>
-            </div>
-          </div>
-        </div>
+      <div class="mobile-tray" id="mobileTray">
+        <a href="#circuits">Public Circuits</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/" target="_blank" rel="noopener">View on GitHub</a>
       </div>
+    </header>
 
-      <div class="main-container">
-        <div class="side">
-          <div class="sidebar">
-            <div class="component-group">
-              <div class="component-group-title">Input Controls</div>
-              <div class="component-list">
-                <div class="component" data-type="constant0">
-                  <div class="component-icon low-constant">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="4" y="4" width="16" height="16" rx="2" />
-                      <text x="12" y="16" text-anchor="middle" font-size="12" fill="currentColor">
-                        0
-                      </text>
-                    </svg>
-                  </div>
-                  <div class="component-label">Low Constant</div>
-                </div>
-                <div class="component" data-type="constant1">
-                  <div class="component-icon high-constant">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      height="60"
-                      width="60"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="4" y="4" width="16" height="16" rx="2" />
-                      <text x="12" y="16" text-anchor="middle" font-size="12" fill="currentColor">
-                        1
-                      </text>
-                    </svg>
-                  </div>
-                  <div class="component-label">High Constant</div>
-                </div>
-
-                <div class="component" data-type="multibit">
-                  <div class="component-icon multibit">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="2" y="4" width="14" height="16" rx="2" />
-                      <text x="5" y="10" font-size="5" fill="currentColor" stroke="none">01</text>
-                      <text x="5" y="15" font-size="5" fill="currentColor" stroke="none">10</text>
-                      <line x1="16" y1="8" x2="22" y2="8" />
-                      <line x1="16" y1="12" x2="22" y2="12" />
-                      <line x1="16" y1="16" x2="22" y2="16" />
-                    </svg>
-                  </div>
-                  <div class="component-label">MultiBit</div>
-                </div>
-
-                <div class="component" data-type="toggle">
-                  <div class="component-icon toggle">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      width="60"
-                      height="60"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="2" y="8" width="20" height="12" rx="5" ry="5" />
-
-                      <circle
-                        stroke-width="1.5"
-                        cx="8"
-                        cy="14"
-                        r="3.5"
-                        stroke="currentColor"
-                        fill="none"
-                      />
-                    </svg>
-                  </div>
-                  <div class="component-label">Toggle Switch</div>
-                </div>
-                <div class="component" data-type="button">
-                  <div class="component-icon buttonPush">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      width="60"
-                      height="60"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                      <circle cx="12" cy="12" r="4" fill="currentColor" />
-                      <line x1="2" y1="12" x2="22" y2="12" />
-                    </svg>
-                  </div>
-                  <div class="component-label">Button</div>
-                </div>
-                <div class="component" data-type="clock">
-                  <div class="component-icon clock">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      width="60"
-                      height="60"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M2 6h4v6h4v-6h4v6h4v-6h4" />
-                      <line x1="2" y1="18" x2="22" y2="18" />
-                    </svg>
-                  </div>
-                  <div class="component-label">Clock</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="component-group">
-              <div class="component-group-title">Output Controls</div>
-              <div class="component-list">
-                <div class="component" data-type="light-bulb">
-                  <div class="component-icon light-bulb">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      width="60"
-                      height="60"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M9 18h6" />
-                      <path
-                        d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"
-                      />
-                    </svg>
-                  </div>
-                  <div class="component-label">Light Bulb</div>
-                </div>
-                <div class="component" data-type="hex">
-                  <div class="component-icon hex">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="4" y="4" width="16" height="16" rx="2" />
-                      <text
-                        x="7"
-                        y="17"
-                        font-family="Pixelify Sans"
-                        font-size="16"
-                        fill="currentColor"
-                        stroke="none"
-                        stroke-width="0.5"
-                      >
-                        A
-                      </text>
-                    </svg>
-                  </div>
-                  <div class="component-label">Hexadecimal Digit</div>
-                </div>
-
-                <div class="component" data-type="smartdisplay">
-                  <div class="component-icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="2" y="4" width="20" height="16" rx="2" />
-                      <line x1="2" y1="10" x2="22" y2="10" stroke-width="1" />
-                      <text
-                        x="12"
-                        y="8.5"
-                        font-size="4"
-                        text-anchor="middle"
-                        fill="currentColor"
-                        stroke="none"
-                      >
-                        SMART
-                      </text>
-                      <text
-                        x="12"
-                        y="16"
-                        font-size="6"
-                        text-anchor="middle"
-                        fill="currentColor"
-                        stroke="none"
-                      >
-                        10101
-                      </text>
-                    </svg>
-                  </div>
-                  <div class="component-label">Smart Display</div>
-                </div>
-
-                <div class="component" data-type="led">
-                  <div class="component-icon led">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <!-- Daha ince LED üst kısım (rounded rectangle) -->
-                      <path
-                        d="M9 4 Q9 2 9 2 L15 2 Q15 2 15 4 L15 12 Q15 14 15 14 L9 14 Q9 14 9 12 Z"
-                      />
-
-                      <!-- LED gövde/taban -->
-                      <path d="M8 14 L8 16 L16 16 L16 14" />
-
-                      <!-- Üç pin/bacak -->
-                      <line x1="9" y1="16" x2="9" y2="22" />
-                      <line x1="12" y1="16" x2="12" y2="22" />
-                      <line x1="15" y1="16" x2="15" y2="22" />
-
-                      <!-- Pin etiketleri (RGB) -->
-                      <text x="8" y="20" font-size="3" fill="currentColor" stroke="none">R</text>
-                      <text x="11" y="20" font-size="3" fill="currentColor" stroke="none">G</text>
-                      <text x="14" y="20" font-size="3" fill="currentColor" stroke="none">B</text>
-                    </svg>
-                  </div>
-                  <div class="component-label">LED</div>
-                </div>
-              </div>
-            </div>
-            <div class="component-group">
-              <div class="component-group-title">Logic Gates</div>
-              <div class="component-list">
-                <div class="component" data-type="buffer">
-                  <div class="component-icon buffer">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 6v12l12-6z" />
-                      <line x1="20" y1="12" x2="16" y2="12" />
-                    </svg>
-                  </div>
-                  <div class="component-label">Buffer</div>
-                </div>
-                <div class="component" data-type="not">
-                  <div class="component-icon not">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 6v12l12-6z" />
-                      <circle cx="20" cy="12" r="2" />
-                      <line x1="22" y1="12" x2="20" y2="12" />
-                    </svg>
-                  </div>
-                  <div class="component-label">NOT Gate</div>
-                </div>
-                <div class="component" data-type="and">
-                  <div class="component-icon and">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 6h8a8 8 0 0 1 8 8v0a8 8 0 0 1-8 8h-8z" />
-                      <line x1="4" y1="10" x2="1" y2="10" />
-                      <line x1="4" y1="18" x2="1" y2="18" />
-                      <line x1="20" y1="14" x2="23" y2="14" />
-                    </svg>
-                  </div>
-                  <div class="component-label">AND Gate</div>
-                </div>
-                <div class="component" data-type="nand">
-                  <div class="component-icon nand">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 6h8a8 8 0 0 1 8 8v0a8 8 0 0 1-8 8h-8z" />
-                      <circle cx="22" cy="14" r="2" />
-                      <line x1="4" y1="10" x2="1" y2="10" />
-                      <line x1="4" y1="18" x2="1" y2="18" />
-                    </svg>
-                  </div>
-                  <div class="component-label">NAND Gate</div>
-                </div>
-                <div class="component" data-type="or">
-                  <div class="component-icon or">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      width="60px"
-                      height="60px"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 4C4 4 4 20 4 20C8 20 14 18 18 12C14 6 8 4 4 4Z" />
-                      <line x1="1" y1="8" x2="4" y2="8" />
-                      <line x1="1" y1="16" x2="4" y2="16" />
-                      <line x1="18" y1="12" x2="23" y2="12" />
-                    </svg>
-                  </div>
-                  <div class="component-label">OR Gate</div>
-                </div>
-                <div class="component" data-type="nor">
-                  <div class="component-icon nor">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 4C4 4 4 20 4 20C8 20 14 18 18 12C14 6 8 4 4 4Z" />
-                      <circle cx="20" cy="12" r="2" />
-                      <line x1="1" y1="8" x2="4" y2="8" />
-                      <line x1="1" y1="16" x2="4" y2="16" />
-                      <line x1="22" y1="12" x2="23" y2="12" />
-                    </svg>
-                  </div>
-                  <div class="component-label">NOR Gate</div>
-                </div>
-                <div class="component" data-type="xor">
-                  <div class="component-icon xor">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 4C4 4 4 20 4 20C8 20 14 18 18 12C14 6 8 4 4 4Z" />
-                      <path d="M1 4C1.5 8 2 9 2 12C2 15 1.5 16 1 20" />
-                      <line x1="0" y1="8" x2="1" y2="8" />
-                      <line x1="0" y1="16" x2="1" y2="16" />
-                      <line x1="18" y1="12" x2="23" y2="12" />
-                    </svg>
-                  </div>
-                  <div class="component-label">XOR Gate</div>
-                </div>
-                <div class="component" data-type="xnor">
-                  <div class="component-icon xnor">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 4C4 4 4 20 4 20C8 20 14 18 18 12C14 6 8 4 4 4Z" />
-                      <path d="M1 4C1.5 8 2 9 2 12C2 15 1.5 16 1 20" />
-                      <circle cx="20" cy="12" r="2" />
-                      <line x1="0" y1="8" x2="1" y2="8" />
-                      <line x1="0" y1="16" x2="1" y2="16" />
-                      <line x1="22" y1="12" x2="23" y2="12" />
-                    </svg>
-                  </div>
-                  <div class="component-label">XNOR Gate</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="component-group">
-              <div class="component-group-title">Combinational Circuits</div>
-              <div class="component-list">
-                <div class="component" data-type="mux2">
-                  <div class="component-icon mux2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 4l8 4v8l-8 4z" />
-                      <line x1="12" y1="12" x2="20" y2="12" />
-                      <line x1="4" y1="8" x2="1" y2="8" />
-                      <line x1="4" y1="16" x2="1" y2="16" />
-                      <line x1="8" y1="0" x2="8" y2="6" />
-                    </svg>
-                  </div>
-                  <div class="component-label">2:1 MUX</div>
-                </div>
-
-                <div class="component" data-type="mux4">
-                  <div class="component-icon mux4">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 2l8 4v12l-8 4z" />
-                      <line x1="12" y1="12" x2="20" y2="12" />
-                      <line x1="4" y1="6" x2="1" y2="6" />
-                      <line x1="4" y1="10" x2="1" y2="10" />
-                      <line x1="4" y1="14" x2="1" y2="14" />
-                      <line x1="4" y1="18" x2="1" y2="18" />
-                      <line x1="11" y1="0" x2="11" y2="5" />
-                      <line x1="7" y1="0" x2="7" y2="4" />
-                    </svg>
-                  </div>
-                  <div class="component-label">4:1 MUX</div>
-                </div>
-
-                <div class="component" data-type="halfadder">
-                  <div class="component-icon halfadder">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 4L18 2v20L4 20z" />
-
-                      <line x1="0" y1="8" x2="4" y2="8" />
-                      <line x1="0" y1="16" x2="4" y2="16" />
-
-                      <line x1="18" y1="8" x2="24" y2="8" />
-                      <line x1="18" y1="16" x2="24" y2="16" />
-
-                      <text x="0" y="6" font-size="4" fill="currentColor" stroke="none">A</text>
-                      <text x="0" y="14" font-size="4" fill="currentColor" stroke="none">B</text>
-                      <text x="21" y="6" font-size="4" fill="currentColor" stroke="none">Sum</text>
-                      <text x="21" y="14" font-size="4" fill="currentColor" stroke="none">
-                        Cout
-                      </text>
-                    </svg>
-                  </div>
-                  <div class="component-label">Half Adder</div>
-                </div>
-
-                <div class="component" data-type="fulladder">
-                  <div class="component-icon fulladder">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M7 2L18 2v20L7 22z" />
-
-                      <line x1="3" y1="6" x2="6" y2="6" />
-                      <line x1="3" y1="12" x2="6" y2="12" />
-                      <line x1="3" y1="18" x2="6" y2="18" />
-
-                      <line x1="18" y1="8" x2="24" y2="8" />
-                      <line x1="18" y1="16" x2="24" y2="16" />
-
-                      <text x="0" y="5" font-size="4" fill="currentColor" stroke="none">A</text>
-                      <text x="0" y="11" font-size="4" fill="currentColor" stroke="none">B</text>
-                      <text x="0" y="17" font-size="4" fill="currentColor" stroke="none">Ci</text>
-                      <text x="21" y="5" font-size="4" fill="currentColor" stroke="none">S</text>
-                      <text x="21" y="14" font-size="4" fill="currentColor" stroke="none">Co</text>
-                    </svg>
-                  </div>
-                  <div class="component-label">Full Adder</div>
-                </div>
-
-                <div class="component" data-type="halfsubtractor">
-                  <div class="component-icon halfsubtractor">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M4 4L18 2v20L4 20z" />
-
-                      <line x1="0" y1="8" x2="4" y2="8" />
-                      <line x1="0" y1="16" x2="4" y2="16" />
-
-                      <line x1="18" y1="8" x2="24" y2="8" />
-                      <line x1="18" y1="16" x2="24" y2="16" />
-
-                      <text x="0" y="6" font-size="4" fill="currentColor" stroke="none">A</text>
-                      <text x="0" y="14" font-size="4" fill="currentColor" stroke="none">B</text>
-                      <text x="21" y="6" font-size="4" fill="currentColor" stroke="none">D</text>
-                      <text x="21" y="14" font-size="4" fill="currentColor" stroke="none">Bo</text>
-                    </svg>
-                  </div>
-                  <div class="component-label">Half Subtractor</div>
-                </div>
-
-                <div class="component" data-type="fullsubtractor">
-                  <div class="component-icon fullsubtractor">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M7 2L18 2v20L7 22z" />
-
-                      <line x1="3" y1="6" x2="6" y2="6" />
-                      <line x1="3" y1="12" x2="6" y2="12" />
-                      <line x1="3" y1="18" x2="6" y2="18" />
-
-                      <line x1="18" y1="8" x2="24" y2="8" />
-                      <line x1="18" y1="16" x2="24" y2="16" />
-
-                      <text x="0" y="5" font-size="4" fill="currentColor" stroke="none">A</text>
-                      <text x="0" y="11" font-size="4" fill="currentColor" stroke="none">B</text>
-                      <text x="0" y="17" font-size="4" fill="currentColor" stroke="none">Bi</text>
-                      <text x="21" y="5" font-size="4" fill="currentColor" stroke="none">Di</text>
-                      <text x="21" y="14" font-size="4" fill="currentColor" stroke="none">Bo</text>
-                    </svg>
-                  </div>
-                  <div class="component-label">Full Subtractor</div>
-                </div>
-
-                <div class="component" data-type="decoder">
-                  <div class="component-icon decoder">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <path d="M16 2L4 6v12l12 4z" />
-                      <line x1="0" y1="8" x2="4" y2="8" />
-                      <line x1="0" y1="16" x2="4" y2="16" />
-                      <line x1="16" y1="6" x2="20" y2="6" />
-                      <line x1="16" y1="10" x2="20" y2="10" />
-                      <line x1="16" y1="14" x2="20" y2="14" />
-                      <line x1="16" y1="18" x2="20" y2="18" />
-                    </svg>
-                  </div>
-                  <div class="component-label">Decoder</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="component-group">
-              <div class="component-group-title">Sequential</div>
-              <div class="component-list">
-                <div class="component" data-type="dlatch">
-                  <div class="component-icon dlatch">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="6" y="4" width="12" height="16" rx="1" />
-                      <line x1="1" y1="8" x2="6" y2="8" />
-                      <text
-                        x="1"
-                        y="6"
-                        font-size="4"
-                        fill="currentColor"
-                        stroke="none"
-                        stroke-width="0.5"
-                      >
-                        D
-                      </text>
-                      <line x1="1" y1="16" x2="6" y2="16" />
-                      <path d="M3 15 L4 16 L3 17" fill="none" />
-                      <line x1="18" y1="8" x2="23" y2="8" />
-                      <text
-                        x="20"
-                        y="6"
-                        font-size="4"
-                        fill="currentColor"
-                        stroke="none"
-                        stroke-width="0.5"
-                      >
-                        Q
-                      </text>
-                      <line x1="18" y1="16" x2="23" y2="16" />
-                      <text
-                        x="20"
-                        y="14.5"
-                        font-size="4"
-                        fill="currentColor"
-                        stroke="none"
-                        stroke-width="0.5"
-                      >
-                        Q̄
-                      </text>
-                    </svg>
-                  </div>
-                  <div class="component-label">D-Latch</div>
-                </div>
-                <div class="component" data-type="dflipflop">
-                  <div class="component-icon dflipflop">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="6" y="4" width="12" height="16" rx="1" />
-                      <line x1="1" y1="8" x2="6" y2="8" />
-                      <text
-                        x="1"
-                        y="6"
-                        font-size="4"
-                        fill="currentColor"
-                        stroke="none"
-                        stroke-width="0.5"
-                      >
-                        D
-                      </text>
-                      <line x1="1" y1="16" x2="6" y2="16" />
-                      <path d="M3 15 L4 16 L3 17" fill="none" />
-                      <line x1="18" y1="8" x2="23" y2="8" />
-                      <text
-                        x="20"
-                        y="6"
-                        font-size="4"
-                        fill="currentColor"
-                        stroke="none"
-                        stroke-width="0.5"
-                      >
-                        Q
-                      </text>
-                      <line x1="18" y1="16" x2="23" y2="16" />
-                      <text
-                        x="20"
-                        y="14.5"
-                        font-size="4"
-                        fill="currentColor"
-                        stroke="none"
-                        stroke-width="0.5"
-                      >
-                        Q̄
-                      </text>
-                      <line
-                        x1="6"
-                        y1="12"
-                        x2="18"
-                        y2="12"
-                        stroke-width="1"
-                        stroke-dasharray="1,1"
-                      />
-                    </svg>
-                  </div>
-                  <div class="component-label">D Flip-Flop</div>
-                </div>
-              </div>
-            </div>
-            <div class="component-group">
-              <div class="component-group-title">Other</div>
-              <div class="component-list">
-                <div class="component" data-type="text">
-                  <div class="component-icon text">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      height="60"
-                      width="60"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <rect x="2" y="4" width="20" height="16" rx="2" />
-                      <text
-                        x="6"
-                        y="14"
-                        font-size="6"
-                        fill="currentColor"
-                        stroke="none"
-                        stroke-width="0.5"
-                      >
-                        Text
-                      </text>
-                    </svg>
-                  </div>
-                  <div class="component-label">Text</div>
-                </div>
-
-                <div class="component" data-type="state">
-                  <div class="component-icon state">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="60"
-                      height="60"
-                      viewBox="0 0 24 24"
-                      width="60"
-                      height="60"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <circle cx="12" cy="12" r="10" />
-                    </svg>
-                  </div>
-                  <div class="component-label">State</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="sidebar-header">
-            <div class="closeSide">&lt;</div>
-          </div>
-        </div>
-
-        <div id="verilog-editor-container" class="verilog-editor-container">
-          <div class="verilog-editor-panel">
-            <div class="verilog-editor-header">
-              <h3>Code Editor</h3>
-              <button id="close-verilog-editor" class="close-verilog-button">&times;</button>
-            </div>
-            <div class="ide-toolbar">
-              <button id="run-code" class="tooltip">
-                <span class="tooltiptext">Run Code</span>
-                <i class="fa-solid fa-play"></i>
-              </button>
-              <button id="save-code" class="tooltip">
-                <span class="tooltiptext">Download Code</span>
-                <i class="fa-solid fa-download"></i>
-              </button>
-            </div>
-            <div class="verilog-editor-content">
-              <textarea
-                id="verilog-editor"
-                style="
-                  width: 100%;
-                  height: 100%;
-                  font-family: monospace;
-                  background-color: #272822;
-                  color: #f8f8f2;
-                  padding: 10px;
-                  border: none;
-                  resize: none;
-                "
-                spellcheck="false"
-              >
-module if_test(
-          input [1:0] a,
-          output out
-        );
-          assign out = a[0] | a[1];
-        endmodule</textarea
-              >
-            </div>
-          </div>
-        </div>
-        <div id="settings-panel" class="settings-panel">
-          <div class="settings-header">
-            <h3>Settings</h3>
-            <button id="close-settings" class="close-settings-button">×</button>
-          </div>
-
-          <div class="settings-content">
-            <div class="settings-section">
-              <h4>Display Settings</h4>
-
-              <!-- Update your settings items to remove the "for" attribute from labels -->
-              <div class="setting-item">
-                <label>Show Minimap</label>
-                <div class="toggle-switch">
-                  <input class="mini" type="checkbox" id="show-minimap" checked />
-                  <span class="toggle-slider"></span>
-                </div>
-              </div>
-
-              <div class="setting-item">
-                <label>Minimap Size</label>
-                <select id="minimap-size">
-                  <option value="small">Small</option>
-                  <option value="medium" selected>Medium</option>
-                  <option value="large">Large</option>
-                </select>
-              </div>
-
-              <div class="setting-item">
-                <label>Canvas Color</label>
-                <select id="canvasBackground">
-                  <option value="#181818" selected>Dark</option>
-                  <option value="#f0f5f9">Light</option>
-                  <option value="#021e14">Forest</option>
-                  <option value="#0f2027">Midnight</option>
-                </select>
-              </div>
-
-              <div class="setting-item">
-                <label>Show Grid</label>
-                <div class="toggle-switch">
-                  <input class="grid" type="checkbox" id="show-grid" checked />
-                  <span class="toggle-slider"></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-section">
-              <h4>Keyboard Shortcuts</h4>
-
-              <div class="shortcut-category">File Operations</div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Save Circuit</span>
-                <div class="shortcut-key">Ctrl+S</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Open Circuit</span>
-                <div class="shortcut-key">Ctrl+O</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Export to Verilog</span>
-                <div class="shortcut-key">Ctrl+E</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Download as JSON</span>
-                <div class="shortcut-key">Ctrl+D</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Take Screenshot</span>
-                <div class="shortcut-key">Alt+S</div>
-              </div>
-
-              <div class="shortcut-category">Editing Operations</div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Delete Selected</span>
-                <div class="shortcut-key">Delete</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Select All</span>
-                <div class="shortcut-key">Ctrl+A</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Toggle Grid</span>
-                <div class="shortcut-key">Ctrl+G</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Rotate Component</span>
-                <div class="shortcut-key">R</div>
-              </div>
-
-              <div class="shortcut-category">View Controls</div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Zoom In</span>
-                <div class="shortcut-key">+</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Zoom Out</span>
-                <div class="shortcut-key">-</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Reset Zoom</span>
-                <div class="shortcut-key">0</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Pan Canvas</span>
-                <div class="shortcut-key">Space+Drag</div>
-              </div>
-
-              <div class="shortcut-category">Simulation Controls</div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Run Simulation</span>
-                <div class="shortcut-key">F5</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Show Truth Table</span>
-                <div class="shortcut-key">T</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Show Karnaugh Map</span>
-                <div class="shortcut-key">K</div>
-              </div>
-              <div class="shortcut-item">
-                <span class="shortcut-action">Auto-Arrange Circuit</span>
-                <div class="shortcut-key">A</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="canvas-container">
-          <canvas id="circuit-canvas"></canvas>
-        </div>
-        <div id="properties-panel-container"></div>
-
-        <div class="minimap">
-          <canvas id="minicanvas"></canvas>
-        </div>
-      </div>
-
-      <!-- Authentication Modal -->
-      <div id="auth-modal" class="auth-modal">
-        <div class="auth-panel">
-          <!-- Login Form -->
-          <div id="login-form" class="auth-form active">
-            <div class="auth-header">
-              <h3>Sign In to LogicDrawer</h3>
-              <button type="button" class="close-auth-button">&times;</button>
-            </div>
-            <div class="auth-content">
-              <div class="input-group">
-                <label for="login-email">Email</label>
-                <input type="email" id="login-email" placeholder="Enter your email" required />
-              </div>
-              <div class="input-group">
-                <label for="login-password">Password</label>
-                <input
-                  type="password"
-                  id="login-password"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
-              <div class="forgot-password">
-                <a href="#" id="forgot-password-link">Forgot password?</a>
-              </div>
-              <button type="button" class="auth-button" id="login-button">Sign In</button>
-              <div class="auth-switch">
-                Don't have an account? <a href="#" id="show-signup">Sign Up</a>
-              </div>
-            </div>
-          </div>
-
-          <!-- Register Form -->
-          <div id="signup-form" class="auth-form">
-            <div class="auth-header">
-              <h3>Create LogicDrawer Account</h3>
-              <button type="button" class="close-auth-button">&times;</button>
-            </div>
-            <div class="auth-content">
-              <div class="input-group">
-                <label for="signup-name">Full Name</label>
-                <input type="text" id="signup-name" placeholder="Enter your name" required />
-              </div>
-              <div class="input-group">
-                <label for="signup-email">Email</label>
-                <input type="email" id="signup-email" placeholder="Enter your email" required />
-              </div>
-              <div class="input-group">
-                <label for="signup-password">Password</label>
-                <input
-                  type="password"
-                  id="signup-password"
-                  placeholder="Create a password"
-                  required
-                />
-              </div>
-              <div class="input-group">
-                <label for="signup-confirm-password">Confirm Password</label>
-                <input
-                  type="password"
-                  id="signup-confirm-password"
-                  placeholder="Confirm your password"
-                  required
-                />
-              </div>
-              <button type="button" class="auth-button" id="signup-button">Create Account</button>
-              <div class="auth-switch">
-                Already have an account? <a href="#" id="show-login">Sign In</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="ai-chat-container" class="ai-chat-container">
-        <div class="ai-chat-header">
-          <h3>Circuit Design Assistant</h3>
-          <button id="close-chat" class="close-chat-button">×</button>
-        </div>
-        <div class="ai-chat-messages" id="ai-chat-messages">
-          <div class="ai-message">
-            <div class="ai-avatar">
-              <svg
-                width="200px"
-                height="40px"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <text
-                  x="0"
-                  y="18"
-                  font-family="Pixelify Sans"
-                  font-size="20"
-                  fill="currentColor"
-                  stroke="none"
-                  stroke-width="0.5"
-                >
-                  AI
-                </text>
-              </svg>
-            </div>
-            <div class="message-content">
-              Hello, my name is Logix. I can help you design circuits or explain logic gates. How
-              can I assist you today?
-            </div>
-          </div>
-        </div>
-        <div id="aiFile" class="ai-chat-input-area">
-          <label for="file-upload" class="file-upload-label">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+    <main>
+      <section class="hero" id="top">
+        <div class="hero-inner will-fade">
+          <div class="eyebrow">NEXT GENERATION OF LOGIC DESIGN</div>
+          <h1 class="headline"><span class="accent">AI‑Powered</span> Circuit Design.</h1>
+          <p class="subhead">
+            LogicDrawer combines artificial intelligence with a precision design workspace to help
+            you create, verify, and share logic circuits—faster than ever.
+          </p>
+          <div class="cta-row">
+            <a class="btn btn-primary">Try for Free</a>
+            <a href="https://github.com/" class="btn btn-ghost" target="_blank" rel="noopener"
+              >View on GitHub</a
             >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="17 8 12 3 7 8"></polyline>
-              <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-          </label>
-          <input type="file" id="file-upload" accept="image/*" style="display: none" />
-          <textarea id="ai-chat-input" rows="1" placeholder="Type your message..."></textarea>
-          <button id="send-message">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+          </div>
         </div>
+        <div class="mockup will-fade" aria-hidden="true">
+          <img src="/images/LogicDrawerImg.png" alt="LogicDrawer interface mockup" />
+          <div class="mockup-glow"></div>
+        </div>
+      </section>
+
+      <section class="section circuits" id="circuits">
+        <div class="container">
+          <header class="section-head will-fade">
+            <h2>Public Circuits</h2>
+            <p>Community‑shared designs. Tap to explore and fork.</p>
+          </header>
+          <div class="circuits-grid">
+            <a class="glass circuit-card will-fade" href="#">
+              <div class="c-icon"></div>
+              <div class="c-meta">
+                <h4>8‑bit ALU</h4>
+                <span>by nova_logic</span>
+              </div>
+            </a>
+            <a class="glass circuit-card will-fade" href="#">
+              <div class="c-icon"></div>
+              <div class="c-meta">
+                <h4>Debounce Module</h4>
+                <span>by kaan</span>
+              </div>
+            </a>
+            <a class="glass circuit-card will-fade" href="#">
+              <div class="c-icon"></div>
+              <div class="c-meta">
+                <h4>UART TX/RX</h4>
+                <span>by circuitry</span>
+              </div>
+            </a>
+            <a class="glass circuit-card will-fade" href="#">
+              <div class="c-icon"></div>
+              <div class="c-meta">
+                <h4>SR Latch</h4>
+                <span>by zenbits</span>
+              </div>
+            </a>
+            <a class="glass circuit-card will-fade" href="#">
+              <div class="c-icon"></div>
+              <div class="c-meta">
+                <h4>RISC‑V Core (toy)</h4>
+                <span>by tinker</span>
+              </div>
+            </a>
+            <a class="glass circuit-card will-fade" href="#">
+              <div class="c-icon"></div>
+              <div class="c-meta">
+                <h4>Clock Divider</h4>
+                <span>by emdash</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section faq" id="faq">
+        <div class="container">
+          <header class="section-head will-fade">
+            <h2>FAQ</h2>
+            <p>Answers to common questions.</p>
+          </header>
+          <div class="faq-list">
+            <details class="glass will-fade" open>
+              <summary>What is LogicDrawer?</summary>
+              <p>
+                LogicDrawer is an interactive, web-based digital logic circuit designer and
+                simulator. Perfect for students, educators, and engineers.
+              </p>
+            </details>
+            <details class="glass will-fade">
+              <summary>Does it support AI features?</summary>
+              <p>
+                Yes. Generate circuits from sketches or natural language, then refine with
+                auto-wiring and validation.
+              </p>
+            </details>
+            <details class="glass will-fade">
+              <summary>What components are included?</summary>
+              <p>
+                Logic gates, adders, flip-flops, multiplexers, displays, and more—with analysis
+                tools like truth tables, K‑maps, and signal flow visualization.
+              </p>
+            </details>
+            <details class="glass will-fade">
+              <summary>Can I import/export designs?</summary>
+              <p>
+                Export to Verilog, JSON, PNG, PDF. Import from supported formats as you iterate.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <span>© <span id="year"></span> LogicDrawer</span>
+
+        <a href="https://github.com/" class="btn btn-ghost" target="_blank" rel="noopener"
+          >View on GitHub</a
+        >
       </div>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
+    </footer>
 
-    <!-- <script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.36.1/min/vs/loader.js"></script> -->
+    <script>
+      const nav = document.getElementById("nav");
+      const burger = document.getElementById("burger");
+      const tray = document.getElementById("mobileTray");
+      const yearEl = document.getElementById("year");
+      if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ace.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/ext-language_tools.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.23.4/mode-verilog.js"></script> -->
-    <script type="module" src="src/verilog-ide.js"></script>
+      let lastY = 0;
+      const onScroll = () => {
+        const y = window.scrollY || window.pageYOffset;
+        if (y > 10 && !nav.classList.contains("scrolled")) nav.classList.add("scrolled");
+        else if (y <= 10 && nav.classList.contains("scrolled")) nav.classList.remove("scrolled");
+        lastY = y;
+      };
+      document.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+
+      if (burger && tray) {
+        const toggle = () => {
+          const open = tray.classList.toggle("open");
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          document.body.style.overflow = open ? "hidden" : "";
+        };
+        burger.addEventListener("click", toggle);
+        tray.querySelectorAll("a").forEach(a => a.addEventListener("click", toggle));
+      }
+
+      const observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { rootMargin: "0px 0px -10% 0px", threshold: 0.12 }
+      );
+
+      document.querySelectorAll(".will-fade").forEach((el, i) => {
+        el.style.transitionDelay = `${Math.min(i * 60, 360)}ms`;
+        observer.observe(el);
+      });
+
+      const closeTrayOnResize = () => {
+        const isDesktop = window.matchMedia("(min-width: 1025px)").matches;
+        if (isDesktop && tray && tray.classList.contains("open")) {
+          tray.classList.remove("open");
+          burger && burger.setAttribute("aria-expanded", "false");
+          document.body.style.overflow = "";
+        }
+      };
+      window.addEventListener("resize", closeTrayOnResize);
+      closeTrayOnResize();
+
+      const setTheme = () => {
+        const r = document.documentElement.style;
+        r.setProperty("--bg-color", "#0f2027");
+        r.setProperty("--text-color", "#e0f2f1");
+        r.setProperty("--component-bg", "#203a43");
+        r.setProperty("--border-color", "#2c5364");
+        r.setProperty("--secondary-bg", "#192f38");
+        r.setProperty("--input-bg", "#D1F2EB");
+      };
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const tryButton = document.querySelector(".btn.btn-primary");
+
+        if (tryButton) {
+          tryButton.addEventListener("click", e => {
+            e.preventDefault();
+            localStorage.setItem("hasVisitedLogicDrawer", "true");
+            window.location.href = "/logic.html";
+          });
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const fromApp = params.get("from_app");
+
+        if (!fromApp && localStorage.getItem("hasVisitedLogicDrawer")) {
+          window.location.href = "/logic.html";
+        }
+
+        if (fromApp) {
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+      });
+
+      setTheme();
+    </script>
   </body>
 </html>

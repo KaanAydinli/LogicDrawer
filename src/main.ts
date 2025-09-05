@@ -157,13 +157,12 @@ async function initApp() {
     const helpButton = document.createElement("button");
     helpButton.className = "help-button";
     helpButton.innerHTML = "?";
-    helpButton.title = "Yardım";
+    helpButton.title = "Help";
     document.body.appendChild(helpButton);
 
     const tutorial = new Tutorial();
 
     helpButton.addEventListener("click", () => {
-      console.log("Yardım butonuna tıklandı");
       tutorial.goToStep(0);
       tutorial.show();
     });
@@ -1423,7 +1422,9 @@ function setMobile() {
 
         case "file":
           const filesSubMenu = item.querySelector(".mobile-submenu");
-          var fileOptions = filesSubMenu?.querySelectorAll(".mobile-submenu-item") as NodeListOf<HTMLElement>;
+          var fileOptions = filesSubMenu?.querySelectorAll(
+            ".mobile-submenu-item"
+          ) as NodeListOf<HTMLElement>;
           fileOptions.forEach(option => {
             option.addEventListener("click", function (this: HTMLElement) {
               const selectedFile = this.getAttribute("data");
@@ -1458,9 +1459,10 @@ function setMobile() {
           break;
 
         case "themes":
-
           const themesSubMenu = item.querySelector(".mobile-submenu");
-          var themeOptions = themesSubMenu?.querySelectorAll(".mobile-submenu-item") as NodeListOf<HTMLElement>;
+          var themeOptions = themesSubMenu?.querySelectorAll(
+            ".mobile-submenu-item"
+          ) as NodeListOf<HTMLElement>;
           themeOptions.forEach(option => {
             option.addEventListener("click", function (this: HTMLElement) {
               const selectedTheme = this.getAttribute("data-theme");
@@ -1480,13 +1482,12 @@ function setMobile() {
                 case "forest":
                   applyTheme("forest");
                   break;
-                   case "midnight":
+                case "midnight":
                   applyTheme("midnight");
                   break;
               }
             });
-          }
-          );
+          });
           break;
       }
     });
@@ -2053,8 +2054,6 @@ function setTheme() {
     });
   });
 
-  
-
   const savedTheme = localStorage.getItem("selectedTheme");
   if (savedTheme) {
     applyTheme(savedTheme);
@@ -2072,53 +2071,53 @@ function setTheme() {
   }
 }
 function applyTheme(themeName: string): void {
-    console.log(`Applying theme: ${themeName}`);
+  console.log(`Applying theme: ${themeName}`);
 
-    document.body.classList.remove("theme-dark", "theme-light", "theme-forest", "theme-midnight");
+  document.body.classList.remove("theme-dark", "theme-light", "theme-forest", "theme-midnight");
 
-    document.body.classList.add(`theme-${themeName}`);
+  document.body.classList.add(`theme-${themeName}`);
 
-    switch (themeName) {
-      case "light":
-        document.documentElement.style.setProperty("--bg-color", "#f0f5f9");
-        document.documentElement.style.setProperty("--text-color", "#333333");
-        document.documentElement.style.setProperty("--component-bg", "#ffffff");
-        document.documentElement.style.setProperty("--border-color", "#cccccc");
-        document.documentElement.style.setProperty("--secondary-bg", "#e9ecef");
-        document.documentElement.style.setProperty("--input-bg", "#2a2b2b");
+  switch (themeName) {
+    case "light":
+      document.documentElement.style.setProperty("--bg-color", "#f0f5f9");
+      document.documentElement.style.setProperty("--text-color", "#333333");
+      document.documentElement.style.setProperty("--component-bg", "#ffffff");
+      document.documentElement.style.setProperty("--border-color", "#cccccc");
+      document.documentElement.style.setProperty("--secondary-bg", "#e9ecef");
+      document.documentElement.style.setProperty("--input-bg", "#2a2b2b");
 
-        break;
-      case "dark":
-        document.documentElement.style.setProperty("--bg-color", "#181818");
-        document.documentElement.style.setProperty("--text-color", "#e0e0e0");
-        document.documentElement.style.setProperty("--component-bg", "#353535");
-        document.documentElement.style.setProperty("--border-color", "#444444");
-        document.documentElement.style.setProperty("--secondary-bg", "#2c2c2c");
-        document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
+      break;
+    case "dark":
+      document.documentElement.style.setProperty("--bg-color", "#181818");
+      document.documentElement.style.setProperty("--text-color", "#e0e0e0");
+      document.documentElement.style.setProperty("--component-bg", "#353535");
+      document.documentElement.style.setProperty("--border-color", "#444444");
+      document.documentElement.style.setProperty("--secondary-bg", "#2c2c2c");
+      document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
 
-        break;
-      case "forest":
-        document.documentElement.style.setProperty("--bg-color", "#021e14");
-        document.documentElement.style.setProperty("--text-color", "#e0f2f1");
-        document.documentElement.style.setProperty("--component-bg", "#0B6E4F");
-        document.documentElement.style.setProperty("--border-color", "#2a4e3e");
-        document.documentElement.style.setProperty("--secondary-bg", "#0c2e1f");
-        document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
+      break;
+    case "forest":
+      document.documentElement.style.setProperty("--bg-color", "#021e14");
+      document.documentElement.style.setProperty("--text-color", "#e0f2f1");
+      document.documentElement.style.setProperty("--component-bg", "#0B6E4F");
+      document.documentElement.style.setProperty("--border-color", "#2a4e3e");
+      document.documentElement.style.setProperty("--secondary-bg", "#0c2e1f");
+      document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
 
-        break;
-      case "midnight":
-        document.documentElement.style.setProperty("--bg-color", "#0f2027");
-        document.documentElement.style.setProperty("--text-color", "#e0f2f1");
-        document.documentElement.style.setProperty("--component-bg", "#203a43");
-        document.documentElement.style.setProperty("--border-color", "#2c5364");
-        document.documentElement.style.setProperty("--secondary-bg", "#192f38");
-        document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
+      break;
+    case "midnight":
+      document.documentElement.style.setProperty("--bg-color", "#0f2027");
+      document.documentElement.style.setProperty("--text-color", "#e0f2f1");
+      document.documentElement.style.setProperty("--component-bg", "#203a43");
+      document.documentElement.style.setProperty("--border-color", "#2c5364");
+      document.documentElement.style.setProperty("--secondary-bg", "#192f38");
+      document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
 
-        break;
-    }
-
-    localStorage.setItem("selectedTheme", themeName);
+      break;
   }
+
+  localStorage.setItem("selectedTheme", themeName);
+}
 
 inputText.addEventListener("keydown", event => {
   if (event.key === "Enter") {

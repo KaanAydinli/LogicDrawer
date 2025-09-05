@@ -30,13 +30,13 @@ body {
   height: 100vh;
   overflow: hidden;
 }
-html, body {
+html,
+body {
   position: relative;
   overflow-x: hidden;
   overscroll-behavior: none;
 }
 
-/* When keyboard is active on mobile */
 body.keyboard-active {
   height: 100%;
   overflow: hidden;
@@ -293,7 +293,7 @@ body.keyboard-active .ai-chat-container.open {
   border: #0b0b0b 2px solid;
   box-shadow: inset 0 0 3px rgb(0, 0, 0);
   user-select: none;
-    -webkit-user-select: none !important;
+  -webkit-user-select: none !important;
 }
 .component-label {
   font-family: "Pixelify Sans", sans-serif;
@@ -303,7 +303,7 @@ body.keyboard-active .ai-chat-container.open {
   font-size: 0.8rem;
   text-align: center;
   user-select: none;
-    -webkit-user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 .canvas-container {
@@ -384,7 +384,7 @@ body.keyboard-active .ai-chat-container.open {
   opacity: 0.5;
   cursor: not-allowed;
 }
-/* Add to your main CSS file */
+
 .editor-container {
   display: flex;
   width: 100%;
@@ -815,13 +815,11 @@ body.keyboard-active .ai-chat-container.open {
   border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
 }
 
-/* Show the tooltip when hovering over the tooltip container */
 .tooltip:hover .tooltiptext {
   visibility: visible;
   opacity: 1;
 }
 
-/* Position variants */
 .tooltip-top .tooltiptext {
   bottom: 125%;
 }
@@ -931,16 +929,15 @@ body.keyboard-active .ai-chat-container.open {
   background-color: transparent;
   font-size: 14px;
   padding: 8px 12px;
-  resize: none; /* Kullanıcı tarafından yeniden boyutlandırılamaz */
-  overflow-y: auto; /* Dikey kaydırma çubuğu */
+  resize: none;
+  overflow-y: auto;
   min-height: 24px;
-  max-height: 120px; /* Maksimum yükseklik */
+  max-height: 120px;
   line-height: 1.5;
   font-family: inherit;
   color: inherit;
 }
 
-/* Input alanının container'ını düzenli tutmak için */
 .ai-chat-input-area {
   display: flex;
   align-items: center;
@@ -1364,7 +1361,7 @@ body.keyboard-active .ai-chat-container.open {
   padding: 15px 20px;
   border-bottom: 1px solid #333;
 }
-/* Add this to your CSS file */
+
 .circuit-suggestion {
   position: absolute;
   z-index: 1000;
@@ -1382,7 +1379,7 @@ body.keyboard-active .ai-chat-container.open {
   font-weight: bold;
   margin-bottom: 4px;
 }
-/* Tutorial Navigation Butonlarının Stili */
+
 .tutorial-navigation {
   display: flex;
   justify-content: space-between;
@@ -1422,7 +1419,6 @@ body.keyboard-active .ai-chat-container.open {
   box-shadow: none;
 }
 
-/* Checkbox Stili */
 .modal-footer label {
   display: flex;
   align-items: center;
@@ -1454,7 +1450,7 @@ body.keyboard-active .ai-chat-container.open {
   color: var(--text-color);
   margin-bottom: 6px;
 }
-/* Rehber modalı için CSS */
+
 .modal {
   display: none;
   position: fixed;
@@ -1464,6 +1460,7 @@ body.keyboard-active .ai-chat-container.open {
   height: 100%;
   top: 0px;
   background-color: rgba(0, 0, 0, 0.8);
+  padding-top: 100px;
   overflow: auto;
 }
 
@@ -1571,7 +1568,7 @@ body.keyboard-active .ai-chat-container.open {
     opacity: 1;
   }
 }
-/* Tutorial videoları için stil ekleyin */
+
 .tutorial-video {
   width: 100%;
   max-width: 100%;
@@ -1579,10 +1576,9 @@ body.keyboard-active .ai-chat-container.open {
   border-radius: 8px;
   margin: 15px 0;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  background-color: #000; /* Video yüklenirken siyah arkaplan */
+  background-color: #000;
 }
 
-/* Mevcut image stilini tutuyoruz, belki bazı adımlarda hala resim kullanabiliriz */
 .tutorial-content img {
   max-width: 100%;
   border-radius: 4px;
@@ -1590,7 +1586,6 @@ body.keyboard-active .ai-chat-container.open {
   border: 1px solid var(--border-color);
 }
 
-/* Yardım butonu */
 .help-button {
   position: fixed;
   bottom: 220px;
@@ -1598,7 +1593,7 @@ body.keyboard-active .ai-chat-container.open {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background-color: #0b6e4f;
+  background-color: #2c5364;
   color: white;
   display: flex;
   justify-content: center;
@@ -1613,7 +1608,36 @@ body.keyboard-active .ai-chat-container.open {
 
 .help-button:hover {
   transform: scale(1.1);
-  background-color: #0d8c64;
+  background-color: #2c5364;
+}
+
+.github-button {
+  position: fixed;
+  bottom: 220px;
+  right: 80px;
+  width: 120px;
+  height: 30px;
+  border-radius: 10px;
+  background-color: #2a414b;
+  font-family: "Pixelify Sans", sans-serif;
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  border: none;
+  z-index: 100;
+  transition: all 0.3s;
+  background-image: s;
+  text-decoration: none;
+}
+
+.github-button:hover {
+  transform: scale(1.1);
+  background-color: #2c5364;
 }
 
 .suggestion-hint {
@@ -1809,7 +1833,6 @@ select {
   margin: 0;
 }
 
-/* Mobil görünüm için CSS - styles.css dosyanıza ekleyin */
 .mobile-header {
   display: none;
   justify-content: space-between;
@@ -1973,12 +1996,10 @@ select {
     display: flex;
   }
 
-  
   body.menu-open {
     overflow: hidden;
   }
 
-  
   .main-container {
     padding: 0;
   }
@@ -1996,12 +2017,11 @@ select {
     font-size: 10px;
     width: 60px;
     text-align: center;
-
   }
-  .component-group-title{
+  .component-group-title {
     font-size: small;
   }
-    .ai-chat-container {
+  .ai-chat-container {
     position: fixed;
     width: 100%;
     height: 60%;
@@ -2014,18 +2034,18 @@ select {
     transition: transform 0.3s ease-in-out;
     z-index: 1001;
   }
-  
+
   .ai-chat-container.open {
     transform: translateY(0);
   }
-  
+
   .ai-chat-header {
     flex-shrink: 0;
     padding: 8px 12px;
     z-index: 1002;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   }
-  
+
   .ai-chat-messages {
     flex-grow: 1;
     overflow-y: auto;
@@ -2040,13 +2060,11 @@ select {
     z-index: 1002;
     position: relative;
   }
-  
 
   .keyboard-active .ai-chat-container.open {
     height: 100%;
     bottom: 0;
   }
-  
 
   .keyboard-active .ai-chat-input-area {
     position: fixed;
@@ -2057,20 +2075,19 @@ select {
     padding: 8px;
     z-index: 1010;
   }
-  
 
   .keyboard-active .ai-chat-messages {
-    padding-bottom: 60px; 
+    padding-bottom: 60px;
   }
-  
+
   #ai-chat-input {
     min-height: 40px;
     max-height: 80px;
     font-size: 16px;
   }
-  
 
-  #send-message, .file-upload-label {
+  #send-message,
+  .file-upload-label {
     width: 40px;
     height: 40px;
     min-width: 40px;
@@ -2078,7 +2095,6 @@ select {
     align-items: center;
     justify-content: center;
   }
-  
 
   body {
     position: fixed;
@@ -2088,14 +2104,12 @@ select {
     overscroll-behavior: none;
     -webkit-overflow-scrolling: touch;
   }
-  
- 
+
   .main-container {
     overflow-y: auto;
-    height: calc(100% - 60px); 
+    height: calc(100% - 60px);
     -webkit-overflow-scrolling: touch;
   }
-  
 
   .keyboard-active .main-container {
     height: 50vh;
@@ -2105,11 +2119,9 @@ select {
     padding: 12px 16px;
     line-height: 1.5;
   }
-  
-  .ai-message, .user-message {
+
+  .ai-message,
+  .user-message {
     max-width: 90%;
   }
-
-  
-  
 }
