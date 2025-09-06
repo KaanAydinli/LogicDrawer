@@ -61,8 +61,12 @@ export class CircuitBoard {
   // Control point interaction state
   private isDraggingControlPoint: boolean = false;
   private draggedControlPointIndex: number | null = null;
-  private showMidpointIndicators: boolean = false;
-  private altKeyPressed: boolean = false;
+
+  // Wire drag detection for creating control points
+  private wireClickStartPos: Point | null = null;
+  private potentialWireForControlPoint: Wire | null = null;
+  private isWireDragDetection: boolean = false;
+  private readonly MIN_DRAG_DISTANCE = 3; // pixels
 
   private selectionRect: { start: Point; end: Point } | null = null;
   private isSelecting: boolean = false;
@@ -150,13 +154,6 @@ export class CircuitBoard {
   private handleKeyDown(event: KeyboardEvent): void {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
       return;
-    }
-
-    // Track Alt key state for control point interactions
-    if (event.key === "Alt") {
-      this.altKeyPressed = true;
-      this.showMidpointIndicators = true;
-      this.draw(); // Redraw to show midpoint indicators
     }
 
     if (event.ctrlKey && event.key === "d") {
@@ -248,13 +245,8 @@ export class CircuitBoard {
     }
   }
 
-  private handleKeyUp(event: KeyboardEvent): void {
-    // Track Alt key release
-    if (event.key === "Alt") {
-      this.altKeyPressed = false;
-      this.showMidpointIndicators = false;
-      this.draw(); // Redraw to hide midpoint indicators
-    }
+  private handleKeyUp(_event: KeyboardEvent): void {
+    // Currently no key up handling needed
   }
 
   private handleContextMenu(event: MouseEvent): void {
@@ -1956,7 +1948,7 @@ export class CircuitBoard {
     }
 
     this.wires.forEach(wire => {
-      wire.draw(this.ctx, this.showMidpointIndicators);
+      wire.draw(this.ctx);
     });
 
     this.components.forEach(component => {
@@ -1977,7 +1969,7 @@ export class CircuitBoard {
     }
 
     if (this.currentWire) {
-      this.currentWire.draw(this.ctx, this.showMidpointIndicators);
+      this.currentWire.draw(this.ctx);
     }
 
     this.drawMinimap();
@@ -2248,33 +2240,17 @@ export class CircuitBoard {
         return;
       }
 
-      // Check if Alt+Click to add control point anywhere on wire
-      if (this.altKeyPressed) {
-        if (wire.isNearPoint(mousePos)) {
-          wire.selected = true;
-          this.selectedWire = wire;
-
-          // Check if near midpoint first (for optimal placement)
-          const midpointInfo = wire.isNearMidpoint(mousePos);
-          if (midpointInfo) {
-            wire.addControlPointAtMidpoint(midpointInfo.segmentIndex);
-          } else {
-            // Add control point anywhere on the wire
-            wire.addControlPointAnywhere(mousePos);
-          }
-
-          this.gatePropertiesPanel.show(wire);
-          this.draw();
-          return;
-        }
-      }
-
-      // Regular wire selection
+      // Check if clicking on wire - but don't create control point yet, wait for drag
       if (wire.isNearPoint(mousePos)) {
         wire.selected = true;
         this.selectedWire = wire;
-        // Clear any control point selections when selecting the wire itself
-        wire.selectControlPoint(null);
+        wire.selectControlPoint(null); // Clear any existing control point selection
+
+        // Store the wire and start position for potential control point creation
+        this.potentialWireForControlPoint = wire;
+        this.wireClickStartPos = { x: mousePos.x, y: mousePos.y };
+        this.isWireDragDetection = true;
+
         this.gatePropertiesPanel.show(wire);
         this.draw();
         return;
@@ -2357,6 +2333,40 @@ export class CircuitBoard {
 
   private handleMouseMove(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
+
+    // Handle wire drag detection for creating control points
+    if (this.isWireDragDetection && this.wireClickStartPos && this.potentialWireForControlPoint) {
+      const dragDistance = Math.sqrt(
+        Math.pow(mousePos.x - this.wireClickStartPos.x, 2) +
+          Math.pow(mousePos.y - this.wireClickStartPos.y, 2)
+      );
+
+      if (dragDistance >= this.MIN_DRAG_DISTANCE) {
+        // User has dragged enough - create control point at original click position
+        const wire = this.potentialWireForControlPoint;
+
+        // Check if near midpoint first (for optimal placement)
+        const midpointInfo = wire.isNearMidpoint(this.wireClickStartPos);
+        if (midpointInfo) {
+          wire.addControlPointAtMidpoint(midpointInfo.segmentIndex);
+        } else {
+          wire.addControlPoint(this.wireClickStartPos);
+        }
+
+        // Start dragging the newly created control point
+        this.isDraggingControlPoint = true;
+        this.draggedControlPointIndex = wire.selectedPointIndex;
+        wire.startDraggingControlPoint(wire.selectedPointIndex!);
+
+        // Clear drag detection state
+        this.isWireDragDetection = false;
+        this.wireClickStartPos = null;
+        this.potentialWireForControlPoint = null;
+
+        this.draw();
+      }
+      return; // Don't process other mouse move logic while in drag detection
+    }
 
     // Handle control point dragging
     if (
@@ -2443,6 +2453,15 @@ export class CircuitBoard {
     const mousePos = this.getMousePosition(event);
 
     console.log("Mouse up at:", mousePos);
+
+    // Handle wire drag detection cleanup (if user clicks without dragging)
+    if (this.isWireDragDetection) {
+      // User clicked on wire but didn't drag - just select the wire without creating control point
+      this.isWireDragDetection = false;
+      this.wireClickStartPos = null;
+      this.potentialWireForControlPoint = null;
+      // Wire is already selected from mousedown, no need to do anything else
+    }
 
     // Handle end of control point dragging
     if (this.isDraggingControlPoint && this.selectedWire) {

@@ -604,7 +604,7 @@ export class Wire {
     this.tempEndPoint = point;
   }
 
-  draw(ctx: CanvasRenderingContext2D, showMidpoints: boolean = false): void {
+  draw(ctx: CanvasRenderingContext2D): void {
     if (!this.from) return;
     if (!this.from.position) return;
     if (this.to && !this.to.position && !this.tempEndPoint) return;
@@ -683,7 +683,7 @@ export class Wire {
 
     if (this.selected) {
       this.drawControlPoints(ctx);
-      this.drawMidpointIndicators(ctx, showMidpoints);
+      this.drawMidpointIndicators(ctx, true); // Always show midpoints when wire is selected
     }
   }
 
@@ -849,23 +849,6 @@ export class Wire {
     this.selectedPointIndex = insertIndex;
   }
 
-  addControlPointAnywhere(point: Point): void {
-    // Allow adding control point anywhere without optimal insertion logic
-    const gridSize = 20;
-    const snappedPoint = {
-      x: Math.round(point.x / gridSize) * gridSize,
-      y: Math.round(point.y / gridSize) * gridSize,
-    };
-
-    // Simply add to the end of control points array
-    this.controlPoints.push(snappedPoint);
-
-    // Mark this wire as having manual control points
-    this.hasManualControlPoints = true;
-
-    // Select the newly added control point
-    this.selectedPointIndex = this.controlPoints.length - 1;
-  }
   private findOptimalInsertionIndex(point: Point): number {
     const allPoints = this.getAllPoints();
 
