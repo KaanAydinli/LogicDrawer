@@ -205,12 +205,16 @@ export abstract class Component {
       position: { x: this.position.x, y: this.position.y },
       size: { width: this.size.width, height: this.size.height },
       selected: this.selected,
+      defaultBitWidth: this.defaultBitWidth,
+      isMultiBit: this.isMultiBit,
+      rotation: this.rotation,
 
       inputs: this.inputs.map(port => ({
         id: port.id,
         value: port.value,
         isConnected: port.isConnected,
         position: { x: port.position.x, y: port.position.y },
+        bitWidth: port.bitWidth,
       })),
 
       outputs: this.outputs.map(port => ({
@@ -218,6 +222,7 @@ export abstract class Component {
         value: port.value,
         isConnected: port.isConnected,
         position: { x: port.position.x, y: port.position.y },
+        bitWidth: port.bitWidth,
       })),
     };
 
@@ -249,8 +254,21 @@ export abstract class Component {
 
     this.selected = state.selected ?? this.selected;
 
+    // BitWidth ve diğer özellikleri geri yükle
+    if (state.defaultBitWidth !== undefined) {
+      this.setBitWidth(state.defaultBitWidth); // setBitWidth metodunu çağır ki tüm portlar güncellenir
+    }
+
+    if (state.isMultiBit !== undefined) {
+      this.isMultiBit = state.isMultiBit;
+    }
+
+    if (state.rotation !== undefined) {
+      this.rotation = state.rotation;
+    }
+
     if (this.type == "toggle") {
-      (state as any).on = (this as any).on;
+      (this as any).on = state.on ?? (this as any).on;
     }
 
     if (state.inputs && Array.isArray(state.inputs)) {
@@ -261,6 +279,11 @@ export abstract class Component {
 
         this.inputs[i].value = state.inputs[i].value ?? false;
         this.inputs[i].id = state.inputs[i].id || this.inputs[i].id;
+
+        // BitWidth'i geri yükle
+        if (state.inputs[i].bitWidth !== undefined) {
+          this.inputs[i].bitWidth = state.inputs[i].bitWidth;
+        }
       }
     }
 
@@ -272,6 +295,11 @@ export abstract class Component {
 
         this.outputs[i].value = state.outputs[i].value ?? false;
         this.outputs[i].id = state.outputs[i].id || this.outputs[i].id;
+
+        // BitWidth'i geri yükle
+        if (state.outputs[i].bitWidth !== undefined) {
+          this.outputs[i].bitWidth = state.outputs[i].bitWidth;
+        }
       }
     }
   }

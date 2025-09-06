@@ -65,24 +65,13 @@ export class DFlipFlop extends Component {
   evaluate(): void {
     const dataIn = this.inputs[0].value;
 
-    let clockIn = false;
-    if (Array.isArray(this.inputs[1].value)) {
-      clockIn = !!this.inputs[1].value[0];
-    } else {
-      clockIn = !!this.inputs[1].value;
-    }
+    let clockIn = this.inputs[1].value as boolean;
 
     if (clockIn && !this.lastClk) {
       if (Array.isArray(dataIn)) {
         this.qValue = [...dataIn];
-
-        this.outputs[0].bitWidth = dataIn.length;
-        this.outputs[1].bitWidth = dataIn.length;
       } else {
-        this.qValue = !!dataIn;
-
-        this.outputs[0].bitWidth = 1;
-        this.outputs[1].bitWidth = 1;
+        this.qValue = dataIn;
       }
     }
 

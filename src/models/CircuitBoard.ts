@@ -2789,7 +2789,33 @@ export class CircuitBoard {
         }
 
         if (component) {
+          // İlk olarak bitWidth'i ayarla, eğer state'te varsa
+          if (
+            compData.state.defaultBitWidth !== undefined &&
+            compData.state.defaultBitWidth !== 1
+          ) {
+            component.setBitWidth(compData.state.defaultBitWidth);
+          }
+
+          // Sonra state'i ayarla
           component.setState(compData.state);
+
+          // State'den sonra port-specific bitWidth'leri kontrol et
+          if (compData.state.inputs && Array.isArray(compData.state.inputs)) {
+            compData.state.inputs.forEach((portState: any, index: number) => {
+              if (component.inputs[index] && portState.bitWidth !== undefined) {
+                component.inputs[index].bitWidth = portState.bitWidth;
+              }
+            });
+          }
+
+          if (compData.state.outputs && Array.isArray(compData.state.outputs)) {
+            compData.state.outputs.forEach((portState: any, index: number) => {
+              if (component.outputs[index] && portState.bitWidth !== undefined) {
+                component.outputs[index].bitWidth = portState.bitWidth;
+              }
+            });
+          }
 
           componentMap.set(component.id, component);
           component.inputs.forEach(port => portMap.set(port.id, port));
