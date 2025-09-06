@@ -23,7 +23,7 @@ export class DFlipFlop extends Component {
     });
 
     this.inputs.push({
-      id: `${this.id}-input-1`,
+      id: `${this.id}-clock`,
       type: "input",
       position: {
         x: this.position.x - 10,
@@ -73,15 +73,14 @@ export class DFlipFlop extends Component {
     }
 
     if (clockIn && !this.lastClk) {
- 
       if (Array.isArray(dataIn)) {
         this.qValue = [...dataIn];
-   
+
         this.outputs[0].bitWidth = dataIn.length;
         this.outputs[1].bitWidth = dataIn.length;
       } else {
         this.qValue = !!dataIn;
- 
+
         this.outputs[0].bitWidth = 1;
         this.outputs[1].bitWidth = 1;
       }
@@ -240,6 +239,23 @@ export class DFlipFlop extends Component {
         y: this.position.y + 50,
       };
     }
+  }
+  public setBitWidth(width: number): void {
+    if (width > 64) {
+      width = 64;
+    }
+
+    if (width < 1) {
+      width = 1;
+    }
+
+    this.inputs[0].bitWidth = width;
+
+    this.outputs.forEach(output => {
+      output.bitWidth = width;
+    });
+
+    this.defaultBitWidth = width;
   }
 
   getState(): any {
