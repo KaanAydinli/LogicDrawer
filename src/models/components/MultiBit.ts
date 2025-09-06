@@ -5,10 +5,11 @@ export class MultiBit extends Component {
   private bits: BitArray;
 
   constructor(position: Point, bitWidth: number = 2) {
+    bitWidth = Math.max(1, Math.min(16, bitWidth));
     super("multibit", position, { width: 80, height: 30 * bitWidth });
 
     this.isMultiBit = true;
-    this.defaultBitWidth = Math.max(1, Math.min(16, bitWidth));
+    this.defaultBitWidth = bitWidth;
     this.bits = Array(this.defaultBitWidth).fill(false);
 
     this.outputs.push({
@@ -26,6 +27,16 @@ export class MultiBit extends Component {
   }
 
   evaluate(): void {
+    if (this.bits.length !== this.defaultBitWidth) {
+      const oldBits = [...this.bits];
+      this.bits = Array(this.defaultBitWidth).fill(false);
+
+      const preserveCount = Math.min(oldBits.length, this.defaultBitWidth);
+      for (let i = 0; i < preserveCount; i++) {
+        this.bits[this.defaultBitWidth - i - 1] = oldBits[oldBits.length - i - 1];
+      }
+    }
+
     this.outputs[0].value = [...this.bits];
   }
 
@@ -54,14 +65,9 @@ export class MultiBit extends Component {
     }
   }
   public setBitWidth(width: number): void {
-    if (width > 64) {
-      width = 64;
-    }
+    width = Math.max(1, Math.min(64, width));
 
-    if (width < 1) {
-      width = 1;
-    }
-
+    const oldWidth = this.defaultBitWidth;
     this.defaultBitWidth = width;
 
     this.size = {
@@ -69,13 +75,24 @@ export class MultiBit extends Component {
       height: 30 * this.defaultBitWidth,
     };
 
+    const oldBits = [...this.bits];
+    this.bits = Array(width).fill(false);
+
+    const preserveCount = Math.min(oldWidth, width);
+    for (let i = 0; i < preserveCount; i++) {
+      this.bits[width - i - 1] = oldBits[oldWidth - i - 1];
+    }
+
     this.inputs.forEach(input => {
       input.bitWidth = width;
     });
 
     this.outputs.forEach(output => {
       output.bitWidth = width;
+      output.value = [...this.bits];
     });
+
+    this.evaluate();
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
@@ -154,19 +171,34 @@ export class MultiBit extends Component {
 
     if (state.bitWidth !== undefined) {
       this.defaultBitWidth = state.bitWidth;
+
+      this.size = {
+        width: this.size.width,
+        height: 30 * this.defaultBitWidth,
+      };
     }
 
+    this.bits = Array(this.defaultBitWidth).fill(false);
+
     if (state.bits && Array.isArray(state.bits)) {
-      this.bits = [...state.bits];
-      while (this.bits.length < this.defaultBitWidth) {
-        this.bits.push(false);
+      const stateBits = [...state.bits];
+
+      const preserveCount = Math.min(stateBits.length, this.defaultBitWidth);
+      for (let i = 0; i < preserveCount; i++) {
+        this.bits[this.defaultBitWidth - i - 1] = stateBits[stateBits.length - i - 1];
       }
-      this.bits = this.bits.slice(0, this.defaultBitWidth);
     }
 
     if (this.outputs.length > 0) {
       this.outputs[0].value = [...this.bits];
       this.outputs[0].bitWidth = this.defaultBitWidth;
+    }
+
+    if (this.outputs.length > 0) {
+      this.outputs[0].position = {
+        x: this.position.x + this.size.width + 10,
+        y: this.position.y + this.size.height / 2,
+      };
     }
   }
 }
