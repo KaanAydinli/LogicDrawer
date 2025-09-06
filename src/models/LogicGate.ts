@@ -63,7 +63,6 @@ export abstract class LogicGate extends Component {
       const lastPort = this.inputs[currentInputCount - 1];
 
       if (lastPort.isConnected) {
-          
       }
 
       this.inputs.pop();
@@ -77,7 +76,6 @@ export abstract class LogicGate extends Component {
     const maxInputs = this.getMaxInputCount();
 
     if (currentInputCount < maxInputs) {
-
       const newPortPosition = this.getInputPortPosition(currentInputCount, currentInputCount + 1);
       const newPort: Port = {
         id: Math.random().toString(36).substring(2, 15),
@@ -96,12 +94,10 @@ export abstract class LogicGate extends Component {
   }
   public setBitWidth(width: number): void {
     if (width < 1) {
-      console.warn("Bit genişliği 1'den küçük olamaz. 1 kullanılacak.");
       width = 1;
     }
 
     if (width > 64) {
-      console.warn("Bit genişliği 64'ten büyük olamaz. 64 kullanılacak.");
       width = 64;
     }
 
@@ -114,7 +110,7 @@ export abstract class LogicGate extends Component {
           newValue = oldValue.length > 0 ? oldValue[0] : false;
         } else {
           newValue = Array(width).fill(false);
-          for (let i = 0; i < Math.min(width, oldValue.length); i++) {
+          for (let i = Math.min(width, oldValue.length); i > 0; i--) {
             newValue[i] = oldValue[i];
           }
         }
