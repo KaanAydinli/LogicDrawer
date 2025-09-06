@@ -1,6 +1,6 @@
 {
   "name": "logicdrawer-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend server for LogicDrawer",
   "main": "dist/index.js",
   "type": "commonjs",

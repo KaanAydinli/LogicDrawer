@@ -128,3 +128,85 @@ export const ownerRequired = (resourceUserId: string) => {
     }
   };
 };
+
+/**
+ * Optional authentication middleware that sets user info if token is present and valid,
+ * but doesn't reject the request if token is missing or invalid.
+ * Useful for routes that have different behavior for authenticated vs unauthenticated users.
+ * @param {AuthRequest} req - The Express request object.
+ * @param {Response} res - The Express response object.
+ * @param {NextFunction} next - The next middleware function.
+ */
+export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    // Get token from cookie
+    const token = req.cookies.auth_token;
+
+    if (!token) {
+      // No token provided, continue without setting user
+      return next();
+    }
+
+    try {
+      // Verify token
+      const decodedToken = jwt.verify(token, JWT_SECRET) as {
+        id: string;
+        email: string;
+        name?: string;
+        role?: string;
+        exp?: number;
+      };
+
+      // Add user information to the request
+      req.user = {
+        id: decodedToken.id,
+        email: decodedToken.email,
+        name: decodedToken.name,
+        role: decodedToken.role,
+      };
+
+      // Optional: Token refresh check
+      const tokenExp = decodedToken.exp || 0;
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      if (tokenExp && tokenExp - currentTime < 30 * 60) {
+        // 30 minutes
+        try {
+          // Get current user information
+          const user = await User.findById(decodedToken.id).select("-password");
+
+          if (user) {
+            const newToken = jwt.sign(
+              {
+                id: user._id,
+                email: user.email,
+                name: user.name,
+              },
+              JWT_SECRET,
+              { expiresIn: "1h" }
+            );
+
+            // Set the new token
+            res.cookie("auth_token", newToken, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              path: "/",
+              maxAge: 60 * 60 * 1000, // 1 hour
+            });
+          }
+        } catch (refreshError) {
+          // Do not interrupt the flow even if token refresh fails
+        }
+      }
+
+      next();
+    } catch (tokenError) {
+      // Invalid token, continue without setting user
+      next();
+    }
+  } catch (error) {
+    // Error in authentication process, continue without setting user
+    next();
+  }
+};

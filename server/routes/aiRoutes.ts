@@ -8,9 +8,46 @@ import path from "path";
 import fs from "fs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import multer from "multer";
+import { optionalAuth, AuthRequest } from "../middlewares/auth";
+import { aiRateLimit, getRateLimitStatus } from "../middlewares/aiRateLimit";
 
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
+
+/**
+ * Get current rate limit status for the client
+ */
+router.get("/rate-limit-status", optionalAuth, (req: AuthRequest, res, next) => {
+  try {
+    // If user is authenticated, they have unlimited access
+    if (req.user) {
+      return res.json({
+        authenticated: true,
+        unlimited: true,
+        message: "You have unlimited access to AI features.",
+      });
+    }
+
+    // For unauthenticated users, return their current rate limit status
+    const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+    const status = getRateLimitStatus(clientIp);
+
+    res.json({
+      authenticated: false,
+      unlimited: false,
+      ...status,
+      message:
+        status.remaining > 0
+          ? `You have ${status.remaining} messages remaining today.`
+          : "You have reached your daily limit. Please create an account for unlimited access.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to get rate limit status",
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
 
 /**
  * Multer settings for file uploads.
@@ -20,7 +57,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-router.post("/analyze/roboflow", async (req, res) => {
+router.post("/analyze/roboflow", optionalAuth, aiRateLimit, async (req, res) => {
   try {
     const { base64Image } = req.body;
     if (!base64Image) {
@@ -139,7 +176,7 @@ router.post("/analyze/roboflow", async (req, res) => {
   }
 });
 
-router.post("/classify-message", async (req, res) => {
+router.post("/classify-message", optionalAuth, aiRateLimit, async (req, res) => {
   try {
     const { message, hasImage } = req.body;
 
@@ -219,7 +256,7 @@ router.post("/classify-message", async (req, res) => {
 /**
  * Generate text with Mistral.
  */
-router.post("/generate/mistral", async (req, res) => {
+router.post("/generate/mistral", optionalAuth, aiRateLimit, async (req, res) => {
   try {
     const { userPrompt, systemPrompt } = req.body;
 
@@ -286,7 +323,7 @@ router.post("/generate/mistral", async (req, res) => {
 /**
  * Generate text with Gemini.
  */
-router.post("/generate/gemini-text", async (req, res) => {
+router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res) => {
   try {
     const { prompt, systemPrompt, history } = req.body;
 
@@ -294,7 +331,7 @@ router.post("/generate/gemini-text", async (req, res) => {
       return res.status(400).json({ error: "No prompt provided" });
     }
 
-    const googleApiKey = process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY;
+    const googleApiKey = process.env.GOOGLE_API_KEY;
     if (!googleApiKey) {
       return res.status(500).json({ error: "Google API key not configured" });
     }
@@ -379,7 +416,7 @@ router.post("/generate/gemini-text", async (req, res) => {
 });
 
 // Gemini Vision ile görüntü analizi
-router.post("/generate/gemini-vision", async (req, res) => {
+router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, res) => {
   try {
     const { prompt, imageData } = req.body;
 
