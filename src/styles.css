@@ -2009,6 +2009,11 @@ select {
     bottom: 10px;
     right: 10px;
   }
+  .github-button {
+    position: fixed;
+    bottom: 10px;
+    right: 60px;
+  }
 
   .component {
     width: 70px;
