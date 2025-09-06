@@ -9,6 +9,9 @@ export class Wire {
   controlPoints: Point[];
   selectedPointIndex: number | null;
   bitWidth: number = 1;
+  isDraggingControlPoint: boolean = false;
+  hoveredControlPointIndex: number | null = null;
+  hasManualControlPoints: boolean = false;
 
   constructor(fromPort: Port, which: boolean = true) {
     if (which) {
@@ -29,6 +32,9 @@ export class Wire {
     this.selected = false;
     this.controlPoints = [];
     this.selectedPointIndex = null;
+    this.isDraggingControlPoint = false;
+    this.hoveredControlPointIndex = null;
+    this.hasManualControlPoints = false;
   }
 
   connect(toPort: Port): boolean {
@@ -135,11 +141,28 @@ export class Wire {
   }
 
   public autoRoute(components: Component[] = []): void {
+    // If user has manually placed control points, don't override them
+    if (this.hasManualControlPoints) {
+      return;
+    }
+
     this.controlPoints = [];
 
     if (!this.to || !this.from) return;
 
-  
+    const startInfo = this.getPortConnectionInfo(this.from);
+    const endInfo = this.getPortConnectionInfo(this.to);
+
+    const route = this.calculateOptimalRoute(startInfo, endInfo, components);
+    this.controlPoints = route;
+  }
+
+  public forceAutoRoute(components: Component[] = []): void {
+    // Force auto-routing even if manual control points exist
+    this.hasManualControlPoints = false;
+    this.controlPoints = [];
+
+    if (!this.to || !this.from) return;
 
     const startInfo = this.getPortConnectionInfo(this.from);
     const endInfo = this.getPortConnectionInfo(this.to);
@@ -206,14 +229,8 @@ export class Wire {
     };
   }
 
-  private calculateOptimalRoute(
-    startInfo: any,
-    endInfo: any,
-    components: Component[],
-    
-  ): Point[] {
+  private calculateOptimalRoute(startInfo: any, endInfo: any, components: Component[]): Point[] {
     const GRID_SIZE = 20;
-   
 
     const snapToGrid = (point: Point): Point => ({
       x: Math.round(point.x / GRID_SIZE) * GRID_SIZE,
@@ -271,14 +288,8 @@ export class Wire {
     }
   }
 
-  private calculateSmartRoute(
-    startInfo: any,
-    endInfo: any,
-    components: Component[],
-    
-  ): Point[] {
+  private calculateSmartRoute(startInfo: any, endInfo: any, components: Component[]): Point[] {
     const CLEARANCE = 30;
- 
 
     const start = startInfo.connectionPoint;
     const end = endInfo.connectionPoint;
@@ -415,7 +426,7 @@ export class Wire {
     startInfo: any,
     endInfo: any
   ): Point[] | null {
-    const waypoints = this.generateWaypoints( obstacles);
+    const waypoints = this.generateWaypoints(obstacles);
 
     if (waypoints.length === 0) {
       return this.createDirectRoute(startInfo, endInfo);
@@ -424,7 +435,7 @@ export class Wire {
     return this.findOptimalWaypointRoute(start, end, waypoints, obstacles);
   }
 
-  private generateWaypoints( obstacles: any[]): Point[] {
+  private generateWaypoints(obstacles: any[]): Point[] {
     const waypoints: Point[] = [];
     const CLEARANCE = 20;
 
@@ -593,7 +604,7 @@ export class Wire {
     this.tempEndPoint = point;
   }
 
-  draw(ctx: CanvasRenderingContext2D): void {
+  draw(ctx: CanvasRenderingContext2D, showMidpoints: boolean = false): void {
     if (!this.from) return;
     if (!this.from.position) return;
     if (this.to && !this.to.position && !this.tempEndPoint) return;
@@ -672,30 +683,54 @@ export class Wire {
 
     if (this.selected) {
       this.drawControlPoints(ctx);
+      this.drawMidpointIndicators(ctx, showMidpoints);
     }
   }
 
   private drawControlPoints(ctx: CanvasRenderingContext2D): void {
     const controlPointRadius = 6;
+    const selectedRadius = 8;
 
+    // Draw control points
     for (let i = 0; i < this.controlPoints.length; i++) {
       const point = this.controlPoints[i];
+      const isSelected = this.selectedPointIndex === i;
+      const isHovered = this.hoveredControlPointIndex === i;
+      const radius = isSelected ? selectedRadius : controlPointRadius;
 
-      ctx.fillStyle = "rgba(52, 152, 219, 0.3)";
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, controlPointRadius + 2, 0, Math.PI * 2);
-      ctx.fill();
+      // Draw outer glow for selected or hovered points
+      if (isSelected || isHovered) {
+        ctx.fillStyle = isSelected ? "rgba(76, 175, 80, 0.4)" : "rgba(52, 152, 219, 0.3)";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radius + 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      ctx.fillStyle = "#3498db";
+      // Draw main control point
+      ctx.fillStyle = isSelected ? "#4CAF50" : "#3498db";
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(point.x, point.y, controlPointRadius, 0, Math.PI * 2);
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-    }
 
+      // Draw inner highlight for better visibility
+      if (isSelected) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, radius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  drawMidpointIndicators(ctx: CanvasRenderingContext2D, showMidpoints: boolean = false): void {
+    if (!showMidpoints) return;
+
+    const controlPointRadius = 6;
     const allPoints = this.getAllPoints();
+
     for (let i = 0; i < allPoints.length - 1; i++) {
       const p1 = allPoints[i];
       const p2 = allPoints[i + 1];
@@ -703,12 +738,24 @@ export class Wire {
       const midX = (p1.x + p2.x) / 2;
       const midY = (p1.y + p2.y) / 2;
 
-      ctx.fillStyle = "rgba(52, 152, 219, 0.5)";
-      ctx.strokeStyle = "#ffffff";
+      // Draw semi-transparent midpoint indicator
+      ctx.fillStyle = "rgba(52, 152, 219, 0.4)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.arc(midX, midY, controlPointRadius * 0.6, 0, Math.PI * 2);
       ctx.fill();
+      ctx.stroke();
+
+      // Draw "+" symbol to indicate add point
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.lineWidth = 2;
+      const symbolSize = 3;
+      ctx.beginPath();
+      ctx.moveTo(midX - symbolSize, midY);
+      ctx.lineTo(midX + symbolSize, midY);
+      ctx.moveTo(midX, midY - symbolSize);
+      ctx.lineTo(midX, midY + symbolSize);
       ctx.stroke();
     }
   }
@@ -729,39 +776,107 @@ export class Wire {
     return false;
   }
 
-  isNearControlPoint(point: Point, event?: KeyboardEvent | MouseEvent): number | null {
+  isNearControlPoint(point: Point): number | null {
+    // Check proximity to existing control points
     for (let i = 0; i < this.controlPoints.length; i++) {
       const cp = this.controlPoints[i];
       const distance = Math.sqrt(Math.pow(point.x - cp.x, 2) + Math.pow(point.y - cp.y, 2));
 
-      if (distance <= 8) {
+      if (distance <= 12) {
+        // Increased radius for easier interaction
         return i;
-      }
-    }
-
-    if (event && event.altKey) {
-      const allPoints = this.getAllPoints();
-
-      for (let i = 0; i < allPoints.length - 1; i++) {
-        const p1 = allPoints[i];
-        const p2 = allPoints[i + 1];
-
-        const distance = this.distanceToSegment(point, p1, p2);
-
-        if (distance <= 5) {
-          return null;
-        }
       }
     }
 
     return null;
   }
 
-  addControlPoint(point: Point): void {
+  isNearMidpoint(point: Point): { segmentIndex: number; midpoint: Point } | null {
     const allPoints = this.getAllPoints();
-    let insertIndex = 0;
+    const threshold = 8;
+
+    for (let i = 0; i < allPoints.length - 1; i++) {
+      const p1 = allPoints[i];
+      const p2 = allPoints[i + 1];
+
+      const midX = (p1.x + p2.x) / 2;
+      const midY = (p1.y + p2.y) / 2;
+
+      const distance = Math.sqrt(Math.pow(point.x - midX, 2) + Math.pow(point.y - midY, 2));
+
+      if (distance <= threshold) {
+        return {
+          segmentIndex: i,
+          midpoint: { x: midX, y: midY },
+        };
+      }
+    }
+
+    return null;
+  }
+
+  setHoveredControlPoint(index: number | null): void {
+    this.hoveredControlPointIndex = index;
+  }
+
+  selectControlPoint(index: number | null): void {
+    this.selectedPointIndex = index;
+  }
+
+  startDraggingControlPoint(index: number): void {
+    this.selectedPointIndex = index;
+    this.isDraggingControlPoint = true;
+  }
+
+  stopDraggingControlPoint(): void {
+    this.isDraggingControlPoint = false;
+  }
+
+  addControlPoint(point: Point): void {
+    const gridSize = 20;
+    const snappedPoint = {
+      x: Math.round(point.x / gridSize) * gridSize,
+      y: Math.round(point.y / gridSize) * gridSize,
+    };
+
+    const insertIndex = this.findOptimalInsertionIndex(snappedPoint);
+    this.controlPoints.splice(insertIndex, 0, snappedPoint);
+
+    // Mark this wire as having manual control points
+    this.hasManualControlPoints = true;
+
+    // Select the newly added control point
+    this.selectedPointIndex = insertIndex;
+  }
+
+  addControlPointAnywhere(point: Point): void {
+    // Allow adding control point anywhere without optimal insertion logic
+    const gridSize = 20;
+    const snappedPoint = {
+      x: Math.round(point.x / gridSize) * gridSize,
+      y: Math.round(point.y / gridSize) * gridSize,
+    };
+
+    // Simply add to the end of control points array
+    this.controlPoints.push(snappedPoint);
+
+    // Mark this wire as having manual control points
+    this.hasManualControlPoints = true;
+
+    // Select the newly added control point
+    this.selectedPointIndex = this.controlPoints.length - 1;
+  }
+  private findOptimalInsertionIndex(point: Point): number {
+    const allPoints = this.getAllPoints();
+
+    if (allPoints.length < 2) {
+      return 0;
+    }
+
+    let bestIndex = 0;
     let minDistance = Number.MAX_VALUE;
 
+    // Find the segment closest to the point
     for (let i = 0; i < allPoints.length - 1; i++) {
       const p1 = allPoints[i];
       const p2 = allPoints[i + 1];
@@ -769,23 +884,38 @@ export class Wire {
       const distance = this.distanceToSegment(point, p1, p2);
       if (distance < minDistance) {
         minDistance = distance;
-        insertIndex = i;
+        bestIndex = i;
       }
     }
 
-    if (insertIndex === 0) {
-      insertIndex = 0;
-    } else {
-      insertIndex = insertIndex - 1;
+    // Convert from allPoints index to controlPoints index
+    // allPoints includes start port, control points, and end port
+    // controlPoints index = allPoints index - 1 (accounting for start port)
+    return bestIndex;
+  }
+
+  addControlPointAtMidpoint(segmentIndex: number): void {
+    const allPoints = this.getAllPoints();
+
+    if (segmentIndex < 0 || segmentIndex >= allPoints.length - 1) {
+      return;
     }
 
-    const gridSize = 20;
-    const snappedPoint = {
-      x: Math.round(point.x / gridSize) * gridSize,
-      y: Math.round(point.y / gridSize) * gridSize,
+    const p1 = allPoints[segmentIndex];
+    const p2 = allPoints[segmentIndex + 1];
+
+    const midPoint = {
+      x: Math.round((p1.x + p2.x) / 2 / 20) * 20, // Snap to grid
+      y: Math.round((p1.y + p2.y) / 2 / 20) * 20,
     };
 
-    this.controlPoints.splice(insertIndex + 1, 0, snappedPoint);
+    // Insert at the correct position in controlPoints array
+    this.controlPoints.splice(segmentIndex, 0, midPoint);
+
+    // Mark this wire as having manual control points
+    this.hasManualControlPoints = true;
+
+    this.selectedPointIndex = segmentIndex;
   }
 
   moveControlPoint(index: number, point: Point): void {
@@ -795,6 +925,9 @@ export class Wire {
         x: Math.round(point.x / gridSize) * gridSize,
         y: Math.round(point.y / gridSize) * gridSize,
       };
+
+      // Mark this wire as having manual control points
+      this.hasManualControlPoints = true;
     }
   }
 
@@ -811,10 +944,46 @@ export class Wire {
     }
   }
 
-  removeControlPoint(index: number): void {
-    if (index >= 0 && index < this.controlPoints.length) {
-      this.controlPoints.splice(index, 1);
+  removeControlPoint(index: number): boolean {
+    if (index < 0 || index >= this.controlPoints.length) {
+      return false;
     }
+
+    // Remove the control point
+    this.controlPoints.splice(index, 1);
+
+    // Clear selection if we removed the selected point
+    if (this.selectedPointIndex === index) {
+      this.selectedPointIndex = null;
+    } else if (this.selectedPointIndex !== null && this.selectedPointIndex > index) {
+      // Adjust selected index if it's after the removed point
+      this.selectedPointIndex--;
+    }
+
+    // Clear hover state
+    this.hoveredControlPointIndex = null;
+
+    return true;
+  }
+
+  removeSelectedControlPoint(): boolean {
+    if (this.selectedPointIndex !== null) {
+      return this.removeControlPoint(this.selectedPointIndex);
+    }
+    return false;
+  }
+
+  resetToAutoRoute(): void {
+    // Reset to automatic routing
+    this.hasManualControlPoints = false;
+    this.selectedPointIndex = null;
+    this.hoveredControlPointIndex = null;
+    this.controlPoints = [];
+  }
+
+  canRemoveControlPoint(index: number): boolean {
+    // Can always remove control points - wire will still be valid with just start/end points
+    return index >= 0 && index < this.controlPoints.length;
   }
 
   getAllPoints(): Point[] {

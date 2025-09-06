@@ -58,6 +58,12 @@ export class CircuitBoard {
   public minimapHeight: number = 200;
   private truthTableManager: TruthTableManager;
 
+  // Control point interaction state
+  private isDraggingControlPoint: boolean = false;
+  private draggedControlPointIndex: number | null = null;
+  private showMidpointIndicators: boolean = false;
+  private altKeyPressed: boolean = false;
+
   private selectionRect: { start: Point; end: Point } | null = null;
   private isSelecting: boolean = false;
   public selectedComponents: Component[] = [];
@@ -146,6 +152,13 @@ export class CircuitBoard {
       return;
     }
 
+    // Track Alt key state for control point interactions
+    if (event.key === "Alt") {
+      this.altKeyPressed = true;
+      this.showMidpointIndicators = true;
+      this.draw(); // Redraw to show midpoint indicators
+    }
+
     if (event.ctrlKey && event.key === "d") {
       event.preventDefault();
       this.saveToFile();
@@ -171,7 +184,20 @@ export class CircuitBoard {
 
     // Editing operations
     else if (event.key === "Delete" || event.key === "Backspace") {
-      this.deleteSelected();
+      // Try to delete selected control point first
+      if (this.selectedWire && this.selectedWire.selectedPointIndex !== null) {
+        this.selectedWire.removeSelectedControlPoint();
+        this.draw();
+      } else {
+        this.deleteSelected();
+      }
+    } else if (event.key === "Escape") {
+      // Clear all selections
+      if (this.selectedWire) {
+        this.selectedWire.selectControlPoint(null);
+        this.selectedWire.setHoveredControlPoint(null);
+        this.draw();
+      }
     } else if (event.ctrlKey && event.key === "a") {
       event.preventDefault();
       this.selectAllComponents();
@@ -213,6 +239,41 @@ export class CircuitBoard {
         this.draw();
       }
     }
+    // Wire routing reset
+    else if (event.key === "R" && event.shiftKey && this.selectedWire) {
+      event.preventDefault();
+      this.selectedWire.resetToAutoRoute();
+      this.selectedWire.forceAutoRoute(this.components);
+      this.draw();
+    }
+  }
+
+  private handleKeyUp(event: KeyboardEvent): void {
+    // Track Alt key release
+    if (event.key === "Alt") {
+      this.altKeyPressed = false;
+      this.showMidpointIndicators = false;
+      this.draw(); // Redraw to hide midpoint indicators
+    }
+  }
+
+  private handleContextMenu(event: MouseEvent): void {
+    event.preventDefault();
+
+    const mousePos = this.getMousePosition(event);
+
+    // Check if right-clicking on a control point
+    if (this.selectedWire) {
+      const controlPointIndex = this.selectedWire.isNearControlPoint(mousePos);
+      if (controlPointIndex !== null) {
+        // Remove the control point
+        this.selectedWire.removeControlPoint(controlPointIndex);
+        this.draw();
+        return;
+      }
+    }
+
+    // Handle other context menu items if needed
   }
 
   // Add this method to select all components
@@ -223,6 +284,7 @@ export class CircuitBoard {
     });
     this.draw();
   }
+
   private setupEvents(): void {
     // Existing mouse event handlers
     this.canvas.addEventListener("mousedown", this.handleMouseDown.bind(this));
@@ -230,14 +292,16 @@ export class CircuitBoard {
     this.canvas.addEventListener("mouseup", this.handleMouseUp.bind(this));
     this.canvas.addEventListener("dblclick", this.handleDoubleClick.bind(this));
     this.canvas.addEventListener("click", this.handleClick.bind(this));
+    this.canvas.addEventListener("contextmenu", this.handleContextMenu.bind(this));
 
     // Add touch event handlers
     this.canvas.addEventListener("touchstart", this.handleTouchStart.bind(this));
     this.canvas.addEventListener("touchmove", this.handleTouchMove.bind(this));
     this.canvas.addEventListener("touchend", this.handleTouchEnd.bind(this));
 
-    // Add keyboard event listener
+    // Add keyboard event listeners
     window.addEventListener("keydown", this.handleKeyDown.bind(this));
+    window.addEventListener("keyup", this.handleKeyUp.bind(this));
   }
 
   // Touch gesture state tracking
@@ -1892,7 +1956,7 @@ export class CircuitBoard {
     }
 
     this.wires.forEach(wire => {
-      wire.draw(this.ctx);
+      wire.draw(this.ctx, this.showMidpointIndicators);
     });
 
     this.components.forEach(component => {
@@ -1913,7 +1977,7 @@ export class CircuitBoard {
     }
 
     if (this.currentWire) {
-      this.currentWire.draw(this.ctx);
+      this.currentWire.draw(this.ctx, this.showMidpointIndicators);
     }
 
     this.drawMinimap();
@@ -2171,9 +2235,46 @@ export class CircuitBoard {
       }
     }
     for (const wire of this.wires) {
+      // Check if clicking on a control point first
+      const controlPointIndex = wire.isNearControlPoint(mousePos);
+      if (controlPointIndex !== null) {
+        wire.selected = true;
+        this.selectedWire = wire;
+        wire.startDraggingControlPoint(controlPointIndex);
+        this.isDraggingControlPoint = true;
+        this.draggedControlPointIndex = controlPointIndex;
+        this.gatePropertiesPanel.show(wire);
+        this.draw();
+        return;
+      }
+
+      // Check if Alt+Click to add control point anywhere on wire
+      if (this.altKeyPressed) {
+        if (wire.isNearPoint(mousePos)) {
+          wire.selected = true;
+          this.selectedWire = wire;
+
+          // Check if near midpoint first (for optimal placement)
+          const midpointInfo = wire.isNearMidpoint(mousePos);
+          if (midpointInfo) {
+            wire.addControlPointAtMidpoint(midpointInfo.segmentIndex);
+          } else {
+            // Add control point anywhere on the wire
+            wire.addControlPointAnywhere(mousePos);
+          }
+
+          this.gatePropertiesPanel.show(wire);
+          this.draw();
+          return;
+        }
+      }
+
+      // Regular wire selection
       if (wire.isNearPoint(mousePos)) {
         wire.selected = true;
         this.selectedWire = wire;
+        // Clear any control point selections when selecting the wire itself
+        wire.selectControlPoint(null);
         this.gatePropertiesPanel.show(wire);
         this.draw();
         return;
@@ -2257,6 +2358,26 @@ export class CircuitBoard {
   private handleMouseMove(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
 
+    // Handle control point dragging
+    if (
+      this.isDraggingControlPoint &&
+      this.selectedWire &&
+      this.draggedControlPointIndex !== null
+    ) {
+      this.selectedWire.moveControlPoint(this.draggedControlPointIndex, mousePos);
+      this.draw();
+      return;
+    }
+
+    // Handle hover effects for control points
+    if (this.selectedWire && !this.isDraggingControlPoint) {
+      const hoveredIndex = this.selectedWire.isNearControlPoint(mousePos);
+      if (hoveredIndex !== this.selectedWire.hoveredControlPointIndex) {
+        this.selectedWire.setHoveredControlPoint(hoveredIndex);
+        this.draw();
+      }
+    }
+
     if (this.isSelecting && this.selectionRect) {
       this.selectionRect.end = mousePos;
       this.draw();
@@ -2322,6 +2443,15 @@ export class CircuitBoard {
     const mousePos = this.getMousePosition(event);
 
     console.log("Mouse up at:", mousePos);
+
+    // Handle end of control point dragging
+    if (this.isDraggingControlPoint && this.selectedWire) {
+      this.selectedWire.stopDraggingControlPoint();
+      this.isDraggingControlPoint = false;
+      this.draggedControlPointIndex = null;
+      this.draw();
+      return;
+    }
 
     if (this.isSelecting && this.selectionRect) {
       this.selectionRect.end = mousePos;
