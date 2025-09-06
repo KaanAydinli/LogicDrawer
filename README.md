@@ -40,7 +40,7 @@ git clone https://github.com/KaanAydinli/LogicDrawer.git
 cd LogicDrawer
 npm install
 cd server && npm install && cd ..
-cp .env.example .env # Edit .env as needed
+cp .env.example server/.env # Edit .env as needed
 npm run dev:all   # Start frontend + backend
 Open your browser at: http://localhost:4000
 ```
@@ -60,7 +60,7 @@ See our Contributing Guide for more details.
 
 ### 📝 License
 
-This project is licensed under AGPL v3. See LICENSE for details.
+This project is licensed under AGPL v3. See [LICENSE](https://github.com/KaanAydinli/LogicDrawer?tab=License-1-ov-file) for details.
 
 ### 🙏 Acknowledgments
 
