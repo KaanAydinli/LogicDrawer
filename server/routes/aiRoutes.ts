@@ -196,10 +196,12 @@ router.post("/classify-message", optionalAuth, aiRateLimit, async (req, res) => 
       - IMAGE_ANALYSIS: If the message asks to analyze or describe an image without creating a circuit
       - TRUTH_TABLE_IMAGE: If the message asks to analyze or draw the truth table from an image
       - KMAP_IMAGE: If the message asks to analyze or draw the Karnaugh map from an image
-      - CIRCUIT_FIX: If the message asks to edit, fix or improve the current circuit.
       - GENERAL_INFORMATION: For questions about circuitry, programming, or other informational requests
 
       Reply with ONLY the category name, nothing else.`;
+
+      //Temporarily remove CIRCUIT_FIX as it is too slow to process
+      //- CIRCUIT_FIX: If the message asks to edit, fix or improve the current circuit.
 
       const messages = [
         { role: "system", content: systemPrompt },
@@ -236,7 +238,7 @@ router.post("/classify-message", optionalAuth, aiRateLimit, async (req, res) => 
 
       let classification = text;
 
-      console.log("Classification result:", classification);
+      console.log("Classification result:", classification, " User Message:", message);
 
       return res.json({ classification });
     } catch (error) {

@@ -63,7 +63,6 @@ export class Wire {
 
       if (this.from && this.to) this.from.value = this.to.value;
 
-      console.log("Connected from output to input");
       this.transferValue();
       return true;
     }
@@ -84,7 +83,6 @@ export class Wire {
         this.from.value = this.to.value;
       }
 
-      console.log("Connected from output to input (after swap)");
       return true;
     }
 
@@ -123,8 +121,6 @@ export class Wire {
   }
 
   disconnect(): void {
-    console.log("Disconnected wire");
-
     if (this.to && this.to.type === "input") {
       this.to.isConnected = false;
       this.to = null;
