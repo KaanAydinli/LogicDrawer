@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host --port 4000 --force",
     "test": "vitest",
+    "test:detection": "vitest tests/Detection.test.ts --run",
+    "test:detection-runner": "ts-node tests/runDetectionTests.ts",
     "dev:server": "cd server && npm run dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "dev:network": "concurrently \"vite --host --port 4000 --force\" \"cd server && npm run dev\"",

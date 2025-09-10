@@ -25,6 +25,5 @@ dist-ssr
 *.sw?
 desktop.ini
 prettierrc
-tests
 *.png
 *.tsbuildinfo
