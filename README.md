@@ -2,7 +2,7 @@
 
 ![LogicDrawer Logo](public/assets/logic.gif)
 
-[![Version](https://img.shields.io/badge/version-1.0.4-darkgreen.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.0.7-darkgreen.svg)](package.json)
 [![Website](https://img.shields.io/badge/website-online-brightgreen.svg)](https://logicdrawer.app/)
 [![Node.js](https://img.shields.io/badge/Node.js-16+-blue.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue.svg)](https://www.typescriptlang.org/)
@@ -40,7 +40,7 @@ git clone https://github.com/KaanAydinli/LogicDrawer.git
 cd LogicDrawer
 npm install
 cd server && npm install && cd ..
-cp .env.example .env # Edit .env as needed
+cp .env.example server/.env # Edit .env as needed
 npm run dev:all   # Start frontend + backend
 Open your browser at: http://localhost:4000
 ```
@@ -60,7 +60,7 @@ See our Contributing Guide for more details.
 
 ### 📝 License
 
-This project is licensed under AGPL v3. See LICENSE for details.
+This project is licensed under AGPL v3. See [LICENSE](https://github.com/KaanAydinli/LogicDrawer?tab=License-1-ov-file) for details.
 
 ### 🙏 Acknowledgments
 

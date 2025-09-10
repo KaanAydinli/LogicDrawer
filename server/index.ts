@@ -18,6 +18,7 @@ app.set("trust proxy", 1);
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI || "";
 
+// For local development, you can use the following connection string
 //mongodb://localhost:27017/logicdrawer
 
 app.use(

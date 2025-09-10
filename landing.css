@@ -20,6 +20,7 @@
 html,
 body {
   height: 100%;
+  overflow-x: hidden;
 }
 body {
   margin: 0;
@@ -87,7 +88,7 @@ html {
   text-decoration: none;
   font-weight: 500;
   letter-spacing: 0.6px;
-  font-size: 32px;
+  font-size: 48px;
 }
 .brand-orb {
   width: 12px;
@@ -166,31 +167,40 @@ html {
 .hero {
   position: relative;
   min-height: 100vh;
-  padding: 50px 0 40px;
+  width: 100%;
   overflow: hidden;
   display: flex;
   align-items: center;
+  justify-content: center;
+}
+.hero-content {
+  width: 100%;
+  max-width: 2000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.5fr 2fr;
+  gap: 80px;
+  align-items: center;
+  padding: 0 60px;
 }
 .hero-inner {
-  max-width: 900px;
-  margin: 0 auto;
-  text-align: center;
-  padding: 0 24px;
+  text-align: left;
+  padding: 0;
 }
 .eyebrow {
   display: inline-block;
   color: rgba(233, 229, 255, 0.7);
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 2px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.03);
 }
 .headline {
-  font-size: 56px;
+  font-size: 72px;
   line-height: 1.05;
-  margin: 18px 0 12px;
+  margin: 24px 0 16px;
   letter-spacing: -1.2px;
   font-weight: 500;
 }
@@ -201,14 +211,16 @@ html {
 .subhead {
   color: var(--muted);
   max-width: 720px;
-  margin: 0 auto 26px;
+  margin: 0 0 32px;
   font-weight: 100;
+  font-size: 18px;
+  line-height: 1.6;
 }
 
 .cta-row {
   display: flex;
-  justify-content: center;
-  gap: 14px;
+  justify-content: flex-start;
+  gap: 18px;
   flex-wrap: wrap;
 }
 .btn {
@@ -216,10 +228,12 @@ html {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 22px;
+  padding: 16px 28px;
   border-radius: 16px;
   text-decoration: none;
   color: #fff;
+  font-size: 16px;
+  font-weight: 500;
   transition:
     transform 0.15s ease,
     box-shadow 0.3s ease,
@@ -252,15 +266,13 @@ html {
 
 .mockup {
   position: relative;
-  margin: 40px auto 0;
-  max-width: 900px;
 }
-.mockup img {
+.mockup img,
+.mockupImg {
   width: 100%;
   height: auto;
-  max-height: 500px;
   object-fit: contain;
-  border-radius: 22px;
+  border-radius: 24px;
   border: 1px solid var(--border-color);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
@@ -276,10 +288,12 @@ html {
 
 .section {
   min-height: 100vh;
+  width: 100%;
   padding: 90px 0;
   background: transparent;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 .section:nth-child(even) {
   background: rgba(25, 47, 56, 0.3);
@@ -459,6 +473,19 @@ html {
   .burger {
     display: flex;
   }
+
+  .hero-content {
+    gap: 40px;
+    padding: 0 24px;
+  }
+
+  .hero-inner {
+    text-align: center;
+  }
+
+  .cta-row {
+    justify-content: center;
+  }
 }
 @media (max-width: 720px) {
   .headline {
@@ -466,5 +493,77 @@ html {
   }
   .circuits-grid {
     grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: 100vh;
+    width: 100%;
+    padding: 60px 0 40px;
+    display: block;
+  }
+
+  .hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 100%;
+    margin: 0 auto;
+    grid-template-columns: none;
+    gap: 0;
+    padding: 0;
+  }
+
+  .hero-inner {
+    padding: 0 24px;
+    order: 1;
+    text-align: center;
+  }
+
+  .eyebrow {
+    margin-bottom: 12px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .headline {
+    margin: 12px 0 8px;
+    font-size: 36px;
+  }
+
+  .subhead {
+    margin: 0 auto 0;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  .mockup {
+    margin: 24px auto 0;
+    order: 2;
+    max-width: 100%;
+    padding: 0 24px;
+  }
+
+  .mockup img,
+  .mockupImg {
+    max-height: 280px;
+    border-radius: 16px;
+  }
+
+  .cta-row {
+    margin: 24px auto 0;
+    order: 3;
+    justify-content: center;
+    padding: 0 24px;
+  }
+
+  .btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .section {
+    width: 100%;
+    min-height: 100vh;
+    padding: 60px 0;
   }
 }

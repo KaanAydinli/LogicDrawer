@@ -2134,7 +2134,6 @@ export class CircuitBoard {
     const fromBitWidth = wire.from.bitWidth || 1;
     const toBitWidth = wire.to.bitWidth || 1;
 
-    // Update wire bit width
     wire.bitWidth = Math.max(fromBitWidth, toBitWidth);
 
     console.log(`Wire connected: ${fromBitWidth}b -> ${toBitWidth}b`);
@@ -2142,8 +2141,6 @@ export class CircuitBoard {
 
   private handleMouseDown(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
-
-    console.log("Mouse down at:", mousePos);
 
     this.components.forEach(component => {
       component.selected = false;
@@ -2189,8 +2186,6 @@ export class CircuitBoard {
     for (const component of this.components) {
       const port = component.getPortAtPosition(mousePos);
       if (port) {
-        console.log("Port clicked:", port);
-
         if (this.currentWire) {
           this.currentWire = null;
         }
@@ -2240,13 +2235,11 @@ export class CircuitBoard {
         return;
       }
 
-      // Check if clicking on wire - but don't create control point yet, wait for drag
       if (wire.isNearPoint(mousePos)) {
         wire.selected = true;
         this.selectedWire = wire;
-        wire.selectControlPoint(null); // Clear any existing control point selection
+        wire.selectControlPoint(null);
 
-        // Store the wire and start position for potential control point creation
         this.potentialWireForControlPoint = wire;
         this.wireClickStartPos = { x: mousePos.x, y: mousePos.y };
         this.isWireDragDetection = true;
@@ -2269,19 +2262,15 @@ export class CircuitBoard {
     this.draw();
   }
   private updatePropertiesPanel(): void {
-    // Check if a wire is selected first
     if (this.selectedWire) {
       this.gatePropertiesPanel.show(this.selectedWire);
       return;
     }
 
-    // Hide the panel if no selection or multiple selections
     if (this.selectedComponents.length !== 1 || !this.selectedComponent) {
       this.gatePropertiesPanel.hide();
       return;
     }
-
-    // Show the panel only if a single LogicGate is selected
     const selectedComponent = this.selectedComponents[0];
     this.gatePropertiesPanel.show(selectedComponent);
   }
@@ -2334,7 +2323,6 @@ export class CircuitBoard {
   private handleMouseMove(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
 
-    // Handle wire drag detection for creating control points
     if (this.isWireDragDetection && this.wireClickStartPos && this.potentialWireForControlPoint) {
       const dragDistance = Math.sqrt(
         Math.pow(mousePos.x - this.wireClickStartPos.x, 2) +
@@ -2342,10 +2330,8 @@ export class CircuitBoard {
       );
 
       if (dragDistance >= this.MIN_DRAG_DISTANCE) {
-        // User has dragged enough - create control point at original click position
         const wire = this.potentialWireForControlPoint;
 
-        // Check if near midpoint first (for optimal placement)
         const midpointInfo = wire.isNearMidpoint(this.wireClickStartPos);
         if (midpointInfo) {
           wire.addControlPointAtMidpoint(midpointInfo.segmentIndex);
@@ -2353,22 +2339,19 @@ export class CircuitBoard {
           wire.addControlPoint(this.wireClickStartPos);
         }
 
-        // Start dragging the newly created control point
         this.isDraggingControlPoint = true;
         this.draggedControlPointIndex = wire.selectedPointIndex;
         wire.startDraggingControlPoint(wire.selectedPointIndex!);
 
-        // Clear drag detection state
         this.isWireDragDetection = false;
         this.wireClickStartPos = null;
         this.potentialWireForControlPoint = null;
 
         this.draw();
       }
-      return; // Don't process other mouse move logic while in drag detection
+      return;
     }
 
-    // Handle control point dragging
     if (
       this.isDraggingControlPoint &&
       this.selectedWire &&
@@ -2379,7 +2362,6 @@ export class CircuitBoard {
       return;
     }
 
-    // Handle hover effects for control points
     if (this.selectedWire && !this.isDraggingControlPoint) {
       const hoveredIndex = this.selectedWire.isNearControlPoint(mousePos);
       if (hoveredIndex !== this.selectedWire.hoveredControlPointIndex) {
@@ -2452,18 +2434,12 @@ export class CircuitBoard {
   private handleMouseUp(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
 
-    console.log("Mouse up at:", mousePos);
-
-    // Handle wire drag detection cleanup (if user clicks without dragging)
     if (this.isWireDragDetection) {
-      // User clicked on wire but didn't drag - just select the wire without creating control point
       this.isWireDragDetection = false;
       this.wireClickStartPos = null;
       this.potentialWireForControlPoint = null;
-      // Wire is already selected from mousedown, no need to do anything else
     }
 
-    // Handle end of control point dragging
     if (this.isDraggingControlPoint && this.selectedWire) {
       this.selectedWire.stopDraggingControlPoint();
       this.isDraggingControlPoint = false;
@@ -2502,9 +2478,6 @@ export class CircuitBoard {
         const port = component.getPortAtPosition(mousePos);
 
         if (port) {
-          console.log("Found port for connection:", port);
-
-          // Prevent connecting to the same component
           if (this.currentWire.from?.component === port.component) {
             console.log("Cannot connect to the same component");
 
@@ -2552,12 +2525,10 @@ export class CircuitBoard {
         }
       }
 
-      console.log("No port found at mouse up, clearing wire");
       this.currentWire = null;
       this.draw();
     }
 
-    // Rest of the method remains unchanged
     for (const component of this.components) {
       if (component.type === "button") {
         if (component.containsPoint(mousePos)) {
@@ -2631,7 +2602,7 @@ export class CircuitBoard {
       case "smartdisplay":
         return new SmartDisplay(position);
       default:
-        console.error(`Bilinmeyen bileşen türü: ${type}`);
+        console.error(`Unknown component type: ${type}`);
         return null;
     }
   }
@@ -2789,7 +2760,6 @@ export class CircuitBoard {
         }
 
         if (component) {
-          // İlk olarak bitWidth'i ayarla, eğer state'te varsa
           if (
             compData.state.defaultBitWidth !== undefined &&
             compData.state.defaultBitWidth !== 1
@@ -2797,10 +2767,8 @@ export class CircuitBoard {
             component.setBitWidth(compData.state.defaultBitWidth);
           }
 
-          // Sonra state'i ayarla
           component.setState(compData.state);
 
-          // State'den sonra port-specific bitWidth'leri kontrol et
           if (compData.state.inputs && Array.isArray(compData.state.inputs)) {
             compData.state.inputs.forEach((portState: any, index: number) => {
               if (component.inputs[index] && portState.bitWidth !== undefined) {
@@ -2845,7 +2813,7 @@ export class CircuitBoard {
 
       return true;
     } catch (error) {
-      console.error("Devre yükleme hatası:", error);
+      console.error("Error loading circuit:", error);
       return false;
     }
   }

@@ -69,6 +69,11 @@ export class AIAgent {
         });
 
         if (!response.ok) {
+          if (response.status === 429) {
+            throw new Error(
+              "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features."
+            );
+          }
           throw new Error(`Server returned ${response.status}: ${await response.text()}`);
         }
 
@@ -93,8 +98,23 @@ export class AIAgent {
 
       // Return error as a stream
       const encoder = new TextEncoder();
-      const errorMessage =
-        "I'm having trouble processing your request right now. Please try again.";
+
+      let errorMessage = "I'm having trouble processing your request right now. Please try again.";
+
+      // Check if this is a rate limit error
+      if (error instanceof Error) {
+        if (
+          error.message.includes("429") ||
+          error.message.includes("reached") ||
+          error.message.includes("Too Many Requests")
+        ) {
+          errorMessage =
+            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features.";
+        } else if (error.message.includes("Server returned 429")) {
+          errorMessage =
+            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features.";
+        }
+      }
 
       return new ReadableStream({
         start(controller) {
@@ -170,6 +190,14 @@ export class AIAgent {
       });
     } catch (error) {
       console.error("Error processing request:", error);
+
+      // Check if this is a rate limit error
+      if (error instanceof Error) {
+        if (error.message.includes("reached") || error.message.includes("rate limit")) {
+          return error.message;
+        }
+      }
+
       return "I encountered an error processing your request. Please try again.";
     }
   }
@@ -192,6 +220,11 @@ export class AIAgent {
       });
 
       if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error(
+            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features."
+          );
+        }
         console.error("Classification failed:", response.status);
         // Default to general information if classification fails
         return "GENERAL_INFORMATION";
@@ -200,8 +233,47 @@ export class AIAgent {
       const data = await response.json();
       return data.classification;
     } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message.includes("daily limit") || error.message.includes("rate limit"))
+      ) {
+        throw error; // Re-throw rate limit errors
+      }
       console.error("Error classifying message:", error);
       return "GENERAL_INFORMATION"; // Default fallback
+    }
+  }
+
+  // Check rate limit status
+  async checkRateLimitStatus(): Promise<{
+    authenticated: boolean;
+    unlimited: boolean;
+    remaining?: number;
+    resetTime?: string;
+    message: string;
+  }> {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/rate-limit-status`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to check rate limit status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error checking rate limit status:", error);
+      return {
+        authenticated: false,
+        unlimited: false,
+        remaining: 0,
+        message: "Unable to check rate limit status. Please try again.",
+      };
     }
   }
 }

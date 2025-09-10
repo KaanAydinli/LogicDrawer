@@ -1135,12 +1135,9 @@ export class CircuitRepositoryController {
     const detailContainer = document.getElementById("detail-container");
     if (!detailContainer) return;
 
-    const userInfo = localStorage.getItem("user_info");
-    const user = userInfo ? JSON.parse(userInfo) : null;
     const isOwner =
-      user &&
-      ((typeof circuit.userId === "object" && circuit.userId?._id === user.id) ||
-        circuit.userId === user.id);
+      (typeof circuit.userId === "object" && circuit.userId?._id === this.currentUserId) ||
+      circuit.userId === this.currentUserId;
 
     const isLiked = false;
 

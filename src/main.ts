@@ -674,7 +674,7 @@ function setupMobileChatBehavior(): void {
   });
 }
 
-function setUpAI() {
+async function setUpAI() {
   const aiLogo = document.querySelector(".aiLogo") as HTMLElement;
   const chatContainer = document.getElementById("ai-chat-container") as HTMLElement;
   const closeChat = document.getElementById("close-chat") as HTMLElement;
@@ -683,6 +683,52 @@ function setUpAI() {
   const messagesContainer = document.getElementById("ai-chat-messages") as HTMLElement;
 
   aiAgent = new AIAgent(circuitBoard, queue as Queue, promptAI, imageUploader);
+  var userData: {
+    authenticated: boolean;
+    unlimited: boolean;
+    remaining?: number;
+    resetTime?: string;
+    message: string;
+  } = await aiAgent.checkRateLimitStatus();
+  var messageText = ` Hello, my name is Logix. I can help you design circuits or explain logic gates. How
+              can I assist you today?`;
+
+  if (
+    userData.remaining !== undefined &&
+    userData.resetTime !== undefined &&
+    userData.remaining == 0
+  ) {
+    messageText = ` You have reached your daily limit. Please create an account for unlimited access.`;
+  }
+  const firstMessageDiv = document.createElement("div");
+  firstMessageDiv.className = "ai-message";
+  firstMessageDiv.innerHTML = `
+      <div class="ai-avatar">
+              <svg
+                width="200px"
+                height="40px"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <text
+                  x="0"
+                  y="18"
+                  font-family="Pixelify Sans"
+                  font-size="20"
+                  fill="currentColor"
+                  stroke="none"
+                  stroke-width="0.5"
+                >
+                  AI
+                </text>
+              </svg>
+            </div>
+            <div class="message-content">${messageText}</div>
+    `;
+  messagesContainer.appendChild(firstMessageDiv);
 
   let lastUploadedImage: string | null = null;
 
