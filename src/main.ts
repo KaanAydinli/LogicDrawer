@@ -24,7 +24,6 @@ import { VerilogCircuitConverter } from "./models/utils/VerilogCircuitConverter"
 import { Constant1 } from "./models/components/Constant1";
 import { Constant0 } from "./models/components/Constant0";
 import { CircuitRepositoryController } from "./Repository/CircuitRepositoryController";
-import { Wire } from "./models/Wire";
 import { Clock } from "./models/components/Clock";
 import { DLatch } from "./models/Sequential/DLatch";
 import { DFlipFlop } from "./models/Sequential/DFlipFlop";
