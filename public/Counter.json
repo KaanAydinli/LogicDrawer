@@ -1,0 +1,273 @@
+{
+  "components": [
+    {
+      "id": "guq56e0n9hf",
+      "type": "multibit",
+      "state": {
+        "id": "guq56e0n9hf",
+        "type": "multibit",
+        "position": {
+          "x": 349.115138606693,
+          "y": 368.679706849013
+        },
+        "size": {
+          "width": 80,
+          "height": 120
+        },
+        "selected": false,
+        "defaultBitWidth": 4,
+        "isMultiBit": true,
+        "rotation": 0,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "guq56e0n9hf-output-0",
+            "value": [false, false, false, true],
+            "isConnected": true,
+            "position": {
+              "x": 439.115138606693,
+              "y": 428.679706849013
+            },
+            "bitWidth": 4
+          }
+        ],
+        "bitWidth": 4,
+        "bits": [false, false, false, true]
+      }
+    },
+    {
+      "id": "6z4epggi1o7",
+      "type": "clock",
+      "state": {
+        "id": "6z4epggi1o7",
+        "type": "clock",
+        "position": {
+          "x": 160.7441235518049,
+          "y": 249.70166460032266
+        },
+        "size": {
+          "width": 70,
+          "height": 60
+        },
+        "selected": false,
+        "defaultBitWidth": 1,
+        "isMultiBit": false,
+        "rotation": 0,
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "6z4epggi1o7-output-0",
+            "value": true,
+            "isConnected": true,
+            "position": {
+              "x": 240.7441235518049,
+              "y": 279.70166460032266
+            },
+            "bitWidth": 1
+          }
+        ],
+        "interval": 1000
+      }
+    },
+    {
+      "id": "jowxlk8p7a",
+      "type": "hex",
+      "state": {
+        "id": "jowxlk8p7a",
+        "type": "hex",
+        "position": {
+          "x": 694.4518918807502,
+          "y": 250.07953557829268
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "defaultBitWidth": 4,
+        "isMultiBit": false,
+        "rotation": 0,
+        "inputs": [
+          {
+            "id": "jowxlk8p7a-input-0",
+            "value": [false, false, false, false],
+            "isConnected": true,
+            "position": {
+              "x": 684.4518918807502,
+              "y": 280.0795355782927
+            },
+            "bitWidth": 4
+          }
+        ],
+        "outputs": []
+      }
+    },
+    {
+      "id": "45nzanwznab",
+      "type": "halfadder",
+      "state": {
+        "id": "45nzanwznab",
+        "type": "halfadder",
+        "position": {
+          "x": 502.92728693564413,
+          "y": 259.96949203873896
+        },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "selected": false,
+        "defaultBitWidth": 4,
+        "isMultiBit": false,
+        "rotation": 0,
+        "inputs": [
+          {
+            "id": "45nzanwznab-input-0",
+            "value": [false, false, false, false],
+            "isConnected": true,
+            "position": {
+              "x": 492.92728693564413,
+              "y": 279.96949203873896
+            },
+            "bitWidth": 4
+          },
+          {
+            "id": "45nzanwznab-input-1",
+            "value": [false, false, false, true],
+            "isConnected": true,
+            "position": {
+              "x": 492.92728693564413,
+              "y": 299.96949203873896
+            },
+            "bitWidth": 4
+          }
+        ],
+        "outputs": [
+          {
+            "id": "45nzanwznab-output-0",
+            "value": [false, false, false, true],
+            "isConnected": true,
+            "position": {
+              "x": 572.9272869356441,
+              "y": 279.96949203873896
+            },
+            "bitWidth": 4
+          },
+          {
+            "id": "45nzanwznab-output-1",
+            "value": [false, false, false, false],
+            "isConnected": false,
+            "position": {
+              "x": 572.9272869356441,
+              "y": 299.96949203873896
+            },
+            "bitWidth": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "gywxz2hrvub",
+      "type": "dflipflop",
+      "state": {
+        "id": "gywxz2hrvub",
+        "type": "dflipflop",
+        "position": {
+          "x": 350.7992302492502,
+          "y": 229.39459833979296
+        },
+        "size": {
+          "width": 80,
+          "height": 70
+        },
+        "selected": false,
+        "defaultBitWidth": 4,
+        "isMultiBit": false,
+        "rotation": 0,
+        "inputs": [
+          {
+            "id": "gywxz2hrvub-input-0",
+            "value": [false, false, false, false],
+            "isConnected": true,
+            "position": {
+              "x": 340.7992302492502,
+              "y": 249.39459833979296
+            },
+            "bitWidth": 4
+          },
+          {
+            "id": "gywxz2hrvub-clock",
+            "value": true,
+            "isConnected": true,
+            "position": {
+              "x": 340.7992302492502,
+              "y": 279.394598339793
+            },
+            "bitWidth": 1
+          }
+        ],
+        "outputs": [
+          {
+            "id": "gywxz2hrvub-output-0",
+            "value": [false, false, false, true],
+            "isConnected": true,
+            "position": {
+              "x": 440.7992302492502,
+              "y": 249.39459833979296
+            },
+            "bitWidth": 4
+          },
+          {
+            "id": "gywxz2hrvub-output-1",
+            "value": [true, true, true, false],
+            "isConnected": false,
+            "position": {
+              "x": 440.7992302492502,
+              "y": 279.394598339793
+            },
+            "bitWidth": 4
+          }
+        ],
+        "qValue": [false, false, false, true],
+        "lastClk": true
+      }
+    }
+  ],
+  "wires": [
+    {
+      "id": "pefuzlfgih",
+      "fromComponentId": "6z4epggi1o7",
+      "fromPortId": "6z4epggi1o7-output-0",
+      "toComponentId": "gywxz2hrvub",
+      "toPortId": "gywxz2hrvub-clock"
+    },
+    {
+      "id": "8670ve7xtzm",
+      "fromComponentId": "45nzanwznab",
+      "fromPortId": "45nzanwznab-output-0",
+      "toComponentId": "gywxz2hrvub",
+      "toPortId": "gywxz2hrvub-input-0"
+    },
+    {
+      "id": "ue4kl13ewcm",
+      "fromComponentId": "45nzanwznab",
+      "fromPortId": "45nzanwznab-output-0",
+      "toComponentId": "jowxlk8p7a",
+      "toPortId": "jowxlk8p7a-input-0"
+    },
+    {
+      "id": "xe3mygnnms9",
+      "fromComponentId": "guq56e0n9hf",
+      "fromPortId": "guq56e0n9hf-output-0",
+      "toComponentId": "45nzanwznab",
+      "toPortId": "45nzanwznab-input-1"
+    },
+    {
+      "id": "ypzpi1thdu9",
+      "fromComponentId": "gywxz2hrvub",
+      "fromPortId": "gywxz2hrvub-output-0",
+      "toComponentId": "45nzanwznab",
+      "toPortId": "45nzanwznab-input-0"
+    }
+  ]
+}
