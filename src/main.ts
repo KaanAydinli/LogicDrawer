@@ -1637,7 +1637,6 @@ function setUpLoginAndSignup() {
     profileDropdown.innerHTML = `
     <div class="profile-header">
       <div class="profile-name">${user.name}</div>
-      <div class="profile-email">${user.email}</div>
     </div>
     <div class="profile-option" id="logout-option">Sign Out</div>
   `;
@@ -1665,13 +1664,13 @@ function setUpLoginAndSignup() {
 
   async function handleLogin() {
     try {
-      const emailInput = document.getElementById("login-email") as HTMLInputElement;
+      const nameInput = document.getElementById("login-name") as HTMLInputElement;
       const passwordInput = document.getElementById("login-password") as HTMLInputElement;
 
-      const email = emailInput.value;
+      const name = nameInput.value;
       const password = passwordInput.value;
 
-      if (!email || !password) {
+      if (!name || !password) {
         alert("Lütfen tüm alanları doldurun");
         return;
       }
@@ -1680,7 +1679,7 @@ function setUpLoginAndSignup() {
       loginBtn.disabled = true;
       loginBtn.textContent = "Giriş yapılıyor...";
 
-      const success = await authService.login(email, password);
+      const success = await authService.login(name, password);
 
       loginBtn.disabled = false;
       loginBtn.textContent = "Sign In";
@@ -1703,18 +1702,16 @@ function setUpLoginAndSignup() {
   async function handleSignup() {
     try {
       const nameInput = document.getElementById("signup-name") as HTMLInputElement;
-      const emailInput = document.getElementById("signup-email") as HTMLInputElement;
       const passwordInput = document.getElementById("signup-password") as HTMLInputElement;
       const confirmPasswordInput = document.getElementById(
         "signup-confirm-password"
       ) as HTMLInputElement;
 
       const name = nameInput.value;
-      const email = emailInput.value;
       const password = passwordInput.value;
       const confirmPassword = confirmPasswordInput.value;
 
-      if (!name || !email || !password || !confirmPassword) {
+      if (!name || !password || !confirmPassword) {
         alert("Lütfen tüm alanları doldurun");
         return;
       }
@@ -1733,7 +1730,7 @@ function setUpLoginAndSignup() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, password }),
       });
 
       signupBtn.disabled = false;
@@ -1746,7 +1743,7 @@ function setUpLoginAndSignup() {
 
       showLoginView();
 
-      (document.getElementById("login-email") as HTMLInputElement).value = email;
+      (document.getElementById("login-name") as HTMLInputElement).value = name;
 
       alert("Hesap başarıyla oluşturuldu! Lütfen giriş yapın.");
     } catch (error) {
@@ -2004,7 +2001,6 @@ function toggleProfileDropdown(event: MouseEvent) {
   profileDropdown.innerHTML = `
     <div class="profile-header">
       <div class="profile-name">${user.name}</div>
-      <div class="profile-email">${user.email}</div>
     </div>
     <div class="profile-option" id="my-circuits-option">My Circuits</div>
     <div class="profile-option" id="logout-option">Sign Out</div>

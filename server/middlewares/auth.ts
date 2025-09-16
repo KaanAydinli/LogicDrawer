@@ -7,7 +7,6 @@ const JWT_SECRET = process.env.JWT_SECRET || "a";
 export interface AuthRequest extends Request {
   user?: {
     id: string;
-    email: string;
     name?: string;
     role?: string;
   };
@@ -32,7 +31,6 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       // Verify token
       const decodedToken = jwt.verify(token, JWT_SECRET) as {
         id: string;
-        email: string;
         name?: string;
         role?: string;
         exp?: number;
@@ -41,7 +39,6 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
       // Add user information to the request
       req.user = {
         id: decodedToken.id,
-        email: decodedToken.email,
         name: decodedToken.name,
         role: decodedToken.role,
       };
@@ -61,7 +58,6 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
             const newToken = jwt.sign(
               {
                 id: user._id,
-                email: user.email,
                 name: user.name,
               },
               JWT_SECRET,
@@ -151,7 +147,6 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
       // Verify token
       const decodedToken = jwt.verify(token, JWT_SECRET) as {
         id: string;
-        email: string;
         name?: string;
         role?: string;
         exp?: number;
@@ -160,7 +155,6 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
       // Add user information to the request
       req.user = {
         id: decodedToken.id,
-        email: decodedToken.email,
         name: decodedToken.name,
         role: decodedToken.role,
       };
@@ -179,7 +173,6 @@ export const optionalAuth = async (req: AuthRequest, res: Response, next: NextFu
             const newToken = jwt.sign(
               {
                 id: user._id,
-                email: user.email,
                 name: user.name,
               },
               JWT_SECRET,

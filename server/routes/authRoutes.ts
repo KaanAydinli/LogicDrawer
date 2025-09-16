@@ -15,35 +15,24 @@ const JWT_SECRET = process.env.JWT_SECRET || "a";
  */
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, password } = req.body;
 
     // Basic input validation
-    if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string") {
+    if (typeof name !== "string" || typeof password !== "string") {
       return res.status(400).json({ error: "Invalid input format" });
-    }
-
-    // Email format validation
-    const emailRegex = /^[^S@]+@[^S@]+\.[^S@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: "Invalid email format" });
     }
 
     // XSS protection
     const sanitizedName = name.replace(/<[^>]*>?/gm, "");
 
-    const existingUser = await User.findOne({ email });
-    const existingNameUser = await User.findOne({ name: sanitizedName });
+    const existingUser = await User.findOne({ name: sanitizedName });
 
-    if (existingNameUser) {
-      return res.status(400).json({ error: "Name already in use" });
-    }
     if (existingUser) {
-      return res.status(400).json({ error: "Email already in use" });
+      return res.status(400).json({ error: "Name already in use" });
     }
 
     const user = new User({
       name: sanitizedName,
-      email,
       password,
     });
 
@@ -54,7 +43,6 @@ router.post("/register", async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email,
       },
     });
   } catch (error) {
@@ -68,15 +56,15 @@ router.post("/register", async (req, res) => {
  */
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { name, password } = req.body;
 
     // Basic input validation
-    if (typeof email !== "string" || typeof password !== "string") {
-      return res.status(400).json({ error: "Invalid email or password format" });
+    if (typeof name !== "string" || typeof password !== "string") {
+      return res.status(400).json({ error: "Invalid name or password format" });
     }
 
     try {
-      const user = await User.findOne({ email }).maxTimeMS(8000); // Reduce from your connection timeout
+      const user = await User.findOne({ name }).maxTimeMS(8000); // Reduce from your connection timeout
 
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
@@ -84,10 +72,10 @@ router.post("/login", async (req, res) => {
 
       const isMatch = await user.comparePassword(password);
       if (!isMatch) {
-        return res.status(401).json({ error: "Invalid email or password" });
+        return res.status(401).json({ error: "Invalid name or password" });
       }
 
-      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, {
+      const token = jwt.sign({ id: user._id, name: user.name }, JWT_SECRET, {
         expiresIn: "1h",
       });
 
@@ -104,7 +92,6 @@ router.post("/login", async (req, res) => {
         user: {
           id: user._id,
           name: user.name,
-          email: user.email,
         },
       });
     } catch (error) {
@@ -166,7 +153,7 @@ router.get("/check", authMiddleware, (req: AuthRequest, res) => {
     authenticated: true,
     user: {
       id: req.user?.id,
-      email: req.user?.email,
+      name: req.user?.name,
     },
   });
 });
@@ -188,7 +175,7 @@ router.post("/refresh", authMiddleware, async (req: AuthRequest, res) => {
     }
 
     // Create a new token
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "24h" });
+    const token = jwt.sign({ id: user._id, name: user.name }, JWT_SECRET, { expiresIn: "24h" });
 
     // Send as a cookie
     res.cookie("auth_token", token, {

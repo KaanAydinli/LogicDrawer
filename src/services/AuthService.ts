@@ -3,7 +3,6 @@ import { apiBaseUrl } from "./apiConfig";
 export interface User {
   id: string;
   name: string;
-  email: string;
 }
 
 export class AuthService {
@@ -61,7 +60,6 @@ export class AuthService {
           this._currentUser = {
             id: data.user._id || data.user.id,
             name: data.user.name,
-            email: data.user.email,
           };
           this._isAuthenticated = true;
           console.log("AuthService: User authenticated:", this._currentUser);
@@ -85,14 +83,14 @@ export class AuthService {
     }
   }
 
-  public async login(email: string, password: string): Promise<boolean> {
+  public async login(name: string, password: string): Promise<boolean> {
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, password }),
         credentials: "include",
       });
 
@@ -101,7 +99,6 @@ export class AuthService {
         this._currentUser = {
           id: data.user._id || data.user.id,
           name: data.user.name,
-          email: data.user.email,
         };
         this._isAuthenticated = true;
         return true;

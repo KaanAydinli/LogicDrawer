@@ -20,20 +20,20 @@ router.use(authMiddleware);
 router.get("/", async (req: AuthRequest, res) => {
   try {
     const ownCircuits = await Circuit.find({ userId: req.user?.id })
-      .populate("userId", "name email")
+      .populate("userId", "name")
       .sort({ createdAt: -1 });
 
     const sharedCircuits = await Circuit.find({
       sharedWith: req.user?.id,
     })
-      .populate("userId", "name email")
+      .populate("userId", "name")
       .sort({ createdAt: -1 });
 
     const publicCircuits = await Circuit.find({
       userId: { $ne: req.user?.id },
       isPublic: true,
     })
-      .populate("userId", "name email")
+      .populate("userId", "name")
       .sort({ createdAt: -1 });
 
     const sharedCircuitsWithFlag = sharedCircuits.map(circuit => {
@@ -77,7 +77,7 @@ router.get("/search", async (req: AuthRequest, res) => {
         },
       ],
     })
-      .populate("userId", "name email")
+      .populate("userId", "name")
       .sort({ createdAt: -1 });
 
     res.json(matchingCircuits);
@@ -120,7 +120,7 @@ router.get("/shared-with-me", async (req: AuthRequest, res) => {
 router.get("/public", async (req, res) => {
   try {
     const circuits = await Circuit.find({ isPublic: true })
-      .populate("userId", "name email")
+      .populate("userId", "name")
       .sort({ dateCreated: -1 });
 
     res.json(circuits);
