@@ -339,7 +339,7 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
     }
 
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       let fullPrompt = prompt;
       if (systemPrompt) {
