@@ -140,7 +140,7 @@ export class ImageUploader {
   private async callAnalysisAPI(base64ImageWithPrefix: string): Promise<PythonAnalysisResult> {
     try {
       console.log("Sending image to backend for analysis...");
-      const response = await fetch(`${apiBaseUrl}/api/analyze/roboflow`, {
+      const response = await fetch(`${apiBaseUrl}/api/analyze/yolo`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
