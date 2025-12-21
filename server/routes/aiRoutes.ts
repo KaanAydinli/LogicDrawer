@@ -57,7 +57,7 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-router.post("/analyze/roboflow", optionalAuth, aiRateLimit, async (req, res) => {
+router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
   try {
     const { base64Image } = req.body;
     if (!base64Image) {
