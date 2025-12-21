@@ -27,7 +27,6 @@ export class Wire {
         this.bitWidth = fromPort.bitWidth;
       }
     }
-    console.log("Wire created from port: ", this.from?.type);
     this.tempEndPoint = null;
     this.selected = false;
     this.controlPoints = [];
@@ -39,7 +38,6 @@ export class Wire {
 
   connect(toPort: Port): boolean {
     if (this.from && this.from.component === toPort.component) {
-      console.log("Cannot connect to the same component");
       return false;
     }
 

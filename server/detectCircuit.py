@@ -430,7 +430,6 @@ if __name__ == "__main__":
         if img is None:
             raise ValueError("Could not decode image from base64 string")
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        print("✅ Image loaded from base64 via stdin.", file=sys.stderr) 
     except Exception as e:
         print(f"Error loading image from base64 stdin: {e}", file=sys.stderr)
         sys.exit(1) 
@@ -443,10 +442,8 @@ if __name__ == "__main__":
         yolo_results = model(img, verbose=False)[0] 
         gates, gate_boxes = get_gate_info(yolo_results)
         if not gates:
-            print("⚠️ No gates detected.", file=sys.stderr)
             print(json.dumps({"gates": [], "wires": []}))
             sys.exit(0)
-        print(f"✅ Detected {len(gates)} gates.", file=sys.stderr)
     except Exception as e:
         print(f"Error during YOLO detection: {e}", file=sys.stderr)
         sys.exit(1)
@@ -456,7 +453,6 @@ if __name__ == "__main__":
         wire_mask = create_wire_mask(gray, gate_boxes, 
                                 graph_paper_mode=GRAPH_PAPER_MODE, 
                                 darkness_threshold=DARKNESS_THRESHOLD)
-        print("✅ Wire mask created.", file=sys.stderr)
     except Exception as e:
         print(f"Error creating wire mask: {e}", file=sys.stderr)
         sys.exit(1)
@@ -466,7 +462,6 @@ if __name__ == "__main__":
         skeleton = skeletonize_mask(wire_mask)
         close_kernel = np.ones((5,5), np.uint8)
         closed_skeleton = cv2.morphologyEx(skeleton, cv2.MORPH_CLOSE, close_kernel)
-        print("✅ Skeletonization complete.", file=sys.stderr)
     except Exception as e:
         print(f"Error during skeletonization: {e}", file=sys.stderr)
         sys.exit(1)
@@ -474,7 +469,6 @@ if __name__ == "__main__":
     
     try:
         wires = find_connections(closed_skeleton, gates)
-        print(f"✅ Found {len(wires)} connections.", file=sys.stderr)
     except Exception as e:
         print(f"Error finding connections: {e}", file=sys.stderr)
         sys.exit(1)
@@ -485,6 +479,4 @@ if __name__ == "__main__":
         gate.pop("bbox", None)
         gate.pop("terminals", None)
 
-    print(json.dumps(output_data, indent=None)) 
-
-    print(f"✅ Analysis complete.", file=sys.stderr)
+    print(json.dumps(output_data, indent=None))

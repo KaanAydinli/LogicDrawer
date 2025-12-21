@@ -125,6 +125,7 @@ async function initApp() {
 
   setUpAI();
   setupSettings();
+  setupDetectionModal();
   setTheme();
 
   sidebarClose.classList.add("close");
@@ -1338,6 +1339,134 @@ function setTools() {
       }
       toolsDropdown.classList.remove("show");
     });
+  });
+}
+function setupDetectionModal() {
+  const detectButton = document.querySelector(".detectButton") as HTMLElement;
+  const detectionModal = document.getElementById("detection-modal") as HTMLElement;
+  const closeDetection = document.querySelector(".close-detection") as HTMLElement;
+  const imageDropZone = document.getElementById("image-drop-zone") as HTMLElement;
+  const imageFileInput = document.getElementById("image-file-input") as HTMLInputElement;
+  const imagePreviewContainer = document.getElementById(
+    "image-preview-container"
+  ) as HTMLElement;
+  const imagePreview = document.getElementById("image-preview") as HTMLImageElement;
+  const removeImageButton = document.getElementById("remove-image-button") as HTMLButtonElement;
+  const analyzeImageButton = document.getElementById("analyze-image-button") as HTMLButtonElement;
+  const loadingIndicator = document.querySelector(
+    ".loading-indicator-detection"
+  ) as HTMLElement;
+  const dropZonePrompt = imageDropZone.querySelector(".drop-zone-prompt") as HTMLElement;
+
+  let currentFile: File | null = null;
+
+  if (
+    !detectButton ||
+    !detectionModal ||
+    !closeDetection ||
+    !imageDropZone ||
+    !imageFileInput ||
+    !imagePreviewContainer ||
+    !imagePreview ||
+    !removeImageButton ||
+    !analyzeImageButton ||
+    !loadingIndicator
+  ) {
+    console.error("One or more detection UI elements not found!");
+    return;
+  }
+
+  detectButton.addEventListener("click", () => {
+    detectionModal.classList.add("active");
+  });
+
+  closeDetection.addEventListener("click", () => {
+    detectionModal.classList.remove("active");
+  });
+
+  detectionModal.addEventListener("click", e => {
+    if (e.target === detectionModal) {
+      detectionModal.classList.remove("active");
+    }
+  });
+
+  imageDropZone.addEventListener("click", () => {
+    imageFileInput.click();
+  });
+
+  imageDropZone.addEventListener("dragover", e => {
+    e.preventDefault();
+    imageDropZone.classList.add("dragover");
+  });
+
+  ["dragleave", "dragend"].forEach(type => {
+    imageDropZone.addEventListener(type, () => {
+      imageDropZone.classList.remove("dragover");
+    });
+  });
+
+  imageDropZone.addEventListener("drop", e => {
+    e.preventDefault();
+    imageDropZone.classList.remove("dragover");
+    if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  imageFileInput.addEventListener("change", e => {
+    const target = e.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+      handleFile(target.files[0]);
+    }
+  });
+
+  function handleFile(file: File) {
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file.");
+      return;
+    }
+    currentFile = file;
+    const reader = new FileReader();
+    reader.onload = () => {
+      imagePreview.src = reader.result as string;
+      imagePreviewContainer.style.display = "block";
+      dropZonePrompt.style.display = "none";
+      removeImageButton.style.display = "block";
+      analyzeImageButton.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeImageButton.addEventListener("click", e => {
+    e.stopPropagation();
+    currentFile = null;
+    imagePreview.src = "#";
+    imagePreviewContainer.style.display = "none";
+    dropZonePrompt.style.display = "flex";
+    removeImageButton.style.display = "none";
+    analyzeImageButton.disabled = true;
+    imageFileInput.value = "";
+  });
+
+  analyzeImageButton.addEventListener("click", async () => {
+    if (!currentFile) return;
+
+    loadingIndicator.style.display = "flex";
+    analyzeImageButton.disabled = true;
+    dropZonePrompt.style.display = "none";
+    imagePreviewContainer.style.display = "none";
+
+    try {
+      const result = await imageUploader.handleImageUpload(currentFile);
+      alert(result);
+      detectionModal.classList.remove("active");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Analysis failed: ${errorMessage}`);
+    } finally {
+      loadingIndicator.style.display = "none";
+      removeImageButton.click();
+    }
   });
 }
 function setFile() {

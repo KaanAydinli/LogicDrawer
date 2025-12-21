@@ -228,6 +228,7 @@
             </div>
 
             <div class="aiLogo">AI</div>
+            <div class="detectButton">Detect</div>
 
             <div class="theme-container">
               <div id="test" class="Theme">Themes</div>
@@ -238,6 +239,35 @@
                 <div class="theme-option" data-theme="midnight">Midnight Blue</div>
               </div>
             </div>
+      <div id="detection-modal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Detect Circuit from Image</h2>
+            <span class="close-detection">&times;</span>
+          </div>
+          <div class="modal-body">
+            <div id="image-drop-zone" class="drop-zone">
+              <div class="drop-zone-prompt">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag & drop an image here, or click to select a file</p>
+              </div>
+              <input type="file" id="image-file-input" accept="image/*" style="display: none;">
+              <div id="image-preview-container" class="image-preview-container" style="display: none;">
+                <img id="image-preview" src="#" alt="Image preview"/>
+                <button id="remove-image-button">&times;</button>
+              </div>
+            </div>
+             <div class="loading-indicator-detection" style="display: none;">
+                <div class="spinner"></div>
+                <p>Analyzing circuit...</p>
+              </div>
+          </div>
+          <div class="modal-footer">
+              <button id="analyze-image-button" disabled>Analyze</button>
+          </div>
+        </div>
+      </div>
+
 
             <div class="toolsContainer">
               <span class="tools">Tools</span>

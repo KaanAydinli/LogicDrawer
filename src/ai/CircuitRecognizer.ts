@@ -74,7 +74,6 @@ export class CircuitRecognizer {
 
       const { gates, wires } = analysisResult;
 
-      console.log(`Creating ${gates.length} gate components...`);
       for (const gate of gates) {
         const componentType = this.mapComponentType(gate.type);
         if (!componentType) {
@@ -88,9 +87,6 @@ export class CircuitRecognizer {
 
         if (component) {
           this.componentMap.set(gate.id, component);
-          console.log(
-            `Mapped Python ID ${gate.id} to internal Component ID ${component.id} (${component.type})`
-          );
         } else {
           console.error(
             `Failed to create component object for type ${componentType} (Python ID: ${gate.id})`
@@ -104,7 +100,6 @@ export class CircuitRecognizer {
         }
       });
 
-      console.log(`Processing ${wires.length} wires...`);
       const usedInputPorts = new Set<string>();
       const externalOffset = 120;
 
@@ -149,9 +144,6 @@ export class CircuitRecognizer {
             if (inputComponent) {
               this.componentMap.set(wire.from.id, inputComponent);
               this.circuitBoard.addComponent(inputComponent);
-              console.log(
-                `Created external input ${wire.from.id} (Toggle) near ${wire.to.id} with offset ${verticalOffset}`
-              );
             } else {
               console.error(`Failed to create external input ${wire.from.id}. Skipping wire.`);
               continue;
@@ -198,7 +190,6 @@ export class CircuitRecognizer {
             if (outputComponent) {
               this.componentMap.set(wire.to.id, outputComponent);
               this.circuitBoard.addComponent(outputComponent);
-              console.log(`Created external output ${wire.to.id} (LightBulb) near ${wire.from.id}`);
             } else {
               console.error(`Failed to create external output ${wire.to.id}. Skipping wire.`);
               continue;
@@ -248,9 +239,6 @@ export class CircuitRecognizer {
         }
 
         if (fromPort && toPort) {
-          console.log(
-            `Adding wire from ${fromPort.component.id}[${fromPort.component.outputs.indexOf(fromPort)}] (Py: ${wire.from.id}) to ${toPort.component.id}[${toPort.component.inputs.indexOf(toPort)}] (Py: ${wire.to.id})`
-          );
           const newWire = new Wire(fromPort, true);
           const success = newWire.connect(toPort);
           if (success) {
@@ -270,7 +258,6 @@ export class CircuitRecognizer {
       this.repairMissingConnections();
       this.removeUnnecessaryToggles();
 
-      console.log("Finished processing. Simulating and drawing.");
       this.circuitBoard.simulate();
       this.circuitBoard.draw();
     } catch (error) {
@@ -284,8 +271,6 @@ export class CircuitRecognizer {
   }
 
   private removeUnnecessaryToggles(): void {
-    console.log("Looking for unnecessary toggles to remove...");
-    
     const components = this.circuitBoard.components;
     const toggles = components.filter(comp => comp.type === 'toggle');
     
@@ -297,18 +282,13 @@ export class CircuitRecognizer {
         w.from?.component.id === toggle.id && w.from?.component.type === 'toggle');
       
       if (!connectedWire) {
-        console.log(`Toggle ${toggle.id} has no output connection, skipping`);
         continue;
       }
       
       const connectedInput = connectedWire.to;
       if (!connectedInput) {
-        console.log(`Toggle ${toggle.id} has no connection to an input, skipping`);
         continue;
       }
-      
-      const inputComponent = connectedInput.component;
-      
       
       for (const component of components) {
         
@@ -321,20 +301,9 @@ export class CircuitRecognizer {
             if (outputPort.isConnected) continue;
             
             const distance = this.calculatePortDistance(outputPort, connectedInput);
-            console.log(`Distance from ${component.id} (${component.type}) output to ${inputComponent.id} (${inputComponent.type}) input: ${distance}`);
-            
-            
-      
-            
             const thresholdToUse = 250;
             
-            console.log(`Checking against threshold: ${thresholdToUse}px`);
-            
-            
             if (distance <= thresholdToUse) {
-              console.log(`Found unnecessary toggle: ${toggle.id} - Can connect ${component.id} to ${inputComponent.id} directly`);
-              
-              
               const wireIndex = this.circuitBoard.wires.findIndex(w => w === connectedWire);
               if (wireIndex !== -1) {
                 this.circuitBoard.wires.splice(wireIndex, 1);
@@ -353,7 +322,6 @@ export class CircuitRecognizer {
               if (success) {
                 this.circuitBoard.addWire(newWire);
                 togglesRemoved++;
-                console.log(`Successfully removed toggle ${toggle.id} and connected ${component.id} directly to ${inputComponent.id}`);
                 break;
               }
             }
@@ -361,13 +329,9 @@ export class CircuitRecognizer {
         }
       }
     }
-    
-    console.log(`Total toggles removed and replaced with direct connections: ${togglesRemoved}`);
   }
 
   private repairMissingConnections(): void {
-    console.log("Starting circuit repair with intelligent connection strategy...");
-
     const components = this.circuitBoard.components;
 
     const unconnectedOutputs: Port[] = [];
@@ -383,11 +347,6 @@ export class CircuitRecognizer {
       });
     });
 
-    console.log(
-      `Found ${unconnectedOutputs.length} unconnected outputs and ${unconnectedInputs.length} unconnected inputs`
-    );
-
-    console.log("Step 1: Connecting close output-input pairs...");
     let directConnectionsAdded = 0;
 
     const directConnections = [];
@@ -397,9 +356,6 @@ export class CircuitRecognizer {
         if (output.component.id === input.component.id) continue;
 
         const distance = this.calculatePortDistance(output, input);
-        console.log(
-          `Direct connection check: ${output.component.id} (${output.component.type}) -> ${input.component.id} (${input.component.type}), distance: ${Math.round(distance)}`
-        );
 
         if (distance <= this.DIRECT_CONNECTION_THRESHOLD) {
           directConnections.push({
@@ -424,18 +380,11 @@ export class CircuitRecognizer {
         conn.output.isConnected = true;
         conn.input.isConnected = true;
         directConnectionsAdded++;
-
-        console.log(
-          `Direct connection added: ${conn.output.component.id} (${conn.output.component.type}) -> ${conn.input.component.id} (${conn.input.component.type}), distance: ${Math.round(conn.distance)}`
-        );
       }
     }
 
-    console.log(`Added ${directConnectionsAdded} direct connections`);
-
     const remainingOutputs = unconnectedOutputs.filter(o => !o.isConnected);
 
-    console.log("Step 2: Looking for toggle inputs for remaining outputs...");
     let toggleConnectionsAdded = 0;
 
     for (const output of remainingOutputs) {
@@ -470,10 +419,6 @@ export class CircuitRecognizer {
       }
 
       if (closestInput && closestToggle) {
-        console.log(
-          `Found toggle-connected input near output ${output.component.id} at distance ${Math.round(closestDistance)}`
-        );
-
         const toggleWire = this.circuitBoard.wires.find(w => w.to === closestInput);
 
         if (toggleWire) {
@@ -494,18 +439,10 @@ export class CircuitRecognizer {
             this.circuitBoard.addWire(wire);
             output.isConnected = true;
             toggleConnectionsAdded++;
-
-            console.log(
-              `Replaced toggle with direct connection from ${output.component.id} to ${closestInput.component.id}`
-            );
           }
         }
       }
     }
-
-    console.log(`Replaced ${toggleConnectionsAdded} toggles with direct connections`);
-
-    console.log("Intelligent connection repair complete.");
   }
 
   private calculatePortDistance(port1: Port, port2: Port): number {

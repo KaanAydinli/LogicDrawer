@@ -446,7 +446,6 @@ export class CircuitBoard {
       if (foundPort) {
         // Prevent connecting to the same component
         if (this.currentWire.from?.component === foundPort.component) {
-          console.log("Cannot connect to the same component");
           this.currentWire = null;
           this.draw();
           return;
@@ -454,7 +453,6 @@ export class CircuitBoard {
 
         // Prevent connecting to an already connected input port
         if (foundPort.type === "input" && foundPort.isConnected) {
-          console.log("Cannot connect to an already connected input port");
           this.currentWire = null;
           this.draw();
           return;
@@ -466,7 +464,6 @@ export class CircuitBoard {
           this.currentWire.from &&
           this.currentWire.from.type === "input"
         ) {
-          console.log("Cannot connect input port to another input port");
           this.currentWire = null;
           this.draw();
           return;
@@ -2135,8 +2132,6 @@ export class CircuitBoard {
     const toBitWidth = wire.to.bitWidth || 1;
 
     wire.bitWidth = Math.max(fromBitWidth, toBitWidth);
-
-    console.log(`Wire connected: ${fromBitWidth}b -> ${toBitWidth}b`);
   }
 
   private handleMouseDown(event: MouseEvent): void {
@@ -2479,8 +2474,6 @@ export class CircuitBoard {
 
         if (port) {
           if (this.currentWire.from?.component === port.component) {
-            console.log("Cannot connect to the same component");
-
             this.currentWire = null;
             this.draw();
             return;
@@ -2488,7 +2481,6 @@ export class CircuitBoard {
 
           // Prevent connecting to an already connected input port
           if (port.type === "input" && port.isConnected) {
-            console.log("Cannot connect to an already connected input port");
             this.currentWire = null;
             this.draw();
             return;
@@ -2500,7 +2492,6 @@ export class CircuitBoard {
             this.currentWire.from &&
             this.currentWire.from.type === "input"
           ) {
-            console.log("Cannot connect input port to another input port");
             this.currentWire = null;
             this.draw();
             return;

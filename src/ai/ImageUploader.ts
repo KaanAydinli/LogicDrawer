@@ -110,7 +110,6 @@ export class ImageUploader {
       await this.circuitRecognizer.processDetections(analysisResult, this.originalDimensions);
 
       const successMessage = "Circuit successfully created from image!";
-      console.log(successMessage);
       if (this.hasUI) {
         this.updateStatus(successMessage);
       }
