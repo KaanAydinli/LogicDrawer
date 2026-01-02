@@ -68,6 +68,17 @@ html {
     backdrop-filter 0.3s ease,
     background 0.3s ease;
 }
+.ai-semantic-headings {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .nav.scrolled {
   background: rgba(25, 47, 56, 0.55);
   backdrop-filter: saturate(140%) blur(12px);

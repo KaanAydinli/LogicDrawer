@@ -22,6 +22,19 @@
   box-sizing: border-box;
 }
 
+/* Visually hidden elements that remain accessible to AIs and screen readers */
+.ai-semantic-headings {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background-color: var(--bg-color);
