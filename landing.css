@@ -278,24 +278,44 @@ html {
 .mockup {
   position: relative;
 }
-.mockup img,
-.mockupImg {
+.mockup-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.mockup-video {
   width: 100%;
   height: auto;
   object-fit: contain;
+
   border-radius: 24px;
-  border: 1px solid var(--border-color);
+
+  border: none;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    0 10px 30px rgba(0, 0, 0, 0.4);
+
+  position: relative;
+  z-index: 1;
+  display: block;
 }
-.mockup-glow {
+.mockup-edge {
   position: absolute;
-  inset: auto 10% -30% 10%;
-  height: 60%;
-  background: radial-gradient(50% 70% at 50% 0%, rgba(63, 208, 191, 0.28), transparent 70%);
-  filter: blur(40px);
-  z-index: -1;
+  inset: 0;
+
+  border-radius: 24px;
+
+  /* THIS is the Apple trick */
+  box-shadow:
+     0 0 0 0.5px rgba(255, 255, 255, 0.06),
+     0 -1px 0 rgba(68, 68, 68, 0.35);
+
+  pointer-events: none;
+  z-index: 2;
 }
+
 
 .section {
   min-height: 100vh;
