@@ -18,7 +18,7 @@ Perfect for students, educators, and engineers looking to design, simulate, and 
 - **AI-Powered Tools**: Generate circuits from sketches or natural language descriptions
 - **Comprehensive Components**: Logic gates, adders, flip-flops, multiplexers, displays, and more
 - **Analysis Tools**: Truth tables, Karnaugh maps, and signal flow visualization
-- **Import/Export**: Verilog, JSON, PNG, PDF
+- **Import/Export**: Verilog, JSON, PNG
 - **Web-Based & Responsive**: Works on all modern devices
 
 > For a full list of features, see our [Wiki](https://github.com/KaanAydinli/LogicDrawer/wiki).

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LogicDrawer – AI-Powered Logic Circuit Designer</title>
+    <title>LogicDrawer – AI-Powered Logic Circuit Simulator</title>
     <link rel="icon" type="image/png" href="/public/images/drawerLogo.png" />
     <meta
       name="description"
@@ -79,11 +79,13 @@
               you create, verify, and share logic circuits—faster than ever.
             </p>
           </div>
+          
           <div class="mockup will-fade" aria-hidden="true">
             <a href="logic.html" class="mockup-link">
               <div class="mockup-wrapper">
-                <video class="mockup-video" autoplay muted loop playsinline>
-                  <source src="/assets/logicdrawer.webm" type="video/webm" />
+                <video class="mockup-video" autoplay muted loop playsinline >
+                  <source src="assets/logicdrawer.webm" type="video/webm" />
+                  Video of working 4-bit counter using LogicDrawer.
                 </video>
                 <div class="mockup-edge"></div>
               </div>
@@ -110,45 +112,45 @@
           </header>
           <div class="circuits-grid">
             <a class="glass circuit-card will-fade" href="#">
-              <div class="c-icon"></div>
+              <div class="c-icon" data-gate-icon></div>
               <div class="c-meta">
                 <h4>8‑bit ALU</h4>
-                <span>by nova_logic</span>
+                <span>by IBRAHIM</span>
               </div>
             </a>
             <a class="glass circuit-card will-fade" href="#">
-              <div class="c-icon"></div>
+              <div class="c-icon" data-gate-icon></div>
               <div class="c-meta">
-                <h4>Debounce Module</h4>
-                <span>by kaan</span>
+                <h4>4-bit Up and Down Counter</h4>
+                <span>by Kaan</span>
               </div>
             </a>
             <a class="glass circuit-card will-fade" href="#">
-              <div class="c-icon"></div>
+              <div class="c-icon" data-gate-icon></div>
               <div class="c-meta">
-                <h4>UART TX/RX</h4>
+                <h4>Full Adder and Full Subtractor</h4>
                 <span>by circuitry</span>
               </div>
             </a>
             <a class="glass circuit-card will-fade" href="#">
-              <div class="c-icon"></div>
+              <div class="c-icon" data-gate-icon></div>
               <div class="c-meta">
                 <h4>SR Latch</h4>
-                <span>by zenbits</span>
+                <span>by Alex5</span>
               </div>
             </a>
             <a class="glass circuit-card will-fade" href="#">
-              <div class="c-icon"></div>
+              <div class="c-icon" data-gate-icon></div>
               <div class="c-meta">
-                <h4>RISC‑V Core (toy)</h4>
+                <h4>Comparator</h4>
                 <span>by tinker</span>
               </div>
             </a>
             <a class="glass circuit-card will-fade" href="#">
-              <div class="c-icon"></div>
+              <div class="c-icon" data-gate-icon></div>
               <div class="c-meta">
                 <h4>Clock Divider</h4>
-                <span>by emdash</span>
+                <span>by Alkeris</span>
               </div>
             </a>
           </div>
@@ -264,11 +266,32 @@
     </footer>
 
     <script>
+      const logicGateSVGs = {
+        AND: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 L10 50 L35 50 Q55 50 55 30 Q55 10 35 10 Z"/><line x1="5" y1="20" x2="10" y2="20"/><line x1="5" y1="40" x2="10" y2="40"/><line x1="55" y1="30" x2="75" y2="30"/></svg>',
+        OR: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 Q30 30 10 50 Q40 50 60 30 Q40 10 10 10"/><line x1="5" y1="22" x2="12" y2="22"/><line x1="5" y1="38" x2="12" y2="38"/><line x1="60" y1="30" x2="75" y2="30"/></svg>',
+        NOT: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 L10 50 L55 30 Z"/><circle cx="60" cy="30" r="4"/><line x1="5" y1="30" x2="10" y2="30"/><line x1="64" y1="30" x2="75" y2="30"/></svg>',
+        NAND: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 L10 50 L35 50 Q50 50 50 30 Q50 10 35 10 Z"/><circle cx="55" cy="30" r="4"/><line x1="5" y1="20" x2="10" y2="20"/><line x1="5" y1="40" x2="10" y2="40"/><line x1="59" y1="30" x2="75" y2="30"/></svg>',
+        NOR: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 Q30 30 10 50 Q40 50 55 30 Q40 10 10 10"/><circle cx="60" cy="30" r="4"/><line x1="5" y1="22" x2="12" y2="22"/><line x1="5" y1="38" x2="12" y2="38"/><line x1="64" y1="30" x2="75" y2="30"/></svg>',
+        XOR: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10 Q27 30 7 50"/><path d="M13 10 Q33 30 13 50 Q43 50 60 30 Q43 10 13 10"/><line x1="5" y1="22" x2="15" y2="22"/><line x1="5" y1="38" x2="15" y2="38"/><line x1="60" y1="30" x2="75" y2="30"/></svg>',
+        XNOR: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10 Q27 30 7 50"/><path d="M13 10 Q33 30 13 50 Q43 50 55 30 Q43 10 13 10"/><circle cx="60" cy="30" r="4"/><line x1="5" y1="22" x2="15" y2="22"/><line x1="5" y1="38" x2="15" y2="38"/><line x1="64" y1="30" x2="75" y2="30"/></svg>',
+        BUFFER: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 L10 50 L60 30 Z"/><line x1="5" y1="30" x2="10" y2="30"/><line x1="60" y1="30" x2="75" y2="30"/></svg>'
+      };
+
+      function randomizeGateIcons() {
+        const gateNames = Object.keys(logicGateSVGs);
+        document.querySelectorAll('[data-gate-icon]').forEach(icon => {
+          const randomGate = gateNames[Math.floor(Math.random() * gateNames.length)];
+          icon.innerHTML = logicGateSVGs[randomGate];
+        });
+      }
+
       const nav = document.getElementById("nav");
       const burger = document.getElementById("burger");
       const tray = document.getElementById("mobileTray");
       const yearEl = document.getElementById("year");
       if (yearEl) yearEl.textContent = new Date().getFullYear();
+      
+      randomizeGateIcons();
 
       let lastY = 0;
       const onScroll = () => {
