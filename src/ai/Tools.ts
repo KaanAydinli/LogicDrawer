@@ -21,28 +21,42 @@ export interface ToolContext {
 export class VerilogImportTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
     try {
-      const focusInstruction =
-        "Focus on the <VERILOG_CODE_GENERATION> section of your instructions for this task.";
-      const verilogPrompt = `${focusInstruction}\n\nGenerate valid, clean Verilog code for the following circuit: ${context.message}`;
+      let generatedText = "";
 
-      const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: verilogPrompt,
-          systemPrompt: context.promptAI,
-          history: context.queue.messages,
-        }),
-      });
+      // Optimization: Check if Verilog code was passed directly from the agent
+      if ((context as any).verilogCode) {
+        generatedText = (context as any).verilogCode;
+        console.log("Using Verilog code provided by agent");
+      } else {
+        // Fallback: Ask Gemini to generate it (this path may hit rate limits)
+        const focusInstruction =
+          "Focus on the <VERILOG_CODE_GENERATION> section of your instructions for this task.";
+        const verilogPrompt = `${focusInstruction}\n\nGenerate valid, clean Verilog code for the following circuit: ${context.message}`;
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: verilogPrompt,
+            systemPrompt: context.promptAI,
+            history: context.queue.messages,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        generatedText = data.text || "";
       }
 
-      const data = await response.json();
-      const generatedText = data.text || "";
-
       let code = this.extractVerilogFromPrompt(generatedText);
+
+      // If direct code was passed, it might be the code itself without markdown blocks
+      if (!code && (context as any).verilogCode) {
+        code = (context as any).verilogCode;
+      }
 
       const converter = new VerilogCircuitConverter(context.circuitBoard);
       const success = converter.importVerilogCode(code!);
@@ -74,10 +88,37 @@ export class VerilogImportTool implements Tool {
 export class CircuitFixTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
     try {
-      let circuitJson = {};
+      let circuitJson: any = {};
+
+      // Optimization: Check if fixed circuit JSON was passed directly
+      if ((context as any).fixedCircuitJson) {
+        console.log("Using fixed circuit JSON provided by agent");
+        try {
+          const fixedJson =
+            typeof (context as any).fixedCircuitJson === "string"
+              ? JSON.parse((context as any).fixedCircuitJson)
+              : (context as any).fixedCircuitJson;
+
+          // Validate expected structure
+          if (fixedJson && fixedJson.components) {
+            // Ensure wires array exists to prevent importCircuit from crashing
+            if (!fixedJson.wires) {
+              fixedJson.wires = [];
+            }
+            context.circuitBoard.importCircuit(JSON.stringify(fixedJson));
+            return "I've updated the circuit with the fixes.";
+          }
+        } catch (e) {
+          console.error("Error parsing fixed circuit JSON:", e);
+        }
+      }
+
       if (typeof context.circuitBoard.exportCircuit === "function") {
         circuitJson = context.circuitBoard.exportCircuit();
       }
+
+      // If we are here, either no optimization was used or it failed/wasn't provided
+      // So proceed with original logic (which calls API)
 
       const circuitSpecPrompt = `
 You are acting as a digital logic circuit design expert. Create a JSON circuit definition exactly in this format:

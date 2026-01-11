@@ -49,75 +49,25 @@ export class AIAgent {
       // Add message to queue
       this.queue.enqueue(message, "user");
 
-      // Step 1: Classify the message using server-side endpoint
-      const classification = await this.classifyMessageServerSide(message);
-      console.log(`Message classified as: ${classification}`);
+      // Use the general processing method which now handles Gemini routing
+      const result = await this.processUserInput(message, undefined);
 
-      // For information queries, use streaming
-      if (classification === "GENERAL_INFORMATION") {
-        const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text?stream=true`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt: message,
-            systemPrompt: this.promptAI,
-            history: this.queue.messages.slice(-5),
-            stream: true,
-          }),
-        });
-
-        if (!response.ok) {
-          if (response.status === 429) {
-            throw new Error(
-              "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features."
-            );
-          }
-          throw new Error(`Server returned ${response.status}: ${await response.text()}`);
-        }
-
-        return response.body!;
-      } else {
-        // For specialized tools, use the existing method and convert the result to a stream
-        const result = await this.processUserInput(message, classification);
-
-        // Convert the string result to a ReadableStream
-        const encoder = new TextEncoder();
-        return new ReadableStream({
-          start(controller) {
-            // Send as SSE format
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`));
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-            controller.close();
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error in processUserInputWithStreaming:", error);
-
-      // Return error as a stream
+      // Convert the string result to a ReadableStream (mock streaming for now as we switched to atomic tool calls)
       const encoder = new TextEncoder();
-
-      let errorMessage = "I'm having trouble processing your request right now. Please try again.";
-
-      // Check if this is a rate limit error
-      if (error instanceof Error) {
-        if (
-          error.message.includes("429") ||
-          error.message.includes("reached") ||
-          error.message.includes("Too Many Requests")
-        ) {
-          errorMessage =
-            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features.";
-        } else if (error.message.includes("Server returned 429")) {
-          errorMessage =
-            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features.";
-        }
-      }
-
       return new ReadableStream({
         start(controller) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+          controller.close();
+        },
+      });
+    } catch (error) {
+      console.error("Error in processUserInputWithStreaming:", error);
+      const encoder = new TextEncoder();
+      return new ReadableStream({
+        start(controller) {
+          const errorMessage =
+            "I'm having trouble processing your request right now. Please try again.";
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ chunk: errorMessage })}\n\n`)
           );
@@ -141,6 +91,84 @@ export class AIAgent {
     console.log("Tools registered:", Array.from(this.tools.keys()));
   }
 
+  // Tool Definitions for Gemini
+  private getGeminiTools() {
+    return [
+      {
+        functionDeclarations: [
+          {
+            name: "import_verilog_circuit",
+            description:
+              "Generate and import a circuit from a text description. Use this when the user wants to create a new circuit (e.g., 'create a full adder', 'draw a counter').",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                description: {
+                  type: "STRING",
+                  description: "The description of the circuit to create.",
+                },
+                verilogCode: {
+                  type: "STRING",
+                  description:
+                    "Optional. The generated Verilog code for the circuit. If provided, the tool will import this code directly.",
+                },
+              },
+              required: ["description"],
+            },
+          },
+          {
+            name: "detect_circuit_from_image",
+            description:
+              "Detect and reconstruct a logic circuit from the uploaded image. Use this when the user provides an image of a circuit schematic and asks to digitize, draw, or recognize it.",
+            parameters: { type: "OBJECT", properties: {} },
+          },
+          {
+            name: "analyze_image_content",
+            description:
+              "Analyze or describe the uploaded image without creating a circuit. Use this for general questions about the image content, asking what it is, etc.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                question: {
+                  type: "STRING",
+                  description: "The user's question about the image.",
+                },
+              },
+              required: ["question"],
+            },
+          },
+          {
+            name: "extract_truth_table",
+            description:
+              "Extract a truth table from the uploaded image. Use this when the user provides an image containing a truth table.",
+            parameters: { type: "OBJECT", properties: {} },
+          },
+          {
+            name: "extract_kmap",
+            description:
+              "Extract a Karnaugh map (K-Map) from the uploaded image. Use this when the user provides an image of a K-Map.",
+            parameters: { type: "OBJECT", properties: {} },
+          },
+          {
+            name: "fix_circuit",
+            description:
+              "Analyze and fix the current circuit on the board. Use this when the user asks to fix, repair, or debug the current circuit.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                fixedCircuitJson: {
+                  type: "STRING",
+                  description: "Optional. The fixed circuit definition in JSON format.",
+                },
+              },
+              required: [],
+            },
+          },
+        ],
+      },
+    ];
+  }
+
   // Set the current image
   setCurrentImage(imageData: string) {
     this.lastUploadedImage = imageData;
@@ -160,87 +188,97 @@ export class AIAgent {
   }
 
   // Main processing function
-  async processUserInput(message: string, classification?: string): Promise<string> {
+  async processUserInput(message: string, _unused?: string): Promise<string> {
     try {
-      console.log("AIAgent processing user input:", message.substring(0, 50) + "...");
-      console.log("Has image:", this.lastUploadedImage !== null);
+      console.log("AIAgent processing user input via Gemini:", message.substring(0, 50) + "...");
 
-      // Step 1: Classify the message using server-side endpoint
-      let classificationHere = classification;
-      if (classification === undefined) {
-        classificationHere = await this.classifyMessageServerSide(message);
+      const payload: any = {
+        message: message,
+        systemPrompt: this.promptAI,
+        history: this.queue.messages.slice(-10), // Send last 10 messages
+        tools: this.getGeminiTools(),
+      };
 
-        console.log(`Message classified as: ${classificationHere}`);
+      if (this.lastUploadedImage) {
+        payload.image = this.lastUploadedImage;
       }
 
-      // Step 2: Get the appropriate tool
-      const tool = this.tools.get(classificationHere!);
-      if (!tool) {
-        return "I'm not sure how to help with that request.";
-      }
-
-      // Step 3: Execute the tool with the appropriate context
-      return await tool.execute({
-        message,
-        image: this.lastUploadedImage,
-        circuitBoard: this.circuitBoard,
-        queue: this.queue,
-        promptAI: this.promptAI,
-        imageUploader: this.imageUploader,
-      });
-    } catch (error) {
-      console.error("Error processing request:", error);
-
-      // Check if this is a rate limit error
-      if (error instanceof Error) {
-        if (error.message.includes("reached") || error.message.includes("rate limit")) {
-          return error.message;
-        }
-      }
-
-      return "I encountered an error processing your request. Please try again.";
-    }
-  }
-
-  // Server-side classification
-  private async classifyMessageServerSide(message: string): Promise<string> {
-    try {
-      const hasImage = this.lastUploadedImage !== null;
-
-      // Call server endpoint for classification
-      const response = await fetch(`${apiBaseUrl}/api/classify-message`, {
+      const response = await fetch(`${apiBaseUrl}/api/agent/chat`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: message,
-          hasImage: hasImage,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error(
-            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features."
-          );
-        }
-        console.error("Classification failed:", response.status);
-        // Default to general information if classification fails
-        return "GENERAL_INFORMATION";
+        throw new Error(`Server returned ${response.status}`);
       }
 
       const data = await response.json();
-      return data.classification;
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        (error.message.includes("daily limit") || error.message.includes("rate limit"))
-      ) {
-        throw error; // Re-throw rate limit errors
+
+      // Handle Function Calls
+      if (data.functionCalls && data.functionCalls.length > 0) {
+        const call = data.functionCalls[0];
+        console.log("Gemini routed to tool:", call.name);
+
+        let toolKey = "";
+        let newContextMessage = message;
+
+        // Map function names to internal tool keys
+        let extraContext: any = {};
+
+        switch (call.name) {
+          case "import_verilog_circuit":
+            toolKey = "VERILOG_IMPORT";
+            newContextMessage = call.args.description || message;
+            if (call.args.verilogCode) {
+              extraContext.verilogCode = call.args.verilogCode;
+            }
+            break;
+          case "detect_circuit_from_image":
+            toolKey = "CIRCUIT_DETECTION";
+            break;
+          case "analyze_image_content":
+            toolKey = "IMAGE_ANALYSIS";
+            newContextMessage = call.args.question || message;
+            break;
+          case "extract_truth_table":
+            toolKey = "TRUTH_TABLE_IMAGE";
+            break;
+          case "extract_kmap":
+            toolKey = "KMAP_IMAGE";
+            break;
+          case "fix_circuit":
+            toolKey = "CIRCUIT_FIX";
+            if (call.args.fixedCircuitJson) {
+              extraContext.fixedCircuitJson = call.args.fixedCircuitJson;
+            }
+            break;
+          default:
+            return "I'm not sure how to handle that request.";
+        }
+
+        const tool = this.tools.get(toolKey);
+        if (!tool) {
+          return `Tool ${toolKey} not found.`;
+        }
+
+        // Execute the tool with the (possibly modified) message
+        return await tool.execute({
+          message: newContextMessage,
+          image: this.lastUploadedImage,
+          circuitBoard: this.circuitBoard,
+          queue: this.queue,
+          promptAI: this.promptAI,
+          imageUploader: this.imageUploader,
+          ...extraContext,
+        });
+      } else {
+        // Just text response
+        return data.text || "I didn't understand that.";
       }
-      console.error("Error classifying message:", error);
-      return "GENERAL_INFORMATION"; // Default fallback
+    } catch (error) {
+      console.error("Error processing request:", error);
+      return "I encountered an error processing your request. Please try again.";
     }
   }
 
