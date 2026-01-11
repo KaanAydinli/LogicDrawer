@@ -286,10 +286,10 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
  */
 router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
   try {
-    const { message, systemPrompt, history, tools, image } = req.body;
+    const { message, systemPrompt, history, tools, image, parts } = req.body;
 
-    if (!message && !image) {
-      return res.status(400).json({ error: "No message or image provided" });
+    if (!message && !image && !parts) {
+      return res.status(400).json({ error: "No message, image, or parts provided" });
     }
 
     const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -343,13 +343,27 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
         userParts.push({ text: message });
       }
 
+      if (parts) {
+        userParts = userParts.concat(parts);
+      }
+
       // Convert history to Gemini format
       let chatHistory: any[] = [];
       if (history && Array.isArray(history)) {
-        chatHistory = history.map((msg: any) => ({
-          role: msg.role === "user" ? "user" : "model",
-          parts: [{ text: msg.content }],
-        }));
+        chatHistory = history.map((msg: any) => {
+          // If message already has parts (structured history from client agent loop), use them
+          if (msg.parts) {
+            return {
+              role: msg.role === "user" ? "user" : "model",
+              parts: msg.parts,
+            };
+          }
+          // Legacy/Simple text message
+          return {
+            role: msg.role === "user" ? "user" : "model",
+            parts: [{ text: msg.content || "" }],
+          };
+        });
 
         // Validate: First message must be from user
         if (chatHistory.length > 0 && chatHistory[0].role !== "user") {

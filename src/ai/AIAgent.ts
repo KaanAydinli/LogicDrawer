@@ -2,13 +2,15 @@ import { CircuitBoard } from "../models/CircuitBoard";
 import {
   Tool,
   VerilogImportTool,
-  GeminiQueryTool,
+  FinalAnswerTool,
   CircuitDetectionTool,
   ImageAnalysisTool,
   TruthTableImageTool,
   KMapImageTool,
-  CircuitFixTool,
-} from "./Tools";
+  AddComponentsTool,
+  ConnectComponentsTool,
+  GetCircuitSummaryTool,
+} from "./tools";
 import { ImageUploader } from "./ImageUploader";
 import { apiBaseUrl } from "../services/apiConfig";
 import { Queue } from "../main";
@@ -81,12 +83,15 @@ export class AIAgent {
   // Register all available tools
   private registerTools() {
     this.tools.set("VERILOG_IMPORT", new VerilogImportTool());
-    this.tools.set("GENERAL_INFORMATION", new GeminiQueryTool());
+    this.tools.set("FINAL_ANSWER", new FinalAnswerTool());
     this.tools.set("CIRCUIT_DETECTION", new CircuitDetectionTool());
     this.tools.set("IMAGE_ANALYSIS", new ImageAnalysisTool());
     this.tools.set("TRUTH_TABLE_IMAGE", new TruthTableImageTool());
     this.tools.set("KMAP_IMAGE", new KMapImageTool());
-    this.tools.set("CIRCUIT_FIX", new CircuitFixTool());
+    // this.tools.set("CIRCUIT_FIX", new CircuitFixTool()); // Deprecated
+    this.tools.set("ADD_COMPONENTS", new AddComponentsTool());
+    this.tools.set("CONNECT_COMPONENTS", new ConnectComponentsTool());
+    this.tools.set("GET_CIRCUIT_SUMMARY", new GetCircuitSummaryTool());
 
     console.log("Tools registered:", Array.from(this.tools.keys()));
   }
@@ -114,6 +119,21 @@ export class AIAgent {
                 },
               },
               required: ["description"],
+            },
+          },
+          {
+            name: "final_answer",
+            description:
+              "Return the final text response to the user. Call this tool when you have completed all actions (like adding/connecting components) or if you just need to answer a question without modifying the circuit. The 'text' argument will be displayed to the user.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                text: {
+                  type: "STRING",
+                  description: "The answer or completion message to show to the user.",
+                },
+              },
+              required: ["text"],
             },
           },
           {
@@ -150,19 +170,66 @@ export class AIAgent {
             parameters: { type: "OBJECT", properties: {} },
           },
           {
-            name: "fix_circuit",
+            name: "add_components",
             description:
-              "Analyze and fix the current circuit on the board. Use this when the user asks to fix, repair, or debug the current circuit.",
+              "Add multiple components to the circuit board at specific positions. IMPORTANT: If the user request implies inputs or outputs (e.g., 'connect to XOR', 'truth table'), you MUST also add the necessary input components (toggles, buttons, clocks) and output components (LEDs, lamps, hex displays) in this same call. Do not wait for a second prompt. Returns a list of added component IDs.",
             parameters: {
               type: "OBJECT",
               properties: {
-                fixedCircuitJson: {
-                  type: "STRING",
-                  description: "Optional. The fixed circuit definition in JSON format.",
+                components: {
+                  type: "ARRAY",
+                  description: "List of components to add.",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      type: {
+                        type: "STRING",
+                        description: "Component type (e.g., 'and', 'or', 'not', 'fulladder').",
+                      },
+                      position: {
+                        type: "OBJECT",
+                        properties: {
+                          x: { type: "INTEGER" },
+                          y: { type: "INTEGER" },
+                        },
+                        required: ["x", "y"],
+                      },
+                    },
+                    required: ["type", "position"],
+                  },
                 },
               },
-              required: [],
+              required: ["components"],
             },
+          },
+          {
+            name: "connect_components",
+            description:
+              "Connect multiple pairs of components. Finds available ports automatically.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                connections: {
+                  type: "ARRAY",
+                  description: "List of connections to make.",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      sourceId: { type: "STRING", description: "ID of the source component." },
+                      targetId: { type: "STRING", description: "ID of the target component." },
+                    },
+                    required: ["sourceId", "targetId"],
+                  },
+                },
+              },
+              required: ["connections"],
+            },
+          },
+          {
+            name: "get_circuit_summary",
+            description:
+              "Get a summary of the current circuit board state, including component IDs, types, and positions. Useful for knowing what IDs to use for connections.",
+            parameters: { type: "OBJECT", properties: {} },
           },
         ],
       },
@@ -192,90 +259,183 @@ export class AIAgent {
     try {
       console.log("AIAgent processing user input via Gemini:", message.substring(0, 50) + "...");
 
-      const payload: any = {
-        message: message,
-        systemPrompt: this.promptAI,
-        history: this.queue.messages.slice(-10), // Send last 10 messages
-        tools: this.getGeminiTools(),
-      };
+      // Prepare initial history from queue
+      const allMessages = this.queue.messages.slice(-10);
+      let sessionHistory: any[] = allMessages.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+        parts: msg.parts, // Pass through existing parts if any
+      }));
 
-      if (this.lastUploadedImage) {
-        payload.image = this.lastUploadedImage;
-      }
+      // Pop the last message (current user request) to serve as the active turn
+      let currentMessage: string | null = null;
+      let currentParts: any[] | null = null;
 
-      const response = await fetch(`${apiBaseUrl}/api/agent/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // Handle Function Calls
-      if (data.functionCalls && data.functionCalls.length > 0) {
-        const call = data.functionCalls[0];
-        console.log("Gemini routed to tool:", call.name);
-
-        let toolKey = "";
-        let newContextMessage = message;
-
-        // Map function names to internal tool keys
-        let extraContext: any = {};
-
-        switch (call.name) {
-          case "import_verilog_circuit":
-            toolKey = "VERILOG_IMPORT";
-            newContextMessage = call.args.description || message;
-            if (call.args.verilogCode) {
-              extraContext.verilogCode = call.args.verilogCode;
-            }
-            break;
-          case "detect_circuit_from_image":
-            toolKey = "CIRCUIT_DETECTION";
-            break;
-          case "analyze_image_content":
-            toolKey = "IMAGE_ANALYSIS";
-            newContextMessage = call.args.question || message;
-            break;
-          case "extract_truth_table":
-            toolKey = "TRUTH_TABLE_IMAGE";
-            break;
-          case "extract_kmap":
-            toolKey = "KMAP_IMAGE";
-            break;
-          case "fix_circuit":
-            toolKey = "CIRCUIT_FIX";
-            if (call.args.fixedCircuitJson) {
-              extraContext.fixedCircuitJson = call.args.fixedCircuitJson;
-            }
-            break;
-          default:
-            return "I'm not sure how to handle that request.";
-        }
-
-        const tool = this.tools.get(toolKey);
-        if (!tool) {
-          return `Tool ${toolKey} not found.`;
-        }
-
-        // Execute the tool with the (possibly modified) message
-        return await tool.execute({
-          message: newContextMessage,
-          image: this.lastUploadedImage,
-          circuitBoard: this.circuitBoard,
-          queue: this.queue,
-          promptAI: this.promptAI,
-          imageUploader: this.imageUploader,
-          ...extraContext,
-        });
+      // Note: processUserInputWithStreaming adds the user message to the queue before calling this.
+      // So the last message in sessionHistory is the current prompt.
+      // We extract it to pass it as the 'message' field (or part) for the active turn.
+      const lastMsg = sessionHistory.pop();
+      if (lastMsg && lastMsg.role === "user") {
+        currentMessage = lastMsg.content || message; // Fallback to arg if content missing
       } else {
-        // Just text response
-        return data.text || "I didn't understand that.";
+        // If the last message wasn't user (unlikely), put it back.
+        if (lastMsg) sessionHistory.push(lastMsg);
+        currentMessage = message;
       }
+
+      const MAX_STEPS = 5;
+
+      for (let step = 0; step < MAX_STEPS; step++) {
+        console.log(`[ReAct Loop] Step ${step + 1}/${MAX_STEPS}`);
+        // console.log("Current Message:", currentMessage ? "Text" : "Null", "Parts:", currentParts ? "Yes" : "Null");
+
+        const payload: any = {
+          message: currentMessage,
+          parts: currentParts,
+          systemPrompt: this.promptAI,
+          history: sessionHistory,
+          tools: this.getGeminiTools(),
+        };
+
+        if (step === 0 && this.lastUploadedImage) {
+          payload.image = this.lastUploadedImage;
+        }
+
+        const response = await fetch(`${apiBaseUrl}/api/agent/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Server error details:", errorText);
+          throw new Error(`Server returned ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        // Handle Function Calls
+        if (data.functionCalls && data.functionCalls.length > 0) {
+          const call = data.functionCalls[0];
+          console.log("Gemini routed to tool:", call.name);
+
+          // Update history with the "User" turn that caused this
+          if (currentMessage) {
+            sessionHistory.push({ role: "user", content: currentMessage });
+          } else if (currentParts) {
+            sessionHistory.push({ role: "user", parts: currentParts });
+          }
+
+          // Add the Model's "Function Call" to history
+          sessionHistory.push({
+            role: "model",
+            parts: [{ functionCall: { name: call.name, args: call.args } }],
+          });
+
+          // SPECIAL CASE: final_answer terminates the loop
+          if (call.name === "final_answer") {
+            const finalText = call.args.text || "Task completed.";
+
+            // Also add the "result" of the final answer (which is just the text)
+            sessionHistory.push({
+              role: "function",
+              parts: [
+                {
+                  functionResponse: {
+                    name: call.name,
+                    response: { name: call.name, content: finalText },
+                  },
+                },
+              ],
+            });
+
+            return finalText;
+          }
+
+          // Execute Tool
+          let toolResult = "";
+          let toolKey = "";
+          let extraContext: any = {};
+          let newContextMessage = currentMessage || "Tool Execution";
+
+          switch (call.name) {
+            case "import_verilog_circuit":
+              toolKey = "VERILOG_IMPORT";
+              newContextMessage = call.args.description || newContextMessage;
+              if (call.args.verilogCode) extraContext.verilogCode = call.args.verilogCode;
+              break;
+            case "detect_circuit_from_image":
+              toolKey = "CIRCUIT_DETECTION";
+              break;
+            case "analyze_image_content":
+              toolKey = "IMAGE_ANALYSIS";
+              newContextMessage = call.args.question || newContextMessage;
+              break;
+            case "extract_truth_table":
+              toolKey = "TRUTH_TABLE_IMAGE";
+              break;
+            case "extract_kmap":
+              toolKey = "KMAP_IMAGE";
+              break;
+            case "add_components":
+              toolKey = "ADD_COMPONENTS";
+              extraContext.components = call.args.components;
+              break;
+            case "connect_components":
+              toolKey = "CONNECT_COMPONENTS";
+              extraContext.connections = call.args.connections;
+              break;
+            case "get_circuit_summary":
+              toolKey = "GET_CIRCUIT_SUMMARY";
+              break;
+            default:
+              toolResult = "Error: Tool not found.";
+          }
+
+          if (toolKey) {
+            const tool = this.tools.get(toolKey);
+            if (tool) {
+              toolResult = await tool.execute({
+                message:
+                  typeof newContextMessage === "string" ? newContextMessage : "Tool Execution",
+                image: this.lastUploadedImage,
+                circuitBoard: this.circuitBoard,
+                queue: this.queue,
+                promptAI: this.promptAI,
+                imageUploader: this.imageUploader,
+                ...extraContext,
+              });
+            } else {
+              toolResult = `Tool ${toolKey} not registered.`;
+            }
+          }
+
+          // Prepare next turn: Function Response
+          let responseContent = {};
+          try {
+            responseContent = JSON.parse(toolResult);
+          } catch (e) {
+            console.log("Tool result is not JSON, wrapping in object");
+            responseContent = { result: toolResult };
+          }
+
+          currentMessage = null;
+          currentParts = [
+            {
+              functionResponse: {
+                name: call.name,
+                response: { name: call.name, content: responseContent },
+              },
+            },
+          ];
+        } else {
+          // Text response - Final Answer
+          return data.text || "I didn't understand that.";
+        }
+      }
+
+      return "I reached the maximum number of steps for this task. Please verify the current state.";
     } catch (error) {
       console.error("Error processing request:", error);
       return "I encountered an error processing your request. Please try again.";
