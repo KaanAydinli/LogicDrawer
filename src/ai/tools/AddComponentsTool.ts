@@ -1,0 +1,35 @@
+import { Tool, ToolContext } from "./Tool";
+
+export class AddComponentsTool implements Tool {
+  async execute(context: ToolContext): Promise<string> {
+    try {
+      const components = (context as any).components;
+      if (!components || !Array.isArray(components)) {
+        return "No components provided or invalid format.";
+      }
+
+      const addedComponents: Array<{ type: string; id: string }> = [];
+
+      for (const comp of components) {
+        if (comp.type && comp.position) {
+          const id = context.circuitBoard.addComponentByType(comp.type, comp.position);
+          if (id) {
+            addedComponents.push({ type: comp.type, id: id });
+          }
+        }
+      }
+
+      if (addedComponents.length === 0) {
+        return "Failed to add any components.";
+      }
+
+      return JSON.stringify({
+        message: `Successfully added ${addedComponents.length} components.`,
+        components: addedComponents,
+      });
+    } catch (error) {
+      console.error("Error in AddComponentsTool:", error);
+      return "Error adding components.";
+    }
+  }
+}

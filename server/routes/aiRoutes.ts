@@ -72,7 +72,7 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
     const venvPythonPathAlt = path.join(serverRoot, "..", "venv", "bin", "python3");
     const venvPythonPathWin = path.join(serverRoot, "venv", "Scripts", "python.exe");
     const venvPythonPathWinAlt = path.join(serverRoot, "..", "venv", "Scripts", "python.exe");
-    
+
     let pythonExecutable: string;
     if (process.env.PYTHON_EXECUTABLE) {
       pythonExecutable = process.env.PYTHON_EXECUTABLE;
@@ -80,14 +80,14 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
       pythonExecutable = fs.existsSync(venvPythonPathWin)
         ? venvPythonPathWin
         : fs.existsSync(venvPythonPathWinAlt)
-        ? venvPythonPathWinAlt
-        : "python";
+          ? venvPythonPathWinAlt
+          : "python";
     } else {
       pythonExecutable = fs.existsSync(venvPythonPath)
         ? venvPythonPath
         : fs.existsSync(venvPythonPathAlt)
-        ? venvPythonPathAlt
-        : "python3";
+          ? venvPythonPathAlt
+          : "python3";
     }
     if (!fs.existsSync(pythonScriptPath)) {
       return res.status(500).json({
@@ -281,146 +281,167 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
   }
 });
 
-router.post("/classify-message", optionalAuth, aiRateLimit, async (req, res) => {
+/**
+ * Main Agent Chat Endpoint with Tool Support
+ */
+router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
   try {
-    const { message, hasImage } = req.body;
+    const { message, systemPrompt, history, tools, image, parts } = req.body;
 
-    if (!message) {
-      return res.status(400).json({ error: "No message provided" });
+    if (!message && !image && !parts) {
+      return res.status(400).json({ error: "No message, image, or parts provided" });
     }
 
-    if (!process.env.MISTRAL_API_KEY) {
-      return res.status(500).json({ error: "Mistral API is not configured" });
+    const googleApiKey = process.env.GOOGLE_API_KEY;
+    if (!googleApiKey) {
+      return res.status(500).json({ error: "Google API key not configured" });
     }
 
     try {
-      const systemPrompt = `You are a classification assistant for a logic circuit design application.
-      Analyze the user's message and return ONLY ONE of these categories:
-      - VERILOG_IMPORT: If the message contains Verilog code or asks to create a circuit that can be created via code.
-      - CIRCUIT_DETECTION: If the message asks to detect, draw, or analyze a circuit from an image
-      - IMAGE_ANALYSIS: If the message asks to analyze or describe an image without creating a circuit
-      - TRUTH_TABLE_IMAGE: If the message asks to analyze or draw the truth table from an image
-      - KMAP_IMAGE: If the message asks to analyze or draw the Karnaugh map from an image
-      - GENERAL_INFORMATION: For questions about circuitry, programming, or other informational requests
+      // Use a model that supports function calling and vision
+      const modelParams: any = {
+        model: "gemini-2.5-flash",
+      };
 
-      Reply with ONLY the category name, nothing else.`;
+      if (systemPrompt) {
+        modelParams.systemInstruction = systemPrompt;
+      }
 
-      //Temporarily remove CIRCUIT_FIX as it is too slow to process
-      //- CIRCUIT_FIX: If the message asks to edit, fix or improve the current circuit.
+      if (tools) {
+        modelParams.tools = tools;
+      }
 
-      const messages = [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: message + (hasImage ? " (Note: The user has uploaded an image)" : ""),
-        },
-      ];
+      const model = genAI.getGenerativeModel(modelParams);
 
-      const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "mistral-large-latest",
-          messages: messages,
-        }),
+      // Prepare contents
+      let userParts: any[] = [];
+
+      if (image) {
+        // Handle base64 image
+        let base64Data = image;
+        let mimeType = "image/jpeg";
+
+        if (image.includes("base64,")) {
+          const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            mimeType = matches[1];
+            base64Data = matches[2];
+          } else {
+            base64Data = image.split("base64,")[1];
+          }
+        }
+
+        userParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType,
+          },
+        });
+      }
+
+      if (message) {
+        userParts.push({ text: message });
+      }
+
+      if (parts) {
+        userParts = userParts.concat(parts);
+      }
+
+      // Convert history to Gemini format
+      let chatHistory: any[] = [];
+      if (history && Array.isArray(history)) {
+        chatHistory = history.map((msg: any) => {
+          // If message already has parts (structured history from client agent loop), use them
+          if (msg.parts) {
+            let role = msg.role === "user" ? "user" : "model";
+            // Check if parts contain functionResponse, if so enforce 'function' role
+            if (msg.parts.some((p: any) => p.functionResponse)) {
+              role = "function";
+            }
+            return {
+              role: role,
+              parts: msg.parts,
+            };
+          }
+          // Legacy/Simple text message
+          return {
+            role: msg.role === "user" ? "user" : "model",
+            parts: [{ text: msg.content || "" }],
+          };
+        });
+
+        // Validate: First message must be from user or function (rare)
+        if (chatHistory.length > 0 && chatHistory[0].role === "model") {
+          // If first message is model, remove it
+          chatHistory.shift();
+        }
+
+        // Validate: Merge consecutive messages from same role
+        const sanitizedHistory = [];
+        if (chatHistory.length > 0) {
+          let currentMsg = chatHistory[0];
+
+          for (let i = 1; i < chatHistory.length; i++) {
+            const nextMsg = chatHistory[i];
+            if (nextMsg.role === currentMsg.role) {
+              // Merge content
+              // Check if both are simple text
+              const isTextOnly = (parts: any[]) =>
+                Array.isArray(parts) && parts.length === 1 && parts[0].text;
+
+              if (isTextOnly(currentMsg.parts) && isTextOnly(nextMsg.parts)) {
+                currentMsg.parts[0].text += "\n\n" + nextMsg.parts[0].text;
+              } else {
+                // Append parts safely
+                currentMsg.parts = currentMsg.parts.concat(nextMsg.parts);
+              }
+            } else {
+              sanitizedHistory.push(currentMsg);
+              currentMsg = nextMsg;
+            }
+          }
+          sanitizedHistory.push(currentMsg);
+          chatHistory = sanitizedHistory;
+        }
+      }
+
+      // Determine the role for the new message
+      let currentRole = "user";
+      if (userParts.some(p => p.functionResponse)) {
+        currentRole = "function";
+      }
+
+      // Construct full content with history + new message
+      const contents = [...chatHistory, { role: currentRole, parts: userParts }];
+
+      const result = await model.generateContent({
+        contents: contents,
       });
+      const response = result.response;
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Mistral API error: ${error.error?.message || response.statusText}`);
+      // Check for function calls
+      const call = response.functionCalls();
+
+      if (call && call.length > 0) {
+        const functionCalls = call.map(c => ({
+          name: c.name,
+          args: c.args,
+        }));
+        return res.json({ functionCalls });
       }
 
-      const data = await response.json();
-
-      if (!data.choices || !data.choices.length) {
-        throw new Error("Empty response from Mistral API");
-      }
-
-      const text = data.choices[0].message.content.trim().toUpperCase();
-
-      let classification = text;
-
-      console.log("Classification result:", classification, " User Message:", message);
-
-      return res.json({ classification });
+      // Default text response
+      const text = response.text();
+      return res.json({ text });
     } catch (error) {
+      console.error("Gemini Agent Error:", error);
       return res.status(500).json({
-        error: "Failed to classify message",
+        error: "Agent processing failed",
         details: error instanceof Error ? error.message : String(error),
       });
     }
   } catch (error) {
     return res.status(500).json({
-      error: "Internal server error",
-      details: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
-
-/**
- * Generate text with Mistral.
- */
-router.post("/generate/mistral", optionalAuth, aiRateLimit, async (req, res) => {
-  try {
-    const { userPrompt, systemPrompt } = req.body;
-
-    if (!process.env.MISTRAL_API_KEY) {
-      return res.status(500).json({ error: "Mistral API key not configured" });
-    }
-
-    try {
-      let messages = [];
-
-      if (systemPrompt) {
-        messages.push({
-          role: "system",
-          content: systemPrompt,
-        });
-      }
-
-      const role = "user";
-      messages.push({
-        role: role,
-        content: userPrompt,
-      });
-
-      const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "mistral-large-latest",
-          messages: messages,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`Mistral API error: ${error.error?.message || response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.choices || !data.choices.length) {
-        throw new Error("Empty response from Mistral API");
-      }
-
-      const text = data.choices[0].message.content;
-
-      res.json({ text });
-    } catch (error) {
-      res.status(500).json({
-        error: "Failed to generate text with Mistral",
-        details: error instanceof Error ? error.message : String(error),
-      });
-    }
-  } catch (error) {
-    res.status(500).json({
       error: "Internal server error",
       details: error instanceof Error ? error.message : String(error),
     });

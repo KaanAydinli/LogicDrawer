@@ -2,13 +2,15 @@ import { CircuitBoard } from "../models/CircuitBoard";
 import {
   Tool,
   VerilogImportTool,
-  GeminiQueryTool,
+  FinalAnswerTool,
   CircuitDetectionTool,
   ImageAnalysisTool,
   TruthTableImageTool,
   KMapImageTool,
-  CircuitFixTool,
-} from "./Tools";
+  AddComponentsTool,
+  ConnectComponentsTool,
+  GetCircuitSummaryTool,
+} from "./tools";
 import { ImageUploader } from "./ImageUploader";
 import { apiBaseUrl } from "../services/apiConfig";
 import { Queue } from "../main";
@@ -49,75 +51,25 @@ export class AIAgent {
       // Add message to queue
       this.queue.enqueue(message, "user");
 
-      // Step 1: Classify the message using server-side endpoint
-      const classification = await this.classifyMessageServerSide(message);
-      console.log(`Message classified as: ${classification}`);
+      // Use the general processing method which now handles Gemini routing
+      const result = await this.processUserInput(message, undefined);
 
-      // For information queries, use streaming
-      if (classification === "GENERAL_INFORMATION") {
-        const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text?stream=true`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt: message,
-            systemPrompt: this.promptAI,
-            history: this.queue.messages.slice(-5),
-            stream: true,
-          }),
-        });
-
-        if (!response.ok) {
-          if (response.status === 429) {
-            throw new Error(
-              "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features."
-            );
-          }
-          throw new Error(`Server returned ${response.status}: ${await response.text()}`);
-        }
-
-        return response.body!;
-      } else {
-        // For specialized tools, use the existing method and convert the result to a stream
-        const result = await this.processUserInput(message, classification);
-
-        // Convert the string result to a ReadableStream
-        const encoder = new TextEncoder();
-        return new ReadableStream({
-          start(controller) {
-            // Send as SSE format
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`));
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-            controller.close();
-          },
-        });
-      }
-    } catch (error) {
-      console.error("Error in processUserInputWithStreaming:", error);
-
-      // Return error as a stream
+      // Convert the string result to a ReadableStream (mock streaming for now as we switched to atomic tool calls)
       const encoder = new TextEncoder();
-
-      let errorMessage = "I'm having trouble processing your request right now. Please try again.";
-
-      // Check if this is a rate limit error
-      if (error instanceof Error) {
-        if (
-          error.message.includes("429") ||
-          error.message.includes("reached") ||
-          error.message.includes("Too Many Requests")
-        ) {
-          errorMessage =
-            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features.";
-        } else if (error.message.includes("Server returned 429")) {
-          errorMessage =
-            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features.";
-        }
-      }
-
       return new ReadableStream({
         start(controller) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`));
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+          controller.close();
+        },
+      });
+    } catch (error) {
+      console.error("Error in processUserInputWithStreaming:", error);
+      const encoder = new TextEncoder();
+      return new ReadableStream({
+        start(controller) {
+          const errorMessage =
+            "I'm having trouble processing your request right now. Please try again.";
           controller.enqueue(
             encoder.encode(`data: ${JSON.stringify({ chunk: errorMessage })}\n\n`)
           );
@@ -131,14 +83,189 @@ export class AIAgent {
   // Register all available tools
   private registerTools() {
     this.tools.set("VERILOG_IMPORT", new VerilogImportTool());
-    this.tools.set("GENERAL_INFORMATION", new GeminiQueryTool());
+    this.tools.set("FINAL_ANSWER", new FinalAnswerTool());
     this.tools.set("CIRCUIT_DETECTION", new CircuitDetectionTool());
     this.tools.set("IMAGE_ANALYSIS", new ImageAnalysisTool());
     this.tools.set("TRUTH_TABLE_IMAGE", new TruthTableImageTool());
     this.tools.set("KMAP_IMAGE", new KMapImageTool());
-    this.tools.set("CIRCUIT_FIX", new CircuitFixTool());
+    // this.tools.set("CIRCUIT_FIX", new CircuitFixTool()); // Deprecated
+    this.tools.set("ADD_COMPONENTS", new AddComponentsTool());
+    this.tools.set("CONNECT_COMPONENTS", new ConnectComponentsTool());
+    this.tools.set("GET_CIRCUIT_SUMMARY", new GetCircuitSummaryTool());
 
     console.log("Tools registered:", Array.from(this.tools.keys()));
+  }
+
+  // Tool Definitions for Gemini
+  private getGeminiTools() {
+    return [
+      {
+        functionDeclarations: [
+          {
+            name: "import_verilog_circuit",
+            description:
+              "Generate and import a circuit from a text description. Use this when the user wants to create a new circuit (e.g., 'create a full adder', 'draw a counter').",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                description: {
+                  type: "STRING",
+                  description: "The description of the circuit to create.",
+                },
+                verilogCode: {
+                  type: "STRING",
+                  description:
+                    "Optional. The generated Verilog code for the circuit. If provided, the tool will import this code directly.",
+                },
+              },
+              required: ["description"],
+            },
+          },
+          {
+            name: "final_answer",
+            description:
+              "Return the final text response to the user. Call this tool when you have completed all actions (like adding/connecting components) or if you just need to answer a question without modifying the circuit. The 'text' argument will be displayed to the user.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                text: {
+                  type: "STRING",
+                  description: "The answer or completion message to show to the user.",
+                },
+              },
+              required: ["text"],
+            },
+          },
+          {
+            name: "detect_circuit_from_image",
+            description:
+              "Detect and reconstruct a logic circuit from the uploaded image. Use this when the user provides an image of a circuit schematic and asks to digitize, draw, or recognize it.",
+            parameters: { type: "OBJECT", properties: {} },
+          },
+          {
+            name: "analyze_image_content",
+            description:
+              "Analyze or describe the uploaded image without creating a circuit. Use this for general questions about the image content, asking what it is, etc.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                question: {
+                  type: "STRING",
+                  description: "The user's question about the image.",
+                },
+              },
+              required: ["question"],
+            },
+          },
+          {
+            name: "extract_truth_table",
+            description:
+              "Extract a truth table from the uploaded image. Use this when the user provides an image containing a truth table.",
+            parameters: { type: "OBJECT", properties: {} },
+          },
+          {
+            name: "extract_kmap",
+            description:
+              "Extract a Karnaugh map (K-Map) from the uploaded image. Use this when the user provides an image of a K-Map.",
+            parameters: { type: "OBJECT", properties: {} },
+          },
+          {
+            name: "add_components",
+            description:
+              "Add multiple components to the circuit board at specific positions. IMPORTANT: If the user request implies inputs or outputs (e.g., 'connect to XOR', 'truth table'), you MUST also add the necessary input components (toggles, buttons, clocks) and output components (LEDs, lamps, hex displays) in this same call. Do not wait for a second prompt. Returns a list of added component IDs.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                components: {
+                  type: "ARRAY",
+                  description: "List of components to add.",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      type: {
+                        type: "STRING",
+                        enum: [
+                          "and",
+                          "or",
+                          "not",
+                          "nand",
+                          "nor",
+                          "xor",
+                          "xnor",
+                          "toggle",
+                          "button",
+                          "clock",
+                          "constant0",
+                          "constant1",
+                          "light-bulb",
+                          "led",
+                          "hex",
+                          "smartdisplay",
+                          "multibit",
+                          "buffer",
+                          "decoder",
+                          "mux2",
+                          "mux4",
+                          "dlatch",
+                          "dflipflop",
+                          "halfadder",
+                          "fulladder",
+                          "halfsubtractor",
+                          "fullsubtractor",
+                          "text",
+                          "state",
+                        ],
+                        description:
+                          "The type of component to add. Must be one of the allowed values.",
+                      },
+                      position: {
+                        type: "OBJECT",
+                        properties: {
+                          x: { type: "INTEGER" },
+                          y: { type: "INTEGER" },
+                        },
+                        required: ["x", "y"],
+                      },
+                    },
+                    required: ["type", "position"],
+                  },
+                },
+              },
+              required: ["components"],
+            },
+          },
+          {
+            name: "connect_components",
+            description:
+              "Connect multiple pairs of components. Finds available ports automatically.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                connections: {
+                  type: "ARRAY",
+                  description: "List of connections to make.",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      sourceId: { type: "STRING", description: "ID of the source component." },
+                      targetId: { type: "STRING", description: "ID of the target component." },
+                    },
+                    required: ["sourceId", "targetId"],
+                  },
+                },
+              },
+              required: ["connections"],
+            },
+          },
+          {
+            name: "get_circuit_summary",
+            description:
+              "Get a summary of the current circuit board state, including component IDs, types, and positions. Useful for knowing what IDs to use for connections.",
+            parameters: { type: "OBJECT", properties: {} },
+          },
+        ],
+      },
+    ];
   }
 
   // Set the current image
@@ -160,87 +287,190 @@ export class AIAgent {
   }
 
   // Main processing function
-  async processUserInput(message: string, classification?: string): Promise<string> {
+  async processUserInput(message: string, _unused?: string): Promise<string> {
     try {
-      console.log("AIAgent processing user input:", message.substring(0, 50) + "...");
-      console.log("Has image:", this.lastUploadedImage !== null);
+      console.log("AIAgent processing user input via Gemini:", message.substring(0, 50) + "...");
 
-      // Step 1: Classify the message using server-side endpoint
-      let classificationHere = classification;
-      if (classification === undefined) {
-        classificationHere = await this.classifyMessageServerSide(message);
+      // Prepare initial history from queue
+      const allMessages = this.queue.messages.slice(-10);
+      let sessionHistory: any[] = allMessages.map((msg: any) => ({
+        role: msg.role,
+        content: msg.content,
+        parts: msg.parts, // Pass through existing parts if any
+      }));
 
-        console.log(`Message classified as: ${classificationHere}`);
+      // Pop the last message (current user request) to serve as the active turn
+      let currentMessage: string | null = null;
+      let currentParts: any[] | null = null;
+
+      // Note: processUserInputWithStreaming adds the user message to the queue before calling this.
+      // So the last message in sessionHistory is the current prompt.
+      // We extract it to pass it as the 'message' field (or part) for the active turn.
+      const lastMsg = sessionHistory.pop();
+      if (lastMsg && lastMsg.role === "user") {
+        currentMessage = lastMsg.content || message; // Fallback to arg if content missing
+      } else {
+        // If the last message wasn't user (unlikely), put it back.
+        if (lastMsg) sessionHistory.push(lastMsg);
+        currentMessage = message;
       }
 
-      // Step 2: Get the appropriate tool
-      const tool = this.tools.get(classificationHere!);
-      if (!tool) {
-        return "I'm not sure how to help with that request.";
+      const MAX_STEPS = 5;
+
+      for (let step = 0; step < MAX_STEPS; step++) {
+        console.log(`[ReAct Loop] Step ${step + 1}/${MAX_STEPS}`);
+        // console.log("Current Message:", currentMessage ? "Text" : "Null", "Parts:", currentParts ? "Yes" : "Null");
+
+        const payload: any = {
+          message: currentMessage,
+          parts: currentParts,
+          systemPrompt: this.promptAI,
+          history: sessionHistory,
+          tools: this.getGeminiTools(),
+        };
+
+        if (step === 0 && this.lastUploadedImage) {
+          payload.image = this.lastUploadedImage;
+        }
+
+        const response = await fetch(`${apiBaseUrl}/api/agent/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Server error details:", errorText);
+          throw new Error(`Server returned ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        // Handle Function Calls
+        if (data.functionCalls && data.functionCalls.length > 0) {
+          const call = data.functionCalls[0];
+          console.log("Gemini routed to tool:", call.name);
+
+          // Update history with the "User" turn that caused this
+          if (currentMessage) {
+            sessionHistory.push({ role: "user", content: currentMessage });
+          } else if (currentParts) {
+            sessionHistory.push({ role: "user", parts: currentParts });
+          }
+
+          // Add the Model's "Function Call" to history
+          sessionHistory.push({
+            role: "model",
+            parts: [{ functionCall: { name: call.name, args: call.args } }],
+          });
+
+          // SPECIAL CASE: final_answer terminates the loop
+          if (call.name === "final_answer") {
+            const finalText = call.args.text || "Task completed.";
+
+            // Also add the "result" of the final answer (which is just the text)
+            sessionHistory.push({
+              role: "function",
+              parts: [
+                {
+                  functionResponse: {
+                    name: call.name,
+                    response: { name: call.name, content: finalText },
+                  },
+                },
+              ],
+            });
+
+            return finalText;
+          }
+
+          // Execute Tool
+          let toolResult = "";
+          let toolKey = "";
+          let extraContext: any = {};
+          let newContextMessage = currentMessage || "Tool Execution";
+
+          switch (call.name) {
+            case "import_verilog_circuit":
+              toolKey = "VERILOG_IMPORT";
+              newContextMessage = call.args.description || newContextMessage;
+              if (call.args.verilogCode) extraContext.verilogCode = call.args.verilogCode;
+              break;
+            case "detect_circuit_from_image":
+              toolKey = "CIRCUIT_DETECTION";
+              break;
+            case "analyze_image_content":
+              toolKey = "IMAGE_ANALYSIS";
+              newContextMessage = call.args.question || newContextMessage;
+              break;
+            case "extract_truth_table":
+              toolKey = "TRUTH_TABLE_IMAGE";
+              break;
+            case "extract_kmap":
+              toolKey = "KMAP_IMAGE";
+              break;
+            case "add_components":
+              toolKey = "ADD_COMPONENTS";
+              extraContext.components = call.args.components;
+              break;
+            case "connect_components":
+              toolKey = "CONNECT_COMPONENTS";
+              extraContext.connections = call.args.connections;
+              break;
+            case "get_circuit_summary":
+              toolKey = "GET_CIRCUIT_SUMMARY";
+              break;
+            default:
+              toolResult = "Error: Tool not found.";
+          }
+
+          if (toolKey) {
+            const tool = this.tools.get(toolKey);
+            if (tool) {
+              toolResult = await tool.execute({
+                message:
+                  typeof newContextMessage === "string" ? newContextMessage : "Tool Execution",
+                image: this.lastUploadedImage,
+                circuitBoard: this.circuitBoard,
+                queue: this.queue,
+                promptAI: this.promptAI,
+                imageUploader: this.imageUploader,
+                ...extraContext,
+              });
+            } else {
+              toolResult = `Tool ${toolKey} not registered.`;
+            }
+          }
+
+          // Prepare next turn: Function Response
+          let responseContent = {};
+          try {
+            responseContent = JSON.parse(toolResult);
+          } catch (e) {
+            console.log("Tool result is not JSON, wrapping in object");
+            responseContent = { result: toolResult };
+          }
+
+          currentMessage = null;
+          currentParts = [
+            {
+              functionResponse: {
+                name: call.name,
+                response: { name: call.name, content: responseContent },
+              },
+            },
+          ];
+        } else {
+          // Text response - Final Answer
+          return data.text || "I didn't understand that.";
+        }
       }
 
-      // Step 3: Execute the tool with the appropriate context
-      return await tool.execute({
-        message,
-        image: this.lastUploadedImage,
-        circuitBoard: this.circuitBoard,
-        queue: this.queue,
-        promptAI: this.promptAI,
-        imageUploader: this.imageUploader,
-      });
+      return "I reached the maximum number of steps for this task. Please verify the current state.";
     } catch (error) {
       console.error("Error processing request:", error);
-
-      // Check if this is a rate limit error
-      if (error instanceof Error) {
-        if (error.message.includes("reached") || error.message.includes("rate limit")) {
-          return error.message;
-        }
-      }
-
       return "I encountered an error processing your request. Please try again.";
-    }
-  }
-
-  // Server-side classification
-  private async classifyMessageServerSide(message: string): Promise<string> {
-    try {
-      const hasImage = this.lastUploadedImage !== null;
-
-      // Call server endpoint for classification
-      const response = await fetch(`${apiBaseUrl}/api/classify-message`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: message,
-          hasImage: hasImage,
-        }),
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          throw new Error(
-            "You've reached your daily limit of 2 messages. Please create an account for unlimited access to AI features."
-          );
-        }
-        console.error("Classification failed:", response.status);
-        // Default to general information if classification fails
-        return "GENERAL_INFORMATION";
-      }
-
-      const data = await response.json();
-      return data.classification;
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        (error.message.includes("daily limit") || error.message.includes("rate limit"))
-      ) {
-        throw error; // Re-throw rate limit errors
-      }
-      console.error("Error classifying message:", error);
-      return "GENERAL_INFORMATION"; // Default fallback
     }
   }
 
