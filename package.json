@@ -1,7 +1,7 @@
 {
   "name": "logicdrawer",
   "private": false,
-  "version": "1.0.7",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host --port 4000 --force",
