@@ -3,4 +3,4 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://logicdrawer.com/sitemap.xml
+Sitemap: https://logicdrawer.app/sitemap.xml
