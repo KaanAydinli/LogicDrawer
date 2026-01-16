@@ -300,7 +300,7 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
     }
 
     try {
-      // Use a model that supports function calling and vision
+     
       const modelParams: any = {
         model: "gemini-2.5-flash",
       };
@@ -315,11 +315,11 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
 
       const model = genAI.getGenerativeModel(modelParams);
 
-      // Prepare contents
+     
       let userParts: any[] = [];
 
       if (image) {
-        // Handle base64 image
+
         let base64Data = image;
         let mimeType = "image/jpeg";
 
@@ -349,14 +349,13 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
         userParts = userParts.concat(parts);
       }
 
-      // Convert history to Gemini format
+
       let chatHistory: any[] = [];
       if (history && Array.isArray(history)) {
         chatHistory = history.map((msg: any) => {
-          // If message already has parts (structured history from client agent loop), use them
+        
           if (msg.parts) {
             let role = msg.role === "user" ? "user" : "model";
-            // Check if parts contain functionResponse, if so enforce 'function' role
             if (msg.parts.some((p: any) => p.functionResponse)) {
               role = "function";
             }
@@ -365,20 +364,17 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
               parts: msg.parts,
             };
           }
-          // Legacy/Simple text message
+          
           return {
             role: msg.role === "user" ? "user" : "model",
             parts: [{ text: msg.content || "" }],
           };
         });
 
-        // Validate: First message must be from user or function (rare)
         if (chatHistory.length > 0 && chatHistory[0].role === "model") {
-          // If first message is model, remove it
           chatHistory.shift();
         }
 
-        // Validate: Merge consecutive messages from same role
         const sanitizedHistory = [];
         if (chatHistory.length > 0) {
           let currentMsg = chatHistory[0];
@@ -386,15 +382,12 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
           for (let i = 1; i < chatHistory.length; i++) {
             const nextMsg = chatHistory[i];
             if (nextMsg.role === currentMsg.role) {
-              // Merge content
-              // Check if both are simple text
               const isTextOnly = (parts: any[]) =>
                 Array.isArray(parts) && parts.length === 1 && parts[0].text;
 
               if (isTextOnly(currentMsg.parts) && isTextOnly(nextMsg.parts)) {
                 currentMsg.parts[0].text += "\n\n" + nextMsg.parts[0].text;
               } else {
-                // Append parts safely
                 currentMsg.parts = currentMsg.parts.concat(nextMsg.parts);
               }
             } else {
@@ -407,13 +400,10 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
         }
       }
 
-      // Determine the role for the new message
       let currentRole = "user";
       if (userParts.some(p => p.functionResponse)) {
         currentRole = "function";
       }
-
-      // Construct full content with history + new message
       const contents = [...chatHistory, { role: currentRole, parts: userParts }];
 
       const result = await model.generateContent({
@@ -421,7 +411,6 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
       });
       const response = result.response;
 
-      // Check for function calls
       const call = response.functionCalls();
 
       if (call && call.length > 0) {
@@ -432,7 +421,6 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
         return res.json({ functionCalls });
       }
 
-      // Default text response
       const text = response.text();
       return res.json({ text });
     } catch (error) {
