@@ -30,55 +30,23 @@ app.use(
   })
 );
 
-/**
- * Middlewares
- */
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ limit: "25mb", extended: true }));
 app.use(cookieParser());
 
-/**
- * Middleware to detect suspicious User-Agents.
- */
-app.use((req, res, next) => {
-  const userAgent = req.headers["user-agent"] || "Unknown";
-
-  // Simple check for suspicious User-Agents
-  if (
-    userAgent.includes("Hack") ||
-    userAgent.includes("bot") ||
-    userAgent.includes("curl") ||
-    userAgent.length < 10
-  ) {
-  }
-
-  next();
-});
 mongoose
   .connect(MONGODB_URI)
   .then(() => {})
   .catch(err => {});
 
-/**
- * Security middlewares
- */
 configureSecurityMiddleware(app);
 
-/**
- * General input validation
- */
 app.use(validateInput);
 
-/**
- * Apply routers
- */
 app.use("/api/auth", authRoutes);
 app.use("/api/circuits", circuitRoutes);
 app.use("/api", aiRoutes);
 
-/**
- * Health check endpoint
- */
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -88,11 +56,18 @@ app.get("/health", (req, res) => {
 });
 
 const distPath = path.join(__dirname, "../../dist");
+const rootPath = path.join(__dirname, "../../");
 app.use(express.static(distPath));
 
-/**
- * Redirect all non-API requests to index.html
- */
+app.get("/robots.txt", (req, res) => {
+  res.sendFile(path.join(rootPath, "robots.txt"));
+});
+
+app.get("/sitemap.xml", (req, res) => {
+  res.type("application/xml");
+  res.sendFile(path.join(rootPath, "sitemap.xml"));
+});
+
 app.get("*", (req, res) => {
   if (req.path.includes(".") || req.path.startsWith("/api/")) {
     res.status(404).send("Not Found");
@@ -101,9 +76,6 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(distPath, "logic.html"));
 });
 
-/**
- * Start the server
- */
 app.listen(PORT, () => {
   const interfaces = os.networkInterfaces();
   const ipAddress =
