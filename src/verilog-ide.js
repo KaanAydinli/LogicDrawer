@@ -3,6 +3,8 @@
  * A modern code editor for Verilog HDL
  */
 
+import { Logger } from "./utils/logger";
+
 document.addEventListener("DOMContentLoaded", function () {
   const openButton = document.getElementById("open-verilog-editor");
   const closeButton = document.getElementById("close-verilog-editor");
@@ -163,7 +165,7 @@ endmodule`;
     }
 
     const verilogCode = window.editor.getValue();
-    console.log("Running Verilog code:", verilogCode);
+    Logger.log("Running Verilog code:", verilogCode);
 
     try {
       if (window.converter) {
@@ -171,18 +173,18 @@ endmodule`;
         const success = window.converter.importVerilogCode(verilogCode);
 
         if (success) {
-          console.log("Verilog code successfully converted to circuit");
+          Logger.log("Verilog code successfully converted to circuit");
           if (container) container.style.display = "none";
           alert("Circuit created successfully!");
         } else {
-          console.error("Verilog conversion failed");
+          Logger.error("Verilog conversion failed");
           alert("Error in Verilog code. Please check and try again.");
         }
       } else {
         alert("Converter not available!");
       }
     } catch (error) {
-      console.error("Error processing Verilog code:", error);
+      Logger.error("Error processing Verilog code:", error);
       alert("Error processing Verilog code: " + error);
     }
   });
@@ -227,14 +229,14 @@ endmodule`;
   }
 
   if (!window.circuitBoard) {
-    console.warn("CircuitBoard not found, checking...");
+    Logger.warn("CircuitBoard not found, checking...");
     const checkInterval = setInterval(() => {
       if (window.converter) {
-        console.log("Converter found!");
+        Logger.log("Converter found!");
         clearInterval(checkInterval);
       }
     }, 1000);
   } else {
-    console.log("CircuitBoard ready.");
+    Logger.log("CircuitBoard ready.");
   }
 });

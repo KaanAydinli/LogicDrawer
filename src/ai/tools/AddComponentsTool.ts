@@ -1,4 +1,5 @@
 import { Tool, ToolContext } from "./Tool";
+import { Logger } from "../../utils/logger";
 
 export class AddComponentsTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
@@ -28,7 +29,7 @@ export class AddComponentsTool implements Tool {
         components: addedComponents,
       });
     } catch (error) {
-      console.error("Error in AddComponentsTool:", error);
+      Logger.error("Error in AddComponentsTool:", error);
       return "Error adding components.";
     }
   }

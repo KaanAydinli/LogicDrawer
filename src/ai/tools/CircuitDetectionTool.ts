@@ -1,4 +1,5 @@
 import { Tool, ToolContext } from "./Tool";
+import { Logger } from "../../utils/logger";
 
 // Tool for circuit detection from images
 export class CircuitDetectionTool implements Tool {
@@ -22,7 +23,7 @@ export class CircuitDetectionTool implements Tool {
 
       return "I'm analyzing and drawing the circuit from your image. This may take a moment...";
     } catch (error) {
-      console.error("Error in CircuitDetectionTool:", error);
+      Logger.error("Error in CircuitDetectionTool:", error);
       return "I had trouble detecting a circuit in the image. Please try with a clearer image.";
     }
   }
@@ -51,7 +52,7 @@ export class CircuitDetectionTool implements Tool {
 
       return new File([u8arr], filename, { type: mime });
     } catch (error) {
-      console.error("Error converting data URL to File:", error);
+      Logger.error("Error converting data URL to File:", error);
       throw new Error("Failed to process image data");
     }
   }

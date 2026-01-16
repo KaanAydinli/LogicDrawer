@@ -1,6 +1,7 @@
 import { CircuitRecognizer, PythonAnalysisResult, ImageDimensions } from "../ai/CircuitRecognizer"; // Import necessary types
 import { CircuitBoard } from "../models/CircuitBoard";
 import { apiBaseUrl } from "../services/apiConfig";
+import { Logger } from "../utils/logger";
 
 export class ImageUploader {
   private uploadButton!: HTMLButtonElement;
@@ -27,7 +28,7 @@ export class ImageUploader {
 
   public static getInstance(): ImageUploader {
     if (!ImageUploader.instance) {
-      console.error("ImageUploader instance requested before creation!");
+      Logger.error("ImageUploader instance requested before creation!");
     }
     return ImageUploader.instance;
   }
@@ -35,7 +36,7 @@ export class ImageUploader {
   private createUI(containerId: string): void {
     const container = document.getElementById(containerId);
     if (!container) {
-      console.warn(`Container with ID ${containerId} not found`);
+      Logger.warn(`Container with ID ${containerId} not found`);
       return;
     }
 
@@ -115,7 +116,7 @@ export class ImageUploader {
       }
       return successMessage;
     } catch (error) {
-      console.error("Detailed Error processing image:", error);
+      Logger.error("Detailed Error processing image:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       if (this.hasUI) {
@@ -138,7 +139,7 @@ export class ImageUploader {
    */
   private async callAnalysisAPI(base64ImageWithPrefix: string): Promise<PythonAnalysisResult> {
     try {
-      console.log("Sending image to backend for analysis...");
+      Logger.log("Sending image to backend for analysis...");
       const response = await fetch(`${apiBaseUrl}/api/analyze/yolo`, {
         method: "POST",
         headers: {
@@ -155,20 +156,20 @@ export class ImageUploader {
         } catch (e) {
           errorData = { error: "Failed to parse error response", details: await response.text() };
         }
-        console.error("Backend analysis error:", response.status, errorData);
+        Logger.error("Backend analysis error:", response.status, errorData);
         throw new Error(
           `Backend analysis failed: ${errorData.error || response.statusText} ${errorData.details ? `(${errorData.details})` : ""}`
         );
       }
 
       const result: PythonAnalysisResult = await response.json();
-      console.log("Received analysis result from backend:", result);
+      Logger.log("Received analysis result from backend:", result);
       if (!result || typeof result !== "object" || !result.gates || !result.wires) {
         throw new Error("Invalid analysis result format received from backend.");
       }
       return result;
     } catch (error) {
-      console.error("Error calling backend analysis API:", error);
+      Logger.error("Error calling backend analysis API:", error);
       throw error; //
     }
   }
@@ -187,11 +188,11 @@ export class ImageUploader {
       const img = new Image();
       img.onload = () => {
         this.originalDimensions = { originalWidth: img.width, originalHeight: img.height };
-        console.log("Captured original image dimensions:", this.originalDimensions);
+        Logger.log("Captured original image dimensions:", this.originalDimensions);
         resolve();
       };
       img.onerror = error => {
-        console.error("Failed to load image for dimension capture:", error);
+        Logger.error("Failed to load image for dimension capture:", error);
         this.originalDimensions = { originalWidth: 0, originalHeight: 0 };
         reject(new Error("Failed to get image dimensions"));
       };

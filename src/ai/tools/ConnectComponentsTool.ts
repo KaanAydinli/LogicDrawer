@@ -1,4 +1,5 @@
 import { Tool, ToolContext } from "./Tool";
+import { Logger } from "../../utils/logger";
 
 export class ConnectComponentsTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
@@ -45,7 +46,7 @@ export class ConnectComponentsTool implements Tool {
         details: results,
       });
     } catch (error) {
-      console.error("Error in ConnectComponentsTool:", error);
+      Logger.error("Error in ConnectComponentsTool:", error);
       return "Error connecting components.";
     }
   }

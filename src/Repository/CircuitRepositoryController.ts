@@ -4,6 +4,7 @@ import { Wire } from "../models/Wire";
 import { apiBaseUrl } from "../services/apiConfig";
 import { CircuitService } from "../services/CircuitService";
 import { AuthService } from "../services/AuthService";
+import Logger from "../utils/logger";
 
 export interface Comment {
   authorName: string;
@@ -781,10 +782,10 @@ export class CircuitRepositoryController {
           this.currentUserId = data.user._id || data.user.id;
         }
       } else {
-        console.warn("Failed to fetch user info, using default ID");
+        Logger.warn("Failed to fetch user info, using default ID");
       }
     } catch (error) {
-      console.error("Error fetching user data:", error);
+      Logger.error("Error fetching user data:", error);
     }
   }
 
@@ -1020,7 +1021,7 @@ export class CircuitRepositoryController {
 
   private createCircuitCard(circuit: CircuitEntry): HTMLElement {
     if (!circuit.id) {
-      console.error("Circuit ID is missing");
+      Logger.error("Circuit ID is missing");
       return document.createElement("div");
     }
 
@@ -1079,7 +1080,7 @@ export class CircuitRepositoryController {
 
             this.loadCircuits();
           } catch (error) {
-            console.error("Failed to delete circuit:", error);
+            Logger.error("Failed to delete circuit:", error);
             alert("Failed to delete circuit. Please try again.");
           }
         }
@@ -1095,7 +1096,7 @@ export class CircuitRepositoryController {
     if (!this.detailViewElement || !this.circuitGridElement) return;
 
     if (!circuitId) {
-      console.error("Invalid circuit ID");
+      Logger.error("Invalid circuit ID");
       alert("Invalid circuit ID. Please try again.");
       return;
     }
@@ -1109,7 +1110,7 @@ export class CircuitRepositoryController {
       this.circuitGridElement.style.display = "none";
       this.detailViewElement.style.display = "block";
     } catch (error) {
-      console.error("Failed to load circuit details:", error);
+      Logger.error("Failed to load circuit details:", error);
       alert("Error loading circuit details. Please try again.");
     }
   }
@@ -1125,7 +1126,7 @@ export class CircuitRepositoryController {
 
       alert(`Circuit is now ${newVisibility ? "public" : "private"}`);
     } catch (error) {
-      console.error("Error toggling circuit visibility:", error);
+      Logger.error("Error toggling circuit visibility:", error);
       alert("Failed to update circuit visibility. Please try again.");
     }
   }
@@ -1270,7 +1271,7 @@ export class CircuitRepositoryController {
 
             alert("Circuit deleted successfully!");
           } catch (error) {
-            console.error("Failed to delete circuit:", error);
+            Logger.error("Failed to delete circuit:", error);
             alert("Failed to delete circuit. Please try again.");
           }
         }
@@ -1360,7 +1361,7 @@ export class CircuitRepositoryController {
       `;
       }
     } catch (error) {
-      console.error("Search failed:", error);
+      Logger.error("Search failed:", error);
       this.circuitGridElement.innerHTML = `
       <div class="no-results">
         <h3>Search Failed</h3>
@@ -1415,7 +1416,7 @@ export class CircuitRepositoryController {
       this.currentCircuits.unshift(newCircuit);
       this.hideUploadForm();
     } catch (error) {
-      console.error("Upload failed:", error);
+      Logger.error("Upload failed:", error);
       alert("Failed to upload circuit. Please try again.");
     }
   }
@@ -1484,12 +1485,12 @@ export class CircuitRepositoryController {
               if (connected) {
                 circuitBoard.addWire(wire);
               } else {
-                console.warn(
+                Logger.warn(
                   `Failed to connect wire from ${wireData.start.portId} to ${wireData.end.portId}`
                 );
               }
             } else {
-              console.warn(
+              Logger.warn(
                 `Missing ports for wire: source=${wireData.start?.portId}, target=${wireData.end?.portId}`
               );
             }
@@ -1517,7 +1518,7 @@ export class CircuitRepositoryController {
         alert("The circuit appears to be empty. No components to load.");
       }
     } catch (error) {
-      console.error("Failed to load circuit:", error);
+      Logger.error("Failed to load circuit:", error);
       alert("Failed to load circuit. Please try again.");
     }
   }
@@ -1536,7 +1537,7 @@ export class CircuitRepositoryController {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error("Download failed:", error);
+      Logger.error("Download failed:", error);
       alert("Failed to download circuit. Please try again.");
     }
   }
@@ -1547,7 +1548,7 @@ export class CircuitRepositoryController {
 
       this.viewCircuitDetails(circuitId);
     } catch (error) {
-      console.error("Like operation failed:", error);
+      Logger.error("Like operation failed:", error);
     }
   }
 
@@ -1563,7 +1564,7 @@ export class CircuitRepositoryController {
 
       this.viewCircuitDetails(circuitId);
     } catch (error) {
-      console.error("Comment failed:", error);
+      Logger.error("Comment failed:", error);
       alert("Failed to add comment. Please try again.");
     }
   }

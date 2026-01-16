@@ -1,6 +1,7 @@
 import { Tool, ToolContext } from "./Tool";
 import { VerilogCircuitConverter } from "../../models/utils/VerilogCircuitConverter";
 import { apiBaseUrl } from "../../services/apiConfig";
+import { Logger } from "../../utils/logger";
 
 export class VerilogImportTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
@@ -10,7 +11,7 @@ export class VerilogImportTool implements Tool {
       // Optimization: Check if Verilog code was passed directly from the agent
       if ((context as any).verilogCode) {
         generatedText = (context as any).verilogCode;
-        console.log("Using Verilog code provided by agent");
+        Logger.log("Using Verilog code provided by agent");
       } else {
         // Fallback: Ask Gemini to generate it (this path may hit rate limits)
         const focusInstruction =
@@ -51,7 +52,7 @@ export class VerilogImportTool implements Tool {
         return "I found Verilog code but couldn't create a circuit from it. There might be syntax errors or unsupported features.";
       }
     } catch (error) {
-      console.error("Error in VerilogImportTool:", error);
+      Logger.error("Error in VerilogImportTool:", error);
       return "There was an error processing the Verilog code. Please check the code and try again.";
     }
   }

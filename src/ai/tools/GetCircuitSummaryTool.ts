@@ -1,4 +1,5 @@
 import { Tool, ToolContext } from "./Tool";
+import { Logger } from "../../utils/logger";
 
 export class GetCircuitSummaryTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
@@ -19,7 +20,7 @@ export class GetCircuitSummaryTool implements Tool {
         circuitSummary: summary,
       });
     } catch (error) {
-      console.error("Error in GetCircuitSummaryTool:", error);
+      Logger.error("Error in GetCircuitSummaryTool:", error);
       return "Error getting circuit summary.";
     }
   }

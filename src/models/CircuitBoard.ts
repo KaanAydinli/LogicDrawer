@@ -34,6 +34,7 @@ import { TruthTableManager } from "./utils/TruthTableManager";
 import { KarnaughMap } from "./utils/KarnaughMap";
 import { ActionHistory } from "./utils/ActionHistory";
 import { SmartDisplay } from "./components/SmartDisplay";
+import { Logger } from "../utils/logger";
 
 export class CircuitBoard {
   components: Component[];
@@ -429,7 +430,7 @@ export class CircuitBoard {
       // Convert to world coordinates
       const worldPos = this.getTransformedMousePosition(touch.clientX, touch.clientY);
 
-      console.log("Touch end at world position:", worldPos);
+      Logger.log("Touch end at world position:", worldPos);
 
       const TOUCH_RADIUS = 30;
 
@@ -437,7 +438,7 @@ export class CircuitBoard {
       for (const component of this.components) {
         const port = component.getPortAtPositionRadius(worldPos, TOUCH_RADIUS);
         if (port) {
-          console.log("Found port for connection:", port);
+          Logger.log("Found port for connection:", port);
           foundPort = port;
           break;
         }
@@ -471,18 +472,18 @@ export class CircuitBoard {
 
         const success = this.currentWire.connect(foundPort);
         if (success) {
-          console.log("Connection successful! Adding wire to list.");
+          Logger.log("Connection successful! Adding wire to list.");
           foundPort.isConnected = true;
           this.wires.push(this.currentWire);
           this.currentWire.autoRoute(this.components);
           this.currentWire = null;
           this.simulate();
         } else {
-          console.log("Connection failed!");
+          Logger.log("Connection failed!");
           this.currentWire = null;
         }
       } else {
-        console.log("No port found at touch end, clearing wire");
+        Logger.log("No port found at touch end, clearing wire");
         this.currentWire = null;
       }
       this.draw();
@@ -533,7 +534,7 @@ export class CircuitBoard {
 
   public autoArrangeCircuit(): void {
     if (this.components.length === 0) {
-      console.log("There are no components to arrange.");
+      Logger.log("There are no components to arrange.");
       return;
     }
 
@@ -546,7 +547,7 @@ export class CircuitBoard {
     this.simulate();
     this.draw();
 
-    console.log("Circuit arrangement completed.");
+    Logger.log("Circuit arrangement completed.");
   }
 
   private snapAllComponentsToGrid(): void {
@@ -560,8 +561,6 @@ export class CircuitBoard {
 
       component.move({ x: newX, y: newY });
     });
-
-    console.log("Tüm bileşenler grid'e hizalandı.");
   }
 
   private organizeCircuitLayout(): void {
@@ -600,7 +599,7 @@ export class CircuitBoard {
 
     this.organizeComponentsInColumn(otherComponents, 50, 500, 100);
 
-    console.log("Circuit layout optimized.");
+    Logger.log("Circuit layout optimized.");
   }
 
   private organizeComponentsInColumn(
@@ -1162,7 +1161,7 @@ export class CircuitBoard {
     const kmapExpr = kmapContainer.querySelector(".kmap-boolean-expression") as HTMLElement;
 
     if (!kmapTable) {
-      console.error("K-Map table not found in container");
+      Logger.error("K-Map table not found in container");
       return;
     }
 
@@ -1194,7 +1193,7 @@ export class CircuitBoard {
     const colCount = rows[0]?.cells.length || 0;
 
     if (rowCount < 2 || colCount < 2) {
-      console.error("Invalid K-Map structure");
+      Logger.error("Invalid K-Map structure");
       return;
     }
 
@@ -1369,7 +1368,7 @@ export class CircuitBoard {
       wire.autoRoute(this.components);
     });
 
-    console.log("Redirection completed.");
+    Logger.log("Redirection completed.");
   }
 
   public extractVerilog(): string {
@@ -2467,7 +2466,7 @@ export class CircuitBoard {
     this.draggedComponent = null;
 
     if (this.currentWire) {
-      console.log("Has active wire, checking for port connection");
+      Logger.log("Has active wire, checking for port connection");
 
       for (const component of this.components) {
         const port = component.getPortAtPosition(mousePos);
@@ -2501,14 +2500,14 @@ export class CircuitBoard {
           if (success) {
             ActionHistory.saveState(this.exportCircuit());
 
-            console.log("Connection successful! Adding wire to list.");
+            Logger.log("Connection successful! Adding wire to list.");
             port.isConnected = true;
             this.wires.push(this.currentWire);
             this.currentWire.autoRoute(this.components);
             this.currentWire = null;
             this.simulate();
           } else {
-            console.log("Connection failed!");
+            Logger.log("Connection failed!");
             this.currentWire = null;
           }
           this.draw();
@@ -2593,7 +2592,7 @@ export class CircuitBoard {
       case "smartdisplay":
         return new SmartDisplay(position);
       default:
-        console.error(`Unknown component type: ${type}`);
+        Logger.error(`Unknown component type: ${type}`);
         return null;
     }
   }
@@ -2804,7 +2803,7 @@ export class CircuitBoard {
 
       return true;
     } catch (error) {
-      console.error("Error loading circuit:", error);
+      Logger.error("Error loading circuit:", error);
       return false;
     }
   }
@@ -2862,9 +2861,9 @@ export class CircuitBoard {
     try {
       const jsonData = this.exportCircuit();
       localStorage.setItem(key, jsonData);
-      console.log("Devre local storage'a kaydedildi");
+      Logger.log("Devre local storage'a kaydedildi");
     } catch (error) {
-      console.error("Local storage'a kaydetme hatası:", error);
+      Logger.error("Local storage'a kaydetme hatası:", error);
     }
   }
 
@@ -2873,12 +2872,12 @@ export class CircuitBoard {
       const jsonData = localStorage.getItem(key);
       if (jsonData) {
         const result = this.importCircuit(jsonData);
-        console.log("Devre local storage'dan yüklendi");
+        Logger.log("Devre local storage'dan yüklendi");
         return result;
       }
       return false;
     } catch (error) {
-      console.error("Local storage'dan yükleme hatası:", error);
+      Logger.error("Local storage'dan yükleme hatası:", error);
       return false;
     }
   }

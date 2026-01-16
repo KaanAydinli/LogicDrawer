@@ -2,6 +2,7 @@ import { Point, Port } from "../models/Component";
 import { CircuitBoard } from "../models/CircuitBoard";
 import { Component } from "../models/Component";
 import { Wire } from "../models/Wire";
+import { Logger } from "../utils/logger";
 
 export interface ImageDimensions {
   originalWidth: number;
@@ -62,12 +63,12 @@ export class CircuitRecognizer {
     dimensions: ImageDimensions
   ): Promise<void> {
     try {
-      console.log("Processing analysis result:", analysisResult);
+      Logger.log("Processing analysis result:", analysisResult);
       this.circuitBoard.clearCircuit();
       this.componentMap.clear();
 
       if (!analysisResult || !analysisResult.gates || !analysisResult.wires) {
-        console.error("Invalid analysis result structure received:", analysisResult);
+        Logger.error("Invalid analysis result structure received:", analysisResult);
         alert("Error: Invalid data received from analysis.");
         return;
       }
@@ -77,7 +78,7 @@ export class CircuitRecognizer {
       for (const gate of gates) {
         const componentType = this.mapComponentType(gate.type);
         if (!componentType) {
-          console.warn(
+          Logger.warn(
             `Unknown component type from Python: ${gate.type} (ID: ${gate.id}). Skipping.`
           );
           continue;
@@ -88,7 +89,7 @@ export class CircuitRecognizer {
         if (component) {
           this.componentMap.set(gate.id, component);
         } else {
-          console.error(
+          Logger.error(
             `Failed to create component object for type ${componentType} (Python ID: ${gate.id})`
           );
         }
@@ -116,7 +117,7 @@ export class CircuitRecognizer {
           gateForPositioning = this.componentMap.get(wire.to.id) || null;
           if (!this.componentMap.has(wire.from.id)) {
             if (!gateForPositioning) {
-              console.error(
+              Logger.error(
                 `Cannot place external input ${wire.from.id}: Target gate ${wire.to.id} not found.`
               );
               continue;
@@ -145,7 +146,7 @@ export class CircuitRecognizer {
               this.componentMap.set(wire.from.id, inputComponent);
               this.circuitBoard.addComponent(inputComponent);
             } else {
-              console.error(`Failed to create external input ${wire.from.id}. Skipping wire.`);
+              Logger.error(`Failed to create external input ${wire.from.id}. Skipping wire.`);
               continue;
             }
           }
@@ -153,7 +154,7 @@ export class CircuitRecognizer {
           if (fromComponent && fromComponent.outputs.length > 0) {
             fromPort = fromComponent.outputs[0];
           } else {
-            console.warn(
+            Logger.warn(
               `'From' component ${wire.from.id} (external) not found or has no output port. Skipping wire.`
             );
             continue;
@@ -163,7 +164,7 @@ export class CircuitRecognizer {
           if (fromComponent && fromComponent.outputs.length > 0) {
             fromPort = fromComponent.outputs[0];
           } else {
-            console.warn(
+            Logger.warn(
               `'From' component ${wire.from.id} (gate) not found or has no output port. Skipping wire.`
             );
             continue;
@@ -174,7 +175,7 @@ export class CircuitRecognizer {
           gateForPositioning = this.componentMap.get(wire.from.id) || null;
           if (!this.componentMap.has(wire.to.id)) {
             if (!gateForPositioning) {
-              console.error(
+              Logger.error(
                 `Cannot place external output ${wire.to.id}: Source gate ${wire.from.id} not found.`
               );
               continue;
@@ -191,7 +192,7 @@ export class CircuitRecognizer {
               this.componentMap.set(wire.to.id, outputComponent);
               this.circuitBoard.addComponent(outputComponent);
             } else {
-              console.error(`Failed to create external output ${wire.to.id}. Skipping wire.`);
+              Logger.error(`Failed to create external output ${wire.to.id}. Skipping wire.`);
               continue;
             }
           }
@@ -200,14 +201,14 @@ export class CircuitRecognizer {
             toPort = toComponent.inputs[0];
             const portKey = `${toComponent.id}-${0}`;
             if (usedInputPorts.has(portKey)) {
-              console.warn(
+              Logger.warn(
                 `External output ${wire.to.id} input port already connected. Skipping wire.`
               );
               continue;
             }
             usedInputPorts.add(portKey);
           } else {
-            console.warn(
+            Logger.warn(
               `'To' component ${wire.to.id} (external) not found or has no input port. Skipping wire.`
             );
             continue;
@@ -215,7 +216,7 @@ export class CircuitRecognizer {
         } else {
           toComponent = this.componentMap.get(wire.to.id) || null;
           if (!toComponent) {
-            console.warn(`'To' component ${wire.to.id} (gate) not found. Skipping wire.`);
+            Logger.warn(`'To' component ${wire.to.id} (gate) not found. Skipping wire.`);
             continue;
           }
           let foundPortIndex = -1;
@@ -231,7 +232,7 @@ export class CircuitRecognizer {
           if (foundPortIndex !== -1) {
             toPort = toComponent.inputs[foundPortIndex];
           } else {
-            console.warn(
+            Logger.warn(
               `Component ${toComponent.id} (Python ID: ${wire.to.id}) has no available input ports for wire from ${wire.from.id}. Skipping wire.`
             );
             continue;
@@ -246,10 +247,10 @@ export class CircuitRecognizer {
             fromPort.isConnected = true;
             toPort.isConnected = true;
           } else {
-            console.error("Wire connection failed unexpectedly.");
+            Logger.error("Wire connection failed unexpectedly.");
           }
         } else {
-          console.warn(
+          Logger.warn(
             `Could not create wire: From: ${wire.from.id}, To: ${wire.to.id}. Missing component or port object.`
           );
         }
@@ -261,7 +262,7 @@ export class CircuitRecognizer {
       this.circuitBoard.simulate();
       this.circuitBoard.draw();
     } catch (error) {
-      console.error("Error processing Python analysis results:", error);
+      Logger.error("Error processing Python analysis results:", error);
       alert(
         `Error processing analysis: ${error instanceof Error ? error.message : "Unknown error"}`
       );
@@ -272,53 +273,48 @@ export class CircuitRecognizer {
 
   private removeUnnecessaryToggles(): void {
     const components = this.circuitBoard.components;
-    const toggles = components.filter(comp => comp.type === 'toggle');
-    
+    const toggles = components.filter(comp => comp.type === "toggle");
+
     let togglesRemoved = 0;
-    
+
     for (const toggle of toggles) {
-      
-      const connectedWire = this.circuitBoard.wires.find(w => 
-        w.from?.component.id === toggle.id && w.from?.component.type === 'toggle');
-      
+      const connectedWire = this.circuitBoard.wires.find(
+        w => w.from?.component.id === toggle.id && w.from?.component.type === "toggle"
+      );
+
       if (!connectedWire) {
         continue;
       }
-      
+
       const connectedInput = connectedWire.to;
       if (!connectedInput) {
         continue;
       }
-      
+
       for (const component of components) {
-        
-        if (component.id === toggle.id || component.type === 'toggle') continue;
-        
-        
+        if (component.id === toggle.id || component.type === "toggle") continue;
+
         if (component.outputs && component.outputs.length > 0) {
           for (const outputPort of component.outputs) {
-            
             if (outputPort.isConnected) continue;
-            
+
             const distance = this.calculatePortDistance(outputPort, connectedInput);
             const thresholdToUse = 250;
-            
+
             if (distance <= thresholdToUse) {
               const wireIndex = this.circuitBoard.wires.findIndex(w => w === connectedWire);
               if (wireIndex !== -1) {
                 this.circuitBoard.wires.splice(wireIndex, 1);
               }
-              
-              
+
               const toggleIndex = this.circuitBoard.components.findIndex(c => c.id === toggle.id);
               if (toggleIndex !== -1) {
                 this.circuitBoard.components.splice(toggleIndex, 1);
               }
-              
-              
+
               const newWire = new Wire(outputPort, true);
               const success = newWire.connect(connectedInput);
-              
+
               if (success) {
                 this.circuitBoard.addWire(newWire);
                 togglesRemoved++;
@@ -468,7 +464,7 @@ export class CircuitRecognizer {
   private mapComponentType(pythonType: string): string | null {
     const mappedType = this.componentTypeMap[pythonType.toUpperCase()];
     if (!mappedType) {
-      console.warn(`No mapping found for Python component type: ${pythonType}`);
+      Logger.warn(`No mapping found for Python component type: ${pythonType}`);
       return null;
     }
     return mappedType;

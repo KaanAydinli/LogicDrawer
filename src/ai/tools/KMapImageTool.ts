@@ -2,6 +2,7 @@ import { Tool, ToolContext } from "./Tool";
 import { apiBaseUrl } from "../../services/apiConfig";
 import { KarnaughMap } from "../../models/utils/KarnaughMap";
 import { VerilogCircuitConverter } from "../../models/utils/VerilogCircuitConverter";
+import { Logger } from "../../utils/logger";
 
 // Tool for extracting K-Maps from images
 export class KMapImageTool implements Tool {
@@ -11,7 +12,7 @@ export class KMapImageTool implements Tool {
         return "I need an image of a Karnaugh map to analyze. Please upload an image.";
       }
 
-      console.log("Processing K-Map from image...");
+      Logger.log("Processing K-Map from image...");
 
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-vision`, {
         method: "POST",
@@ -42,7 +43,7 @@ export class KMapImageTool implements Tool {
           extractedKMapData = this.parseKMapText(data.text);
         }
       } catch (e) {
-        console.error("Failed to parse JSON response:", e);
+        Logger.error("Failed to parse JSON response:", e);
         extractedKMapData = this.parseKMapText(data.text);
       }
 
@@ -68,7 +69,7 @@ export class KMapImageTool implements Tool {
         return "I recognized a K-Map in your image, but couldn't create a circuit from it. The K-Map might be complex or have an unusual format.";
       }
     } catch (error) {
-      console.error("Error in KMapImageTool:", error);
+      Logger.error("Error in KMapImageTool:", error);
       return "I encountered an error while processing your K-Map image. Please try with a clearer image.";
     }
   }
@@ -264,7 +265,7 @@ export class KMapImageTool implements Tool {
 
       return true;
     } catch (error) {
-      console.error("Error creating circuit from K-Map:", error);
+      Logger.error("Error creating circuit from K-Map:", error);
       return false;
     }
   }

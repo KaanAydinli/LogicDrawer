@@ -1,4 +1,5 @@
 import { BitArray } from "./MultibitTypes";
+import { Logger } from "../utils/logger";
 
 export interface Point {
   x: number;
@@ -89,11 +90,11 @@ export abstract class Component {
   }
 
   public decreaseInputCount(): void {
-    console.log("decreaseInputCount not implemented for this component");
+    Logger.log("decreaseInputCount not implemented for this component");
   }
 
   public increaseInputCount(): void {
-    console.log("increaseInputCount not implemented for this component");
+    Logger.log("increaseInputCount not implemented for this component");
   }
 
   public getCustomProperties(): Array<{ name: string; value: any }> {
@@ -175,7 +176,7 @@ export abstract class Component {
   }
 
   onClick(point: Point): void {
-    console.log(`${this.type} component clicked at`, point);
+    Logger.log(`${this.type} component clicked at`, point);
 
     if (this.type === "toggle" && typeof (this as any).toggle === "function") {
       (this as any).toggle();
@@ -190,7 +191,7 @@ export abstract class Component {
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance <= 10) {
-        console.log("Found port at position:", port);
+        Logger.log("Found port at position:", port);
         return port;
       }
     }

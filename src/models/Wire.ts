@@ -1,5 +1,6 @@
 import { Component, Point, Port } from "./Component";
 import { BitArray } from "./MultibitTypes";
+import { Logger } from "../utils/logger";
 
 export class Wire {
   from: Port | null;
@@ -42,7 +43,7 @@ export class Wire {
     }
 
     if (this.from && this.from.bitWidth !== toPort.bitWidth) {
-      console.log(`Bit width mismatch: ${this.from.bitWidth} vs ${toPort.bitWidth}`);
+      Logger.log(`Bit width mismatch: ${this.from.bitWidth} vs ${toPort.bitWidth}`);
       return false;
     }
 
@@ -84,7 +85,7 @@ export class Wire {
       return true;
     }
 
-    console.log("Invalid connection type");
+    Logger.log("Invalid connection type");
     return false;
   }
 

@@ -1,3 +1,5 @@
+import { Logger } from "../utils/logger";
+
 export const getApiBaseUrl = (): string => {
   if (window.location.hostname !== "localhost" || window.location.port === "3000") {
     return "";
@@ -8,4 +10,4 @@ export const getApiBaseUrl = (): string => {
 
 export const apiBaseUrl = getApiBaseUrl();
 
-console.log(`Using API base URL: ${apiBaseUrl}`);
+Logger.log(`Using API base URL: ${apiBaseUrl}`);

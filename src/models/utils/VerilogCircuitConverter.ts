@@ -19,6 +19,7 @@ import { Clock } from "../components/Clock";
 import { Constant0 } from "../components/Constant0";
 import { Constant1 } from "../components/Constant1";
 import { DFlipFlop } from "../Sequential/DFlipFlop";
+import { Logger } from "../../utils/logger";
 
 export class VerilogCircuitConverter {
   private parser: VerilogParser;
@@ -65,7 +66,7 @@ export class VerilogCircuitConverter {
       this.circuitBoard.draw();
       return true;
     } catch (error) {
-      console.error("Error importing Verilog code:", error);
+      Logger.error("Error importing Verilog code:", error);
       return false;
     }
   }
@@ -203,7 +204,7 @@ export class VerilogCircuitConverter {
 
     for (const gate of module.gates) {
       if (!signalLayers.has(gate.output)) {
-        console.warn(`Forcing layer assignment for ${gate.output} due to feedback loop`);
+        Logger.warn(`Forcing layer assignment for ${gate.output} due to feedback loop`);
 
         const inputLayers = gate.inputs
           .map(input => signalLayers.get(input) || 0)
@@ -484,14 +485,12 @@ export class VerilogCircuitConverter {
               this.connectGateInputToComponent(gate.inputs[0], component, 0);
               this.connectGateInputToComponent(gate.inputs[1], component, 1);
             } else {
-              console.error(
-                `DFlipFlop gate '${gate.name || gate.output}' has insufficient inputs.`
-              );
+              Logger.error(`DFlipFlop gate '${gate.name || gate.output}' has insufficient inputs.`);
             }
 
             continue;
           default:
-            console.error(`Unsupported gate type: ${gate.type}`);
+            Logger.error(`Unsupported gate type: ${gate.type}`);
         }
 
         if (component) {
@@ -552,7 +551,7 @@ export class VerilogCircuitConverter {
 
       return true;
     } catch (error) {
-      console.error("Error building circuit:", error);
+      Logger.error("Error building circuit:", error);
       return false;
     }
   }
@@ -567,7 +566,7 @@ export class VerilogCircuitConverter {
         this.connectGateInputToComponent(gate.inputs[0], component, 0);
         this.connectGateInputToComponent(gate.inputs[1], component, 1);
       } else {
-        console.error(`DFlipFlop gate '${gate.name || gate.output}' has insufficient inputs.`);
+        Logger.error(`DFlipFlop gate '${gate.name || gate.output}' has insufficient inputs.`);
       }
       return;
     }
@@ -580,7 +579,7 @@ export class VerilogCircuitConverter {
 
     for (let j = 0; j < gate.inputs.length; j++) {
       if (j >= component.inputs.length) {
-        console.error(
+        Logger.error(
           `Gate ${gate.type} (${gate.output}) has more inputs than supported: ${j + 1} > ${component.inputs.length}`
         );
         continue;
@@ -617,7 +616,7 @@ export class VerilogCircuitConverter {
         wire.connect(component.inputs[j]);
         this.circuitBoard.addWire(wire);
       } else {
-        console.warn(
+        Logger.warn(
           `Source port for ${inputName} not found, creating auto-toggle for ${gate.output}`
         );
 
@@ -651,7 +650,7 @@ export class VerilogCircuitConverter {
 
       this.outputPorts[component.id] = component.outputs[0];
     } else {
-      console.warn(`Cannot expand inputs for component type: ${component.type}`);
+      Logger.warn(`Cannot expand inputs for component type: ${component.type}`);
     }
   }
 
@@ -666,7 +665,7 @@ export class VerilogCircuitConverter {
       sourcePort = this.outputPorts[sourceGate.output];
 
       if (!sourcePort) {
-        console.warn(`Source gate found but no output port registered for ${sourceGate.output}`);
+        Logger.warn(`Source gate found but no output port registered for ${sourceGate.output}`);
 
         const sourceComponent = this.components[sourceGate.output];
         if (sourceComponent && sourceComponent.outputs.length > 0) {
@@ -696,7 +695,7 @@ export class VerilogCircuitConverter {
       wire.connect(bulb.inputs[0]);
       this.circuitBoard.addWire(wire);
     } else {
-      console.error(`Source port for output ${outputName} not found, creating fallback toggle`);
+      Logger.error(`Source port for output ${outputName} not found, creating fallback toggle`);
 
       const position = this.findUnusedPosition();
       const toggle = new ToggleSwitch(position);
@@ -747,7 +746,7 @@ export class VerilogCircuitConverter {
       wire.connect(component.inputs[inputIndex]);
       this.circuitBoard.addWire(wire);
     } else {
-      console.error(
+      Logger.error(
         `Source port for ${inputName} not found, needed for component ${component.id} input ${inputIndex}. Creating auto-toggle.`
       );
 
@@ -790,7 +789,7 @@ export class VerilogCircuitConverter {
       wire.connect(component.inputs[inputIndex]);
       this.circuitBoard.addWire(wire);
     } else {
-      console.error(`Control signal source port for ${controlSignal} not found`);
+      Logger.error(`Control signal source port for ${controlSignal} not found`);
 
       const position = this.findUnusedPosition();
       const toggle = new ToggleSwitch(position);
@@ -852,7 +851,7 @@ export class VerilogCircuitConverter {
         this.connectGateInputToComponent(derivedBit1Name, component, 5);
         return;
       } else {
-        console.warn(`Control signal ${controlSignal} has an unexpected bit range for MUX4.`);
+        Logger.warn(`Control signal ${controlSignal} has an unexpected bit range for MUX4.`);
       }
     }
 
@@ -861,7 +860,7 @@ export class VerilogCircuitConverter {
       return;
     }
 
-    console.warn(
+    Logger.warn(
       `Could not directly map control signal ${controlSignal} to 2 bits. Connecting ${controlSignal} to select0 and grounding select1.`
     );
     this.connectGateInputToComponent(controlSignal, component, 4);
@@ -1167,7 +1166,7 @@ export class VerilogCircuitConverter {
     for (const [source, targets] of feedbackPairs.entries()) {
       const sourcePort = this.outputPorts[source];
       if (!sourcePort) {
-        console.error(`Source port for ${source} not found`);
+        Logger.error(`Source port for ${source} not found`);
         continue;
       }
 
@@ -1182,7 +1181,7 @@ export class VerilogCircuitConverter {
 
           const targetComponent = this.components[gate.output];
           if (!targetComponent || inputIndex >= targetComponent.inputs.length) {
-            console.error(`Target component for ${gate.output} not found or input index invalid`);
+            Logger.error(`Target component for ${gate.output} not found or input index invalid`);
             continue;
           }
 
@@ -1330,7 +1329,7 @@ export class VerilogCircuitConverter {
     }
 
     if (undeclaredSignals.length > 0) {
-      console.warn(
+      Logger.warn(
         `Undeclared signals found: ${undeclaredSignals.join(", ")}. Adding them as wires.`
       );
 

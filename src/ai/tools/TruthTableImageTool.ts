@@ -3,6 +3,7 @@ import { apiBaseUrl } from "../../services/apiConfig";
 import { CircuitBoard } from "../../models/CircuitBoard";
 import { KarnaughMap } from "../../models/utils/KarnaughMap";
 import { VerilogCircuitConverter } from "../../models/utils/VerilogCircuitConverter";
+import { Logger } from "../../utils/logger";
 
 // Tool for extracting Truth Tables from images
 export class TruthTableImageTool implements Tool {
@@ -12,7 +13,7 @@ export class TruthTableImageTool implements Tool {
         return "I need an image of a truth table to analyze. Please upload an image.";
       }
 
-      console.log("Processing Truth Table from image...");
+      Logger.log("Processing Truth Table from image...");
 
       // Use Gemini Vision API to extract the truth table
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-vision`, {
@@ -44,7 +45,7 @@ export class TruthTableImageTool implements Tool {
           extractedTableData = this.parseTableText(data.text);
         }
       } catch (e) {
-        console.error("Failed to parse JSON response:", e);
+        Logger.error("Failed to parse JSON response:", e);
         extractedTableData = this.parseTableText(data.text);
       }
 
@@ -69,7 +70,7 @@ export class TruthTableImageTool implements Tool {
         return "I recognized a truth table in your image, but couldn't create a circuit from it. The table might be complex or have an unusual format.";
       }
     } catch (error) {
-      console.error("Error in TruthTableImageTool:", error);
+      Logger.error("Error in TruthTableImageTool:", error);
       return "I encountered an error while processing your truth table image. Please try with a clearer image.";
     }
   }
@@ -198,7 +199,7 @@ export class TruthTableImageTool implements Tool {
         createdOutputs.push(outputLabels[outIdx]);
         anySuccess = true;
       } catch (err) {
-        console.error(`Failed to create circuit for output ${outputLabels[outIdx]}:`, err);
+        Logger.error(`Failed to create circuit for output ${outputLabels[outIdx]}:`, err);
       }
     }
     if (anySuccess && expressions.length > 0) {

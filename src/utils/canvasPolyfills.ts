@@ -1,20 +1,22 @@
+import { Logger } from "../utils/logger";
+
 /**
  * Polyfill for CanvasRenderingContext2D.roundRect
  * This adds support for roundRect in browsers that don't have it natively
  */
 export function setupCanvasPolyfills(): void {
   if (!CanvasRenderingContext2D.prototype.roundRect) {
-    console.log('Adding roundRect polyfill for older browsers');
-    
+    Logger.log("Adding roundRect polyfill for older browsers");
+
     // @ts-ignore - Implementing custom roundRect polyfill
-    CanvasRenderingContext2D.prototype.roundRect = function(
-      x: number, 
-      y: number, 
-      width: number, 
-      height: number, 
+    CanvasRenderingContext2D.prototype.roundRect = function (
+      x: number,
+      y: number,
+      width: number,
+      height: number,
       radius?: number | { tl: number; tr: number; br: number; bl: number }
     ) {
-      if (typeof radius === 'number') {
+      if (typeof radius === "number") {
         radius = { tl: radius, tr: radius, br: radius, bl: radius };
       } else {
         radius = {
@@ -22,10 +24,10 @@ export function setupCanvasPolyfills(): void {
           tr: 0,
           br: 0,
           bl: 0,
-          ...radius
+          ...radius,
         };
       }
-      
+
       this.beginPath();
       this.moveTo(x + radius.tl, y);
       this.lineTo(x + width - radius.tr, y);
@@ -37,7 +39,7 @@ export function setupCanvasPolyfills(): void {
       this.lineTo(x, y + radius.tl);
       this.quadraticCurveTo(x, y, x + radius.tl, y);
       this.closePath();
-      
+
       return this;
     };
   }

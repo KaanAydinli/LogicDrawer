@@ -6,6 +6,7 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User";
 import { authMiddleware, AuthRequest } from "../middlewares/auth";
+import { Logger } from "../utils/logger";
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "a";
@@ -46,7 +47,7 @@ router.post("/register", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    Logger.error("Registration error:", error);
     res.status(500).json({ error: "Server error during registration" });
   }
 });

@@ -12,6 +12,7 @@ import { validateInput } from "./middlewares/validation";
 import authRoutes from "./routes/authRoutes";
 import circuitRoutes from "./routes/circuitRoutes";
 import aiRoutes from "./routes/aiRoutes";
+import { Logger } from "./utils/logger";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -36,8 +37,12 @@ app.use(cookieParser());
 
 mongoose
   .connect(MONGODB_URI)
-  .then(() => {})
-  .catch(err => {});
+  .then(() => {
+    Logger.log("Connected to MongoDB");
+  })
+  .catch(err => {
+    Logger.error("MongoDB connection error:", err);
+  });
 
 configureSecurityMiddleware(app);
 
@@ -85,4 +90,6 @@ app.listen(PORT, () => {
     "localhost";
 
   const serverUrl = `http://${ipAddress}:${PORT}`;
+  Logger.log(`Server running at ${serverUrl}`);
+  Logger.log(`Local Access: http://localhost:${PORT}`);
 });

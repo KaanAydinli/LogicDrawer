@@ -26,4 +26,5 @@ export default defineConfig({
     globals: true,
     environment: "node",
   },
+  envPrefix: ["VITE_", "LOGICDRAWER_"],
 });

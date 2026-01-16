@@ -22,6 +22,8 @@ export interface VerilogGate {
   conditions?: { value: string; result: string }[];
 }
 
+import { Logger } from "../../utils/logger";
+
 export class VerilogParser {
   private currentModule: VerilogModule | null = null;
 
@@ -88,8 +90,8 @@ export class VerilogParser {
   }
 
   private extractPortsAndWires(portList: string, body: string) {
-    console.log("Extracting ports and wires from Verilog code...");
-    console.log("Raw Port List:", portList);
+    Logger.log("Extracting ports and wires from Verilog code...");
+    Logger.log("Raw Port List:", portList);
 
     const inputs: VerilogPort[] = [];
     const outputs: VerilogPort[] = [];
@@ -147,11 +149,11 @@ export class VerilogParser {
           outputs.push(port);
         }
 
-        console.log(
+        Logger.log(
           `Parsed PortList Item: Name=${name}, Dir=${currentDirection}, Width=${currentBitWidth}`
         );
       } else {
-        console.warn(`Could not parse item from port list: "${item}"`);
+        Logger.warn(`Could not parse item from port list: "${item}"`);
       }
     }
 
@@ -173,7 +175,7 @@ export class VerilogParser {
     outputs.push(...bodyOutputs);
 
     if (inputs.length === 0) {
-      console.warn("No input ports defined or detected in the module.");
+      Logger.warn("No input ports defined or detected in the module.");
       throw new Error("No input ports defined in the module");
     }
     if (outputs.length === 0) {
@@ -222,11 +224,11 @@ export class VerilogParser {
             lsb: partLsb,
           });
         } else {
-          console.warn(`Could not parse port/wire identifier part: ${part}`);
+          Logger.warn(`Could not parse port/wire identifier part: ${part}`);
         }
       }
     }
-    console.log(`Collected ports/wires with regex ${regex}:`, results);
+    Logger.log(`Collected ports/wires with regex ${regex}:`, results);
     return results;
   }
 
@@ -240,7 +242,7 @@ export class VerilogParser {
     return [...basicGates, ...assignGates, ...controlStructureGates];
   }
   private extractControlStructures(body: string): VerilogGate[] {
-    console.log("Control structures extraction from body:", body);
+    Logger.log("Control structures extraction from body:", body);
     const gates: VerilogGate[] = [];
     let gateCounter = 0;
 
@@ -253,15 +255,16 @@ export class VerilogParser {
       const sensitivity = alwaysMatch[1].trim();
       const alwaysBody = alwaysMatch[2].trim();
 
-      console.log("Found always block with sensitivity:", sensitivity);
-      console.log("Always body:", alwaysBody);
+     
+      Logger.log("Found always block with sensitivity:", sensitivity);
+      Logger.log("Always body:", alwaysBody);
 
       const isSequential = /(pos|neg)edge\s+(\w+)/.test(sensitivity);
       const clockMatch = sensitivity.match(/(pos|neg)edge\s+(\w+)/);
       const clockSignal = clockMatch ? clockMatch[2] : null;
 
       if (isSequential) {
-        console.log(`Sequential logic detected with clock signal: ${clockSignal}`);
+        Logger.log(`Sequential logic detected with clock signal: ${clockSignal}`);
 
         const sequentialGates = this.extractSequentialLogic(alwaysBody, clockSignal, gateCounter);
         gates.push(...sequentialGates);
@@ -278,7 +281,7 @@ export class VerilogParser {
       gateCounter += 200;
     }
 
-    console.log("Extracted gates from control structures:", gates);
+    Logger.log("Extracted gates from control structures:", gates);
     return gates;
   }
 
@@ -290,7 +293,7 @@ export class VerilogParser {
     const gates: VerilogGate[] = [];
 
     if (!clockSignal) {
-      console.error("Clock signal not properly identified for sequential logic");
+      Logger.error("Clock signal not properly identified for sequential logic");
       return gates;
     }
 
@@ -306,7 +309,7 @@ export class VerilogParser {
       const cleanTarget = this.cleanSignalName(target);
       const cleanExpression = expression.trim();
 
-      console.log(`Found sequential assignment: ${cleanTarget} <= ${cleanExpression}`);
+      Logger.log(`Found sequential assignment: ${cleanTarget} <= ${cleanExpression}`);
 
       const dffGate: VerilogGate = {
         type: "dflipflop",
@@ -421,7 +424,7 @@ export class VerilogParser {
     if (hasThenNestedIf) {
       const nestedOutput = this.processNestedIfStatements(thenBlock, gates, gateCounter + 1);
       thenValue = nestedOutput || "1'b0";
-      console.log(`Nested if (THEN branch) output: ${thenValue}`);
+      Logger.log(`Nested if (THEN branch) output: ${thenValue}`);
     } else {
       const assignMatch = thenBlock.match(/(\w+)\s*=\s*([^;]+);/);
       if (assignMatch) {
@@ -437,7 +440,7 @@ export class VerilogParser {
     if (hasElseNestedIf && elseBlock) {
       const nestedOutput = this.processNestedIfStatements(elseBlock, gates, gateCounter + 100);
       elseValue = nestedOutput || "1'b0";
-      console.log(`Nested if (ELSE branch) output: ${elseValue}`);
+      Logger.log(`Nested if (ELSE branch) output: ${elseValue}`);
     } else if (elseBlock) {
       const assignMatch = elseBlock.match(/(\w+)\s*=\s*([^;]+);/);
       if (assignMatch) {
@@ -458,7 +461,7 @@ export class VerilogParser {
       controlSignal: condition,
     };
 
-    console.log(
+    Logger.log(
       `Creating MUX: if_mux_${gateCounter}, output=${outputName}, inputs=[${elseValue},${thenValue}], control=${condition}`
     );
     gates.push(muxGate);
@@ -471,7 +474,7 @@ export class VerilogParser {
   }
 
   private extractCaseStatements(body: string, gates: VerilogGate[], gateCounter: number): void {
-    console.log("Extracting case statements from:", body);
+    Logger.log("Extracting case statements from:", body);
 
     const caseRegex = /case\s*\(\s*([^)]+?)\s*\)([\s\S]*?)endcase/g;
 
@@ -482,8 +485,8 @@ export class VerilogParser {
     while ((caseMatch = caseRegex.exec(body)) !== null) {
       const selector = caseMatch[1].trim();
       const caseBody = caseMatch[2];
-      console.log("Found case statement with selector:", selector);
-      console.log("Case body:", caseBody);
+      Logger.log("Found case statement with selector:", selector);
+      Logger.log("Case body:", caseBody);
 
       let selectorBitWidth = 1;
       const selectorWidthMatch = selector.match(/\[(\d+):(\d+)\]/);
@@ -498,7 +501,7 @@ export class VerilogParser {
         if (portOrWire?.bitWidth) {
           selectorBitWidth = portOrWire.bitWidth;
         } else {
-          console.warn(`Selector '${selector}' bit width could not be determined, assuming 1.`);
+          Logger.warn(`Selector '${selector}' bit width could not be determined, assuming 1.`);
         }
       }
 
@@ -512,11 +515,11 @@ export class VerilogParser {
       while ((caseItemMatch = caseItemRegex.exec(caseBody)) !== null) {
         const caseValue = caseItemMatch[1].trim();
         const assignment = caseItemMatch[2].trim();
-        console.log(`Found case item: ${caseValue} -> ${assignment}`);
+        Logger.log(`Found case item: ${caseValue} -> ${assignment}`);
 
         const assignmentMatch = assignment.match(/(\w+)\s*=\s*(.+)/);
         if (!assignmentMatch) {
-          console.warn(`Could not parse assignment: ${assignment}`);
+          Logger.warn(`Could not parse assignment: ${assignment}`);
           continue;
         }
         const currentTarget = assignmentMatch[1].trim();
@@ -525,7 +528,7 @@ export class VerilogParser {
         if (targetOutput === null) {
           targetOutput = currentTarget;
         } else if (targetOutput !== currentTarget) {
-          console.error(
+          Logger.error(
             `Case statement assigns to multiple targets ('${targetOutput}' and '${currentTarget}'). This is not supported.`
           );
           return;
@@ -550,18 +553,18 @@ export class VerilogParser {
               index = parseInt(caseValue, 10);
             }
           } catch (e) {
-            console.error(`Could not parse case value '${caseValue}' to integer index.`, e);
+            Logger.error(`Could not parse case value '${caseValue}' to integer index.`, e);
           }
 
           if (index !== null && index >= 0 && index < muxSize) {
             if (muxInputs[index] !== null) {
-              console.warn(
+              Logger.warn(
                 `Duplicate case index ${index} ('${caseValue}'). Overwriting previous assignment.`
               );
             }
             muxInputs[index] = expression;
           } else {
-            console.warn(
+            Logger.warn(
               `Case value '${caseValue}' (index ${index}) is out of bounds for MUX size ${muxSize}.`
             );
           }
@@ -569,7 +572,7 @@ export class VerilogParser {
       }
 
       if (targetOutput === null) {
-        console.warn("No valid assignments found in case statement.");
+        Logger.warn("No valid assignments found in case statement.");
         continue;
       }
 
@@ -582,7 +585,7 @@ export class VerilogParser {
       } else {
         for (let i = 0; i < muxSize; i++) {
           if (muxInputs[i] === null) {
-            console.warn(
+            Logger.warn(
               `MUX input at index ${i} is unspecified and no default case found. Assigning '0'.`
             );
             muxInputs[i] = "'b0";
@@ -594,11 +597,11 @@ export class VerilogParser {
       if (muxSize <= 2) muxType = "mux2";
       else if (muxSize <= 4) muxType = "mux4";
       else {
-        console.error(`MUX size ${muxSize} is too large or unsupported.`);
+        Logger.error(`MUX size ${muxSize} is too large or unsupported.`);
         continue;
       }
 
-      console.log(`Creating MUX for target ${targetOutput} with ${muxSize} inputs.`);
+      Logger.log(`Creating MUX for target ${targetOutput} with ${muxSize} inputs.`);
 
       const muxGate: VerilogGate = {
         type: muxType,
@@ -610,7 +613,7 @@ export class VerilogParser {
         conditions: conditions,
       };
 
-      console.log(`Creating ${muxType} gate:`, muxGate);
+      Logger.log(`Creating ${muxType} gate:`, muxGate);
       gates.push(muxGate);
       gateCounter += 100;
     }
@@ -640,7 +643,7 @@ export class VerilogParser {
           inputs: [trimmedExpr],
         };
 
-        console.log(`Created constant assignment: ${output} = ${trimmedExpr}`);
+        Logger.log(`Created constant assignment: ${output} = ${trimmedExpr}`);
         gates.push(constantGate);
         continue;
       }
@@ -798,7 +801,7 @@ export class VerilogParser {
   ): void {
     const parts = this.splitTernary(expr);
     if (parts.length !== 3) {
-      console.error(`Could not properly split ternary expression: ${expr}`);
+      Logger.error(`Could not properly split ternary expression: ${expr}`);
       return;
     }
 
@@ -821,7 +824,7 @@ export class VerilogParser {
         inputs: [cleanFalseExpr, cleanTrueExpr], // Note: falseExpr is first input, trueExpr is second input
         controlSignal: cleanCondition,
       };
-      console.log("Created MUX2 directly (simple):", JSON.stringify(muxGate));
+      Logger.log("Created MUX2 directly (simple):", JSON.stringify(muxGate));
       gates.push(muxGate);
       return;
     }
@@ -835,7 +838,7 @@ export class VerilogParser {
     // Process complex condition if needed
     if (!this.isSimpleIdentifier(condition)) {
       finalConditionSignal = `_temp_cond_${gateCounter}`;
-      console.log(`Processing complex condition: ${condition} -> ${finalConditionSignal}`);
+      Logger.log(`Processing complex condition: ${condition} -> ${finalConditionSignal}`);
       if (condition.includes("(")) {
         this.processParenthesisExpression(condition, finalConditionSignal, gates, tempGateCounter);
       } else {
@@ -847,7 +850,7 @@ export class VerilogParser {
     // Process complex true expression if needed
     if (!this.isSimpleIdentifier(trueExpr)) {
       finalTrueSignal = `_temp_true_${gateCounter}`;
-      console.log(`Processing complex true expression: ${trueExpr} -> ${finalTrueSignal}`);
+      Logger.log(`Processing complex true expression: ${trueExpr} -> ${finalTrueSignal}`);
       if (trueExpr.includes("(")) {
         this.processParenthesisExpression(trueExpr, finalTrueSignal, gates, tempGateCounter);
       } else {
@@ -859,7 +862,7 @@ export class VerilogParser {
     // Process complex false expression if needed
     if (!this.isSimpleIdentifier(falseExpr)) {
       finalFalseSignal = `_temp_false_${gateCounter}`;
-      console.log(`Processing complex false expression: ${falseExpr} -> ${finalFalseSignal}`);
+      Logger.log(`Processing complex false expression: ${falseExpr} -> ${finalFalseSignal}`);
       if (falseExpr.includes("(")) {
         this.processParenthesisExpression(falseExpr, finalFalseSignal, gates, tempGateCounter);
       } else {
@@ -875,7 +878,7 @@ export class VerilogParser {
       inputs: [finalFalseSignal, finalTrueSignal],
       controlSignal: finalConditionSignal,
     };
-    console.log(`Created final MUX2 for ternary (complex):`, JSON.stringify(finalMuxGate));
+    Logger.log(`Created final MUX2 for ternary (complex):`, JSON.stringify(finalMuxGate));
     gates.push(finalMuxGate);
   }
 
@@ -953,7 +956,7 @@ export class VerilogParser {
         const remaining = text.substring(endBlockIndex).trim();
         return { content, remaining };
       } else {
-        console.error(
+        Logger.error(
           "Syntax error: Missing 'end' for 'begin' block starting near:",
           text.substring(0, 50) + "..."
         );
@@ -976,7 +979,7 @@ export class VerilogParser {
         const remaining = text.substring(semicolonIndex + 1).trim();
         return { content, remaining };
       } else {
-        console.error(
+        Logger.error(
           "Syntax error: Expected single statement ending with ';' near:",
           text.substring(0, 50) + "..."
         );

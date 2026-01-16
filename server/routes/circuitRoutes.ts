@@ -8,6 +8,7 @@ import { authMiddleware, AuthRequest } from "../middlewares/auth";
 import { Circuit } from "../models/Circuit";
 import { User } from "../models/User";
 import { validateCircuitData } from "../middlewares/validation";
+import { Logger } from "../utils/logger";
 
 const router = express.Router();
 
@@ -343,7 +344,7 @@ router.post("/:id/comments", async (req: AuthRequest, res) => {
       },
     });
   } catch (error: any) {
-    console.error("Error adding comment:", error);
+    Logger.error("Error adding comment:", error);
     res.status(500).json({
       error: "Failed to add comment",
       details: error.message,
@@ -389,7 +390,7 @@ router.get("/:id/comments", async (req: AuthRequest, res) => {
 
     return res.json(formattedComments);
   } catch (error) {
-    console.error("Error fetching comments:", error);
+    Logger.error("Error fetching comments:", error);
     res.status(500).json({ error: "Failed to fetch comments" });
   }
 });

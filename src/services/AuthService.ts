@@ -1,4 +1,5 @@
 import { apiBaseUrl } from "./apiConfig";
+import { Logger } from "../utils/logger";
 
 export interface User {
   id: string;
@@ -49,7 +50,7 @@ export class AuthService {
 
   public async checkAuthStatus(): Promise<boolean> {
     try {
-      console.log("AuthService: Checking authentication status...");
+      Logger.log("AuthService: Checking authentication status...");
       const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
         credentials: "include",
       });
@@ -62,19 +63,19 @@ export class AuthService {
             name: data.user.name,
           };
           this._isAuthenticated = true;
-          console.log("AuthService: User authenticated:", this._currentUser);
+          Logger.log("AuthService: User authenticated:", this._currentUser);
         } else {
           this._currentUser = null;
           this._isAuthenticated = false;
-          console.log("AuthService: User data missing in response");
+          Logger.log("AuthService: User data missing in response");
         }
       } else {
         this._currentUser = null;
         this._isAuthenticated = false;
-        console.log("AuthService: Authentication check failed with status", response.status);
+        Logger.log("AuthService: Authentication check failed with status", response.status);
       }
     } catch (error) {
-      console.error("AuthService Error:", error);
+      Logger.error("AuthService Error:", error);
       this._currentUser = null;
       this._isAuthenticated = false;
     } finally {
@@ -106,7 +107,7 @@ export class AuthService {
         return false;
       }
     } catch (error) {
-      console.error("Login error:", error);
+      Logger.error("Login error:", error);
       return false;
     }
   }
@@ -123,7 +124,7 @@ export class AuthService {
 
       return response.ok;
     } catch (error) {
-      console.error("Logout error:", error);
+      Logger.error("Logout error:", error);
       return false;
     }
   }

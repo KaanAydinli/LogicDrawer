@@ -1,4 +1,5 @@
 import { CircuitEntry, Comment } from '../Repository/CircuitRepositoryController';
+import Logger from '../utils/logger';
 import { apiBaseUrl } from './apiConfig';
 
 export class CircuitService {
@@ -32,7 +33,7 @@ export class CircuitService {
         wires: circuit.wires || []
       }));
     } catch (error) {
-      console.error('Error fetching circuits:', error);
+      Logger.error('Error fetching circuits:', error);
       return [];
     }
   }
@@ -57,7 +58,7 @@ export class CircuitService {
         wires: circuit.wires || []
       };
     } catch (error) {
-      console.error(`Error fetching circuit ${id}:`, error);
+      Logger.error(`Error fetching circuit ${id}:`, error);
       throw error;
     }
   }
@@ -85,7 +86,7 @@ export class CircuitService {
         isShared: true
       }));
     } catch (error) {
-      console.error('Error fetching shared circuits:', error);
+      Logger.error('Error fetching shared circuits:', error);
       return [];
     }
   }
@@ -103,7 +104,7 @@ export class CircuitService {
         throw new Error('Failed to update circuit visibility');
       }
     } catch (error) {
-      console.error('Error updating circuit visibility:', error);
+      Logger.error('Error updating circuit visibility:', error);
       throw error;
     }
   }
@@ -121,7 +122,7 @@ export class CircuitService {
         throw new Error('Failed to share circuit with user');
       }
     } catch (error) {
-      console.error('Error sharing circuit:', error);
+      Logger.error('Error sharing circuit:', error);
       throw error;
     }
   }
@@ -147,7 +148,7 @@ export class CircuitService {
         wires: circuit.wires || []
       }));
     } catch (error) {
-      console.error('Error searching circuits:', error);
+      Logger.error('Error searching circuits:', error);
       return [];
     }
   }
@@ -169,7 +170,7 @@ export class CircuitService {
       
       return await response.json();
     } catch (error) {
-      console.error('Error uploading circuit:', error);
+      Logger.error('Error uploading circuit:', error);
       throw error;
     }
   }
@@ -186,7 +187,7 @@ export class CircuitService {
         throw new Error('Failed to like circuit');
       }
     } catch (error) {
-      console.error('Error liking circuit:', error);
+      Logger.error('Error liking circuit:', error);
       throw error;
     }
   }
@@ -204,7 +205,7 @@ export class CircuitService {
       
       return await response.json();
     } catch (error) {
-      console.error("Error downloading circuit:", error);
+      Logger.error("Error downloading circuit:", error);
       throw error;
     }
   }
@@ -224,7 +225,7 @@ export class CircuitService {
       
       return await response.json();
     } catch (error) {
-      console.error('Error adding comment:', error);
+      Logger.error('Error adding comment:', error);
       throw error;
     }
   }
@@ -241,7 +242,7 @@ export class CircuitService {
         throw new Error('Failed to delete circuit');
       }
     } catch (error) {
-      console.error('Error deleting circuit:', error);
+      Logger.error('Error deleting circuit:', error);
       throw error;
     }
   }

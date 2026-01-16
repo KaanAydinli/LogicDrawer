@@ -14,6 +14,7 @@ import {
 import { ImageUploader } from "./ImageUploader";
 import { apiBaseUrl } from "../services/apiConfig";
 import { Queue } from "../main";
+import { Logger } from "../utils/logger";
 //import { CircuitSuggester } from "./CircuitSuggester";
 
 export class AIAgent {
@@ -43,7 +44,7 @@ export class AIAgent {
     // Initialize circuit suggester
     //this.circuitSuggester = new CircuitSuggester(circuitBoard);
 
-    console.log("AIAgent initialized successfully");
+    Logger.log("AIAgent initialized successfully");
   }
 
   async processUserInputWithStreaming(message: string): Promise<ReadableStream<Uint8Array>> {
@@ -64,7 +65,7 @@ export class AIAgent {
         },
       });
     } catch (error) {
-      console.error("Error in processUserInputWithStreaming:", error);
+      Logger.error("Error in processUserInputWithStreaming:", error);
       const encoder = new TextEncoder();
       return new ReadableStream({
         start(controller) {
@@ -93,7 +94,7 @@ export class AIAgent {
     this.tools.set("CONNECT_COMPONENTS", new ConnectComponentsTool());
     this.tools.set("GET_CIRCUIT_SUMMARY", new GetCircuitSummaryTool());
 
-    console.log("Tools registered:", Array.from(this.tools.keys()));
+    Logger.log("Tools registered:", Array.from(this.tools.keys()));
   }
 
   // Tool Definitions for Gemini
@@ -271,7 +272,7 @@ export class AIAgent {
   // Set the current image
   setCurrentImage(imageData: string) {
     this.lastUploadedImage = imageData;
-    console.log("Image set in AIAgent");
+    Logger.log("Image set in AIAgent");
     return this;
   }
 
@@ -289,7 +290,7 @@ export class AIAgent {
   // Main processing function
   async processUserInput(message: string, _unused?: string): Promise<string> {
     try {
-      console.log("AIAgent processing user input via Gemini:", message.substring(0, 50) + "...");
+      Logger.log("AIAgent processing user input via Gemini:", message.substring(0, 50) + "...");
 
       // Prepare initial history from queue
       const allMessages = this.queue.messages.slice(-10);
@@ -318,7 +319,7 @@ export class AIAgent {
       const MAX_STEPS = 5;
 
       for (let step = 0; step < MAX_STEPS; step++) {
-        console.log(`[ReAct Loop] Step ${step + 1}/${MAX_STEPS}`);
+        Logger.log(`[ReAct Loop] Step ${step + 1}/${MAX_STEPS}`);
         // console.log("Current Message:", currentMessage ? "Text" : "Null", "Parts:", currentParts ? "Yes" : "Null");
 
         const payload: any = {
@@ -341,7 +342,7 @@ export class AIAgent {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Server error details:", errorText);
+          Logger.error("Server error details:", errorText);
           throw new Error(`Server returned ${response.status}: ${errorText}`);
         }
 
@@ -350,7 +351,7 @@ export class AIAgent {
         // Handle Function Calls
         if (data.functionCalls && data.functionCalls.length > 0) {
           const call = data.functionCalls[0];
-          console.log("Gemini routed to tool:", call.name);
+          Logger.log("Gemini routed to tool:", call.name);
 
           // Update history with the "User" turn that caused this
           if (currentMessage) {
@@ -448,7 +449,7 @@ export class AIAgent {
           try {
             responseContent = JSON.parse(toolResult);
           } catch (e) {
-            console.log("Tool result is not JSON, wrapping in object");
+            Logger.log("Tool result is not JSON, wrapping in object");
             responseContent = { result: toolResult };
           }
 
@@ -469,7 +470,7 @@ export class AIAgent {
 
       return "I reached the maximum number of steps for this task. Please verify the current state.";
     } catch (error) {
-      console.error("Error processing request:", error);
+      Logger.error("Error processing request:", error);
       return "I encountered an error processing your request. Please try again.";
     }
   }
@@ -497,7 +498,7 @@ export class AIAgent {
 
       return await response.json();
     } catch (error) {
-      console.error("Error checking rate limit status:", error);
+      Logger.error("Error checking rate limit status:", error);
       return {
         authenticated: false,
         unlimited: false,

@@ -45,6 +45,7 @@ import { CircuitService } from "./services/CircuitService";
 import { AuthService } from "./services/AuthService";
 import { Tutorial } from "./models/utils/Tutorial";
 import { setupCanvasPolyfills } from "./utils/canvasPolyfills";
+import { Logger } from "./utils/logger";
 export class Queue {
   public items: { role: string; content: string }[] = [];
 
@@ -97,7 +98,7 @@ async function initApp() {
   minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
 
   await authService.waitForInitialization();
-  console.log("Auth initialization completed:", authService.isAuthenticated);
+  Logger.log("Auth initialization completed:", authService.isAuthenticated);
 
   initCircuitBoard();
   window.circuitBoard = circuitBoard;
@@ -173,7 +174,7 @@ async function initApp() {
       }, 1500);
     }
   } catch (error) {
-    console.error("Tutorial oluşturma hatası:", error);
+    Logger.error("Tutorial oluşturma hatası:", error);
   }
 
   async function verifyAuthToken() {
@@ -191,7 +192,7 @@ async function initApp() {
 
       return false;
     } catch (error) {
-      console.error("Auth check error:", error);
+      Logger.error("Auth check error:", error);
 
       return false;
     }
@@ -199,10 +200,10 @@ async function initApp() {
 
   verifyAuthToken().then(valid => {
     if (valid) {
-      console.log("Authentication verified");
+      Logger.log("Authentication verified");
       loadSavedCircuits();
     } else {
-      console.log("User not authenticated");
+      Logger.log("User not authenticated");
     }
   });
 }
@@ -836,13 +837,13 @@ async function setUpAI() {
                 }
               }
             } catch (e) {
-              console.error("Error parsing SSE data:", e, line);
+              Logger.error("Error parsing SSE data:", e, line);
             }
           }
         }
       }
     } catch (error) {
-      console.error("Error getting AI response:", error);
+      Logger.error("Error getting AI response:", error);
       addAIMessage("I'm having trouble processing your request right now. Please try again later.");
     }
 
@@ -937,13 +938,13 @@ async function setUpAI() {
     var aiText = escapeHTML(text);
 
     if (code) {
-      console.log("Verilog code detected:", code);
+      Logger.log("Verilog code detected:", code);
       const converter = new VerilogCircuitConverter(circuitBoard);
       const success = converter.importVerilogCode(code);
       if (success) {
-        console.log("Verilog import successful!");
+        Logger.log("Verilog import successful!");
       } else {
-        console.error("Verilog import failed!");
+        Logger.error("Verilog import failed!");
       }
     }
     queue.enqueue(aiText, "AI");
@@ -1060,16 +1061,16 @@ function readJSONFile(file: File) {
 
       circuitBoard.importCircuit(jsonContent);
 
-      console.log("Circuit loaded successfully!");
+      Logger.log("Circuit loaded successfully!");
       alert("Circuit loaded successfully!");
     } catch (error) {
-      console.error("Error reading or importing JSON file:", error);
+      Logger.error("Error reading or importing JSON file:", error);
       alert("Error loading circuit file. Please check if it's a valid circuit JSON.");
     }
   };
 
   reader.onerror = function () {
-    console.error("Failed to read file");
+    Logger.error("Failed to read file");
     alert("Failed to read circuit file");
   };
 
@@ -1150,7 +1151,7 @@ function setTools() {
   const toolsOptions = document.querySelectorAll(".tools-option") as NodeListOf<HTMLElement>;
 
   if (!toolsButton || !toolsDropdown) {
-    console.warn("Tools elements not found in HTML");
+    Logger.warn("Tools elements not found in HTML");
     return;
   }
   toolsButton.addEventListener("click", function (e) {
@@ -1245,7 +1246,7 @@ function setTools() {
                 const ttTool = aiAgent.tools.get("TRUTH_TABLE_IMAGE");
 
                 if (!ttTool) {
-                  console.error("Truth Table tool not found");
+                  Logger.error("Truth Table tool not found");
                   alert("Truth Table tool is not available.");
                   return;
                 }
@@ -1320,7 +1321,7 @@ function setTools() {
 
                 const kmapTool = aiAgent.tools.get("KMAP_IMAGE");
                 if (!kmapTool) {
-                  console.error("K-map tool not found");
+                  Logger.error("K-map tool not found");
                   alert("K-map tool is not available.");
                   return;
                 }
@@ -1347,15 +1348,11 @@ function setupDetectionModal() {
   const closeDetection = document.querySelector(".close-detection") as HTMLElement;
   const imageDropZone = document.getElementById("image-drop-zone") as HTMLElement;
   const imageFileInput = document.getElementById("image-file-input") as HTMLInputElement;
-  const imagePreviewContainer = document.getElementById(
-    "image-preview-container"
-  ) as HTMLElement;
+  const imagePreviewContainer = document.getElementById("image-preview-container") as HTMLElement;
   const imagePreview = document.getElementById("image-preview") as HTMLImageElement;
   const removeImageButton = document.getElementById("remove-image-button") as HTMLButtonElement;
   const analyzeImageButton = document.getElementById("analyze-image-button") as HTMLButtonElement;
-  const loadingIndicator = document.querySelector(
-    ".loading-indicator-detection"
-  ) as HTMLElement;
+  const loadingIndicator = document.querySelector(".loading-indicator-detection") as HTMLElement;
   const dropZonePrompt = imageDropZone.querySelector(".drop-zone-prompt") as HTMLElement;
 
   let currentFile: File | null = null;
@@ -1372,7 +1369,7 @@ function setupDetectionModal() {
     !analyzeImageButton ||
     !loadingIndicator
   ) {
-    console.error("One or more detection UI elements not found!");
+    Logger.error("One or more detection UI elements not found!");
     return;
   }
 
@@ -1475,7 +1472,7 @@ function setFile() {
   const fileOptions = document.querySelectorAll(".fileOption") as NodeListOf<HTMLElement>;
 
   if (!fileButton || !fileDropdown) {
-    console.warn("File elements not found in HTML");
+    Logger.warn("File elements not found in HTML");
     return;
   }
   fileButton.addEventListener("click", function (e) {
@@ -1560,7 +1557,7 @@ function setMobile() {
   mainMenuItems.forEach(item => {
     item.addEventListener("click", function (this: HTMLElement) {
       const action = this.getAttribute("data-item");
-      console.log(`Ana menü öğesi tıklandı: ${action}`);
+      Logger.log(`Ana menü öğesi tıklandı: ${action}`);
 
       switch (action) {
         case "circuits":
@@ -1826,7 +1823,7 @@ function setUpLoginAndSignup() {
         alert("Login failed. Please check your credentials and try again.");
       }
     } catch (error) {
-      console.error("Login error:", error);
+      Logger.error("Login error:", error);
       let e = error as Error;
       alert(`Login failed: ${e.message}`);
     }
@@ -1880,7 +1877,7 @@ function setUpLoginAndSignup() {
 
       alert("Hesap başarıyla oluşturuldu! Lütfen giriş yapın.");
     } catch (error) {
-      console.error("Signup error:", error);
+      Logger.error("Signup error:", error);
       alert(`Kayıt başarısız: ${error}`);
     }
   }
@@ -1904,7 +1901,7 @@ function setUpLoginAndSignup() {
         alert("Logout failed. Please try again.");
       }
     } catch (error) {
-      console.error("Logout error:", error);
+      Logger.error("Logout error:", error);
       alert("Error during logout. Please try again.");
     }
   }
@@ -1989,12 +1986,12 @@ async function saveToMongoDB(name: string, circuitData: any) {
       isPublic: false,
     };
 
-    console.log("Sending circuit data:", data);
+    Logger.log("Sending circuit data:", data);
 
     const currentCircuitId = localStorage.getItem("currentCircuitId");
 
     if (currentCircuitId) {
-      console.log("Updating existing circuit ID:", currentCircuitId);
+      Logger.log("Updating existing circuit ID:", currentCircuitId);
 
       try {
         const updateResponse = await fetch(`${apiBaseUrl}/api/circuits/${currentCircuitId}`, {
@@ -2007,18 +2004,18 @@ async function saveToMongoDB(name: string, circuitData: any) {
         });
 
         if (updateResponse.ok) {
-          console.log("Circuit updated successfully");
+          Logger.log("Circuit updated successfully");
           alert(`Circuit "${name}" updated successfully`);
           return;
         } else {
-          console.log("Failed to update, creating new circuit");
+          Logger.log("Failed to update, creating new circuit");
           localStorage.removeItem("currentCircuitId");
         }
       } catch (error) {
-        console.error("Error updating circuit:", error);
+        Logger.error("Error updating circuit:", error);
       }
     }
-    console.log("Creating new circuit");
+    Logger.log("Creating new circuit");
     const response = await fetch(`${apiBaseUrl}/api/circuits`, {
       method: "POST",
       headers: {
@@ -2030,14 +2027,14 @@ async function saveToMongoDB(name: string, circuitData: any) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Server error:", response.status, errorText);
+      Logger.error("Server error:", response.status, errorText);
       alert(`Failed to save circuit: ${errorText}`);
       return;
     }
 
     if (response.ok) {
       const newCircuit = await response.json();
-      console.log("New circuit created:", newCircuit);
+      Logger.log("New circuit created:", newCircuit);
 
       localStorage.setItem("currentCircuitId", newCircuit._id);
       alert(`Circuit "${name}" saved successfully`);
@@ -2045,7 +2042,7 @@ async function saveToMongoDB(name: string, circuitData: any) {
       alert("Failed to save circuit");
     }
   } catch (error: any) {
-    console.error("Error saving circuit:", error);
+    Logger.error("Error saving circuit:", error);
     alert(`Error saving circuit: ${error.message}`);
   }
 }
@@ -2053,7 +2050,7 @@ async function saveToMongoDB(name: string, circuitData: any) {
 async function loadSavedCircuits() {
   try {
     if (!authService.isAuthenticated) {
-      console.log("User not authenticated via AuthService");
+      Logger.log("User not authenticated via AuthService");
       return;
     }
 
@@ -2080,7 +2077,7 @@ async function loadSavedCircuits() {
       }
     }
   } catch (error) {
-    console.error("Error loading circuits:", error);
+    Logger.error("Error loading circuits:", error);
   }
 }
 async function handleLogout() {
@@ -2102,7 +2099,7 @@ async function handleLogout() {
       alert("Logout failed. Please try again.");
     }
   } catch (error) {
-    console.error("Logout error:", error);
+    Logger.error("Logout error:", error);
     alert("Error during logout. Please try again.");
   }
 }
@@ -2192,7 +2189,7 @@ function setTheme() {
   const themeOptions = document.querySelectorAll(".theme-option") as NodeListOf<HTMLElement>;
 
   if (!themeButton || !themeDropdown) {
-    console.warn("Theme elements not found in HTML");
+    Logger.warn("Theme elements not found in HTML");
     return;
   }
 
@@ -2246,7 +2243,7 @@ function setTheme() {
   }
 }
 function applyTheme(themeName: string): void {
-  console.log(`Applying theme: ${themeName}`);
+  Logger.log(`Applying theme: ${themeName}`);
 
   document.body.classList.remove("theme-dark", "theme-light", "theme-forest", "theme-midnight");
 
@@ -2309,7 +2306,7 @@ function saveToLocalStorage(key: string = "history"): void {
     const queueString = JSON.stringify(aiAgent.queue);
     localStorage.setItem(key, queueString);
   } catch (error) {
-    console.error("Local storage'a kaydetme hatası:", error);
+    Logger.error("Local storage'a kaydetme hatası:", error);
   }
 }
 

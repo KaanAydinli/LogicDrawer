@@ -11,6 +11,8 @@ import multer from "multer";
 import { optionalAuth, AuthRequest } from "../middlewares/auth";
 import { aiRateLimit, getRateLimitStatus } from "../middlewares/aiRateLimit";
 
+import { Logger } from "../utils/logger";
+
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
 
@@ -263,7 +265,7 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
       res.json(result);
     } catch (pythonError) {
       if (!res.headersSent) {
-        console.error("Python processing error:", pythonError);
+        Logger.error("Python processing error:", pythonError);
         res.status(500).json({
           error: "Python processing error",
           details: (pythonError as Error).message,
@@ -272,7 +274,7 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
     }
   } catch (error) {
     if (!res.headersSent) {
-      console.error("Internal server error:", error);
+      Logger.error("Internal server error:", error);
       res.status(500).json({
         error: "Internal server error",
         details: (error as Error).message,
@@ -434,7 +436,7 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
       const text = response.text();
       return res.json({ text });
     } catch (error) {
-      console.error("Gemini Agent Error:", error);
+      Logger.error("Gemini Agent Error:", error);
       return res.status(500).json({
         error: "Agent processing failed",
         details: error instanceof Error ? error.message : String(error),
