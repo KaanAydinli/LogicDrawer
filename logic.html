@@ -148,7 +148,7 @@
     <div id="app">
       <div class="ai-semantic-headings">
         <h1>logic gate simulator</h1>
-        <h2> logic simulator apps for logic circuits digital logic simulator software</h2>
+        <h2>logic simulator apps for logic circuits digital logic simulator software</h2>
         <h2>logic simulator apps for logic circuits digital logic simulator software</h2>
         <h2>
           mantık devre simülatörü uygulamalar mantık devre simulator app digital logic simulator
@@ -1084,42 +1084,99 @@
         <div id="verilog-editor-container" class="verilog-editor-container">
           <div class="verilog-editor-panel">
             <div class="verilog-editor-header">
-              <h3>Code Editor</h3>
+              <h3>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="16 18 22 12 16 6"></polyline>
+                  <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+                Verilog IDE
+              </h3>
               <button id="close-verilog-editor" class="close-verilog-button">&times;</button>
             </div>
             <div class="ide-toolbar">
-              <button id="run-code" class="tooltip">
-                <span class="tooltiptext">Run Code</span>
-                <i class="fa-solid fa-play"></i>
-              </button>
-              <button id="save-code" class="tooltip">
-                <span class="tooltiptext">Download Code</span>
-                <i class="fa-solid fa-download"></i>
+              <div class="ide-toolbar-group">
+                <button id="import-code" class="ide-btn" title="Import Verilog">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  <span>Import</span>
+                </button>
+                <button id="export-code" class="ide-btn" title="Export Verilog">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>Export</span>
+                </button>
+              </div>
+              <button id="run-code" class="ide-btn ide-btn-primary" title="Run Code">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span>Run</span>
               </button>
             </div>
             <div class="verilog-editor-content">
-              <textarea
-                id="verilog-editor"
-                style="
-                  width: 100%;
-                  height: 100%;
-                  font-family: monospace;
-                  background-color: #272822;
-                  color: #f8f8f2;
-                  padding: 10px;
-                  border: none;
-                  resize: none;
-                "
-                spellcheck="false"
-              >
-module if_test(
-          input [1:0] a,
-          output out
-        );
-          assign out = a[0] | a[1];
-        endmodule</textarea
-              >
+              <div id="verilog-line-numbers" class="line-numbers"></div>
+              <div class="code-editor-wrapper">
+                <pre
+                  id="verilog-highlight-overlay"
+                  class="highlight-overlay"
+                  aria-hidden="true"
+                ></pre>
+                <textarea
+                  id="verilog-code-editor"
+                  class="code-editor-textarea"
+                  spellcheck="false"
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="off"
+                ></textarea>
+              </div>
             </div>
+            <div class="ide-statusbar">
+              <span class="statusbar-item">Verilog HDL</span>
+              <span class="statusbar-item" id="cursor-position">Ln 1, Col 1</span>
+            </div>
+            <input
+              type="file"
+              id="verilog-file-input"
+              accept=".v,.vh,.sv,.svh"
+              style="display: none"
+            />
           </div>
         </div>
         <div id="settings-panel" class="settings-panel">

@@ -565,52 +565,251 @@ body.keyboard-active .ai-chat-container.open {
   height: 100%;
   display: none;
   z-index: 1000;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
   justify-content: center;
   align-items: center;
 }
 
 .verilog-editor-panel {
-  background-color: #1e1e1e;
-  border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-  width: 80%;
-  max-width: 1200px;
-  height: 80%;
+  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+  border-radius: 12px;
+  box-shadow:
+    0 25px 80px rgba(0, 0, 0, 0.6),
+    0 0 1px rgba(255, 255, 255, 0.1) inset,
+    0 0 40px rgba(102, 126, 234, 0.1);
+  width: 85%;
+  max-width: 1400px;
+  height: 85%;
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.3s ease-in-out;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .verilog-editor-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
-  border-bottom: 1px solid #333;
+  padding: 14px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px 12px 0 0;
 }
 
 .verilog-editor-header h3 {
   margin: 0;
-  color: #fff;
+  color: #e0e0e0;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.verilog-editor-header h3 svg {
+  color: #667eea;
 }
 
 .close-verilog-button {
-  background: none;
-  border: none;
-  color: #aaa;
-  font-size: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #999;
+  font-size: 20px;
   cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .close-verilog-button:hover {
-  color: #fff;
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
 }
 
+/* IDE Toolbar - Updated */
+.ide-toolbar {
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ide-toolbar-group {
+  display: flex;
+  gap: 8px;
+}
+
+.ide-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+  transition: all 0.2s ease;
+}
+
+.ide-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.ide-btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 500;
+}
+
+.ide-btn-primary:hover {
+  background: linear-gradient(135deg, #7c8fec 0%, #8a5db8 100%);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* Editor Content Area */
 .verilog-editor-content {
   flex: 1;
-  padding: 0;
+  display: flex;
   overflow: hidden;
+  background: #1e1e2e;
+  position: relative;
+}
+
+/* Line Numbers */
+.line-numbers {
+  width: 55px;
+  min-width: 55px;
+  background: rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 0;
+  overflow: hidden;
+  user-select: none;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.line-number {
+  text-align: right;
+  padding-right: 12px;
+  color: #4a4a6a;
+  height: 25.6px;
+}
+
+/* Code Editor Wrapper */
+.code-editor-wrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Highlight Overlay (for syntax highlighting) */
+.highlight-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 12px 16px;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #f8f8f2;
+  background: transparent;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
+  pointer-events: none;
+}
+
+/* Textarea (actual input) */
+.code-editor-textarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 12px 16px;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 16px;
+  line-height: 1.6;
+  color: transparent;
+  caret-color: #f8f8f2;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
+}
+
+.code-editor-textarea::selection {
+  background: rgba(102, 126, 234, 0.3);
+}
+
+/* Syntax Highlighting Colors (Monokai-inspired) */
+.verilog-keyword {
+  color: #ff79c6;
+  font-weight: 500;
+}
+
+.verilog-comment {
+  color: #6272a4;
+  font-style: italic;
+}
+
+.verilog-string {
+  color: #f1fa8c;
+}
+
+.verilog-number {
+  color: #bd93f9;
+}
+
+.verilog-preprocessor {
+  color: #50fa7b;
+}
+
+.verilog-operator {
+  color: #ff79c6;
+}
+
+/* Status Bar */
+.ide-statusbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0 0 12px 12px;
+  font-size: 12px;
+  color: #888;
+  font-family: "Segoe UI", sans-serif;
+}
+
+.statusbar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .share-modal {
@@ -877,28 +1076,6 @@ body.keyboard-active .ai-chat-container.open {
   left: auto;
   margin-top: -5px;
   border-color: transparent rgba(0, 0, 0, 0.8) transparent transparent;
-}
-.ide-toolbar {
-  padding: 4px;
-  background-color: #252526;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  border-bottom: 1px solid #333;
-}
-
-.ide-toolbar button {
-  background-color: #333;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.ide-toolbar button:hover {
-  background-color: #1177bb;
 }
 .circuit-actions button {
   background-color: rgba(0, 0, 0, 0.6);
