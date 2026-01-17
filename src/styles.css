@@ -539,6 +539,50 @@ body.keyboard-active .ai-chat-container.open {
   max-width: 100%;
 }
 
+.steps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+}
+
+.step-icon {
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+.step-name {
+  opacity: 0.9;
+}
+
+.step-pending .step-icon,
+.step-running .step-icon {
+  color: #888;
+}
+
+.step-running {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.step-success .step-icon {
+  color: #4ade80;
+}
+
+.step-failure .step-icon {
+  color: #f87171;
+}
+
 .circuit-actions {
   position: absolute;
   top: 5px;

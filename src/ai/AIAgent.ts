@@ -49,23 +49,316 @@ export class AIAgent {
 
   async processUserInputWithStreaming(message: string): Promise<ReadableStream<Uint8Array>> {
     try {
-      // Add message to queue
       this.queue.enqueue(message, "user");
 
-      // Use the general processing method which now handles Gemini routing
-      const result = await this.processUserInput(message, undefined);
-
-      // Convert the string result to a ReadableStream (mock streaming for now as we switched to atomic tool calls)
       const encoder = new TextEncoder();
       return new ReadableStream({
-        start(controller) {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`));
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-          controller.close();
+        start: async controller => {
+          try {
+            // Inline execution with step tracking
+            Logger.log(
+              "AIAgent processing user input via Gemini:",
+              message.substring(0, 50) + "..."
+            );
+
+            const allMessages = this.queue.messages.slice(-10);
+            let sessionHistory: any[] = allMessages.map((msg: any) => ({
+              role: msg.role,
+              content: msg.content,
+              parts: msg.parts,
+            }));
+
+            let currentMessage: string | null = null;
+            let currentParts: any[] | null = null;
+
+            const lastMsg = sessionHistory.pop();
+            if (lastMsg && lastMsg.role === "user") {
+              currentMessage = lastMsg.content || message;
+            } else {
+              if (lastMsg) sessionHistory.push(lastMsg);
+              currentMessage = message;
+            }
+
+            const MAX_STEPS = 5;
+
+            for (let step = 0; step < MAX_STEPS; step++) {
+              Logger.log(`[ReAct Loop] Step ${step + 1}/${MAX_STEPS}`);
+
+              // Emit reasoning step
+              const planningStepId = `step-${Date.now()}-plan-${step}`;
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    step: {
+                      id: planningStepId,
+                      name: `Reasoning & Planning`,
+                      status: "running",
+                    },
+                  })}\n\n`
+                )
+              );
+
+              const payload: any = {
+                message: currentMessage,
+                parts: currentParts,
+                systemPrompt: this.promptAI,
+                history: sessionHistory,
+                tools: this.getGeminiTools(),
+              };
+
+              if (step === 0 && this.lastUploadedImage) {
+                payload.image = this.lastUploadedImage;
+              }
+
+              const response = await fetch(`${apiBaseUrl}/api/agent/chat`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+
+              if (!response.ok) {
+                const errorText = await response.text();
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      step: {
+                        id: planningStepId,
+                        name: `Reasoning & Planning`,
+                        status: "failure",
+                      },
+                    })}\n\n`
+                  )
+                );
+                throw new Error(`Server returned ${response.status}: ${errorText}`);
+              }
+
+              const data = await response.json();
+
+              if (data.functionCalls && data.functionCalls.length > 0) {
+                // Reasoning complete
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      step: {
+                        id: planningStepId,
+                        name: `Reasoning & Planning`,
+                        status: "success",
+                      },
+                    })}\n\n`
+                  )
+                );
+
+                const call = data.functionCalls[0];
+                const toolStepId = `step-${Date.now()}-tool-${step}`;
+                const toolName = call.name
+                  .replace(/_/g, " ")
+                  .replace(/\b\w/g, (l: string) => l.toUpperCase());
+
+                // Emit tool execution step
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      step: {
+                        id: toolStepId,
+                        name: toolName,
+                        status: "running",
+                      },
+                    })}\n\n`
+                  )
+                );
+
+                if (currentMessage) {
+                  sessionHistory.push({ role: "user", content: currentMessage });
+                } else if (currentParts) {
+                  sessionHistory.push({ role: "user", parts: currentParts });
+                }
+
+                sessionHistory.push({
+                  role: "model",
+                  parts: [{ functionCall: { name: call.name, args: call.args } }],
+                });
+
+                if (call.name === "final_answer") {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({
+                        step: {
+                          id: toolStepId,
+                          name: toolName,
+                          status: "success",
+                        },
+                      })}\n\n`
+                    )
+                  );
+
+                  const finalText = call.args.text || "Task completed.";
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ chunk: finalText })}\n\n`)
+                  );
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+                  controller.close();
+                  return;
+                }
+
+                // Execute tool
+                let toolResult = "";
+                let toolKey = "";
+                let extraContext: any = {};
+                let newContextMessage = currentMessage || "Tool Execution";
+
+                switch (call.name) {
+                  case "import_verilog_circuit":
+                    toolKey = "VERILOG_IMPORT";
+                    newContextMessage = call.args.description || newContextMessage;
+                    if (call.args.verilogCode) extraContext.verilogCode = call.args.verilogCode;
+                    break;
+                  case "detect_circuit_from_image":
+                    toolKey = "CIRCUIT_DETECTION";
+                    break;
+                  case "analyze_image_content":
+                    toolKey = "IMAGE_ANALYSIS";
+                    newContextMessage = call.args.question || newContextMessage;
+                    break;
+                  case "extract_truth_table":
+                    toolKey = "TRUTH_TABLE_IMAGE";
+                    break;
+                  case "extract_kmap":
+                    toolKey = "KMAP_IMAGE";
+                    break;
+                  case "add_components":
+                    toolKey = "ADD_COMPONENTS";
+                    extraContext.components = call.args.components;
+                    break;
+                  case "connect_components":
+                    toolKey = "CONNECT_COMPONENTS";
+                    extraContext.connections = call.args.connections;
+                    break;
+                  case "get_circuit_summary":
+                    toolKey = "GET_CIRCUIT_SUMMARY";
+                    break;
+                  default:
+                    toolResult = "Error: Tool not found.";
+                }
+
+                if (toolKey) {
+                  const tool = this.tools.get(toolKey);
+                  if (tool) {
+                    try {
+                      toolResult = await tool.execute({
+                        message:
+                          typeof newContextMessage === "string"
+                            ? newContextMessage
+                            : "Tool Execution",
+                        image: this.lastUploadedImage,
+                        circuitBoard: this.circuitBoard,
+                        queue: this.queue,
+                        promptAI: this.promptAI,
+                        imageUploader: this.imageUploader,
+                        ...extraContext,
+                      });
+
+                      controller.enqueue(
+                        encoder.encode(
+                          `data: ${JSON.stringify({
+                            step: {
+                              id: toolStepId,
+                              name: toolName,
+                              status: "success",
+                            },
+                          })}\n\n`
+                        )
+                      );
+                    } catch (toolError) {
+                      Logger.error(`Tool ${toolKey} execution failed:`, toolError);
+                      toolResult = `Error executing tool ${toolKey}: ${toolError}`;
+                      controller.enqueue(
+                        encoder.encode(
+                          `data: ${JSON.stringify({
+                            step: {
+                              id: toolStepId,
+                              name: toolName,
+                              status: "failure",
+                            },
+                          })}\n\n`
+                        )
+                      );
+                    }
+                  } else {
+                    toolResult = `Tool ${toolKey} not registered.`;
+                    controller.enqueue(
+                      encoder.encode(
+                        `data: ${JSON.stringify({
+                          step: {
+                            id: toolStepId,
+                            name: toolName,
+                            status: "failure",
+                          },
+                        })}\n\n`
+                      )
+                    );
+                  }
+                }
+
+                let responseContent = {};
+                try {
+                  responseContent = JSON.parse(toolResult);
+                } catch (e) {
+                  responseContent = { result: toolResult };
+                }
+
+                currentMessage = null;
+                currentParts = [
+                  {
+                    functionResponse: {
+                      name: call.name,
+                      response: { name: call.name, content: responseContent },
+                    },
+                  },
+                ];
+              } else {
+                controller.enqueue(
+                  encoder.encode(
+                    `data: ${JSON.stringify({
+                      step: {
+                        id: planningStepId,
+                        name: `Reasoning & Planning`,
+                        status: "success",
+                      },
+                    })}\n\n`
+                  )
+                );
+
+                const result = data.text || "I didn't understand that.";
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`)
+                );
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+                controller.close();
+                return;
+              }
+            }
+
+            const maxStepsMsg =
+              "I reached the maximum number of steps for this task. Please verify the current state.";
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ chunk: maxStepsMsg })}\n\n`)
+            );
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+            controller.close();
+          } catch (err) {
+            Logger.error("Error in processUserInputWithStreaming:", err);
+            const errorMessage =
+              "I'm having trouble processing your request right now. Please try again.";
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ chunk: errorMessage })}\n\n`)
+            );
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+            controller.close();
+          }
         },
       });
     } catch (error) {
-      Logger.error("Error in processUserInputWithStreaming:", error);
+      Logger.error("Error in processUserInputWithStreaming outer:", error);
       const encoder = new TextEncoder();
       return new ReadableStream({
         start(controller) {

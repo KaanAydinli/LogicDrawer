@@ -776,7 +776,10 @@ async function setUpAI() {
           <text x="0" y="18" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
         </svg>
       </div>
-      <div class="message-content" id="streaming-message"></div>
+      <div class="message-content">
+        <div class="steps-container" id="steps-container"></div>
+        <div id="streaming-message"></div>
+      </div>
     `;
       messagesContainer.appendChild(messageDiv);
 
@@ -827,6 +830,12 @@ async function setUpAI() {
                   }
                 }, 100);
                 break;
+              }
+
+              if (data.step) {
+                // Render step notification
+                const stepsContainer = messageDiv.querySelector("#steps-container")!;
+                renderStep(data.step, stepsContainer as HTMLElement);
               }
 
               if (data.chunk) {
@@ -981,6 +990,24 @@ async function setUpAI() {
       .replace(/\n/g, "<br>")
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.*?)\*/g, "<em>$1</em>");
+  }
+
+  function renderStep(step: { id: string; name: string; status: string }, container: HTMLElement) {
+    let stepEl = container.querySelector(`#${step.id}`) as HTMLElement;
+
+    if (!stepEl) {
+      stepEl = document.createElement("div");
+      stepEl.id = step.id;
+      stepEl.className = `step-item step-${step.status}`;
+      container.appendChild(stepEl);
+    } else {
+      stepEl.className = `step-item step-${step.status}`;
+    }
+
+    const icon = step.status === "success" ? "✓" : step.status === "failure" ? "✗" : "●";
+    stepEl.innerHTML = `<span class="step-icon">${icon}</span><span class="step-name">${step.name}</span>`;
+
+    scrollToBottom();
   }
 }
 
