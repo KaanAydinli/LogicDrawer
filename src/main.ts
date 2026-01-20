@@ -79,8 +79,8 @@ var spaceBarPressed = false;
 let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
-
-const promptAI = import.meta.env.VITE_PROMPT || "";
+import promptAIraw from "./ai/PROMPT.txt?raw";
+const promptAI = promptAIraw || "";
 const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
 const sidebar = document.querySelector(".sidebar") as HTMLElement;

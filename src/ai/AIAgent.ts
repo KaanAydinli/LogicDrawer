@@ -327,7 +327,6 @@ export class AIAgent {
                     })}\n\n`
                   )
                 );
-
                 const result = data.text || "I didn't understand that.";
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`)
@@ -337,18 +336,58 @@ export class AIAgent {
                 return;
               }
             }
-
-            const maxStepsMsg =
-              "I reached the maximum number of steps for this task. Please verify the current state.";
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ chunk: maxStepsMsg })}\n\n`)
-            );
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
             controller.close();
           } catch (err) {
             Logger.error("Error in processUserInputWithStreaming:", err);
-            const errorMessage =
+
+            const errorString = String(err);
+            const statusMatch = errorString.match(/Server returned (\d+)/);
+            const statusCode = statusMatch ? parseInt(statusMatch[1]) : 0;
+
+            let errorMessage =
               "I'm having trouble processing your request right now. Please try again.";
+
+            if (statusCode === 429) {
+              // 429: Rate Limit
+              try {
+                const jsonMatch = errorString.match(/\{.*\}/);
+                if (jsonMatch) {
+                  const errorData = JSON.parse(jsonMatch[0]);
+                  if (errorData.message) {
+                    errorMessage = ` **Daily Limit Reached**\n\n${errorData.message}`;
+                  }
+                } else {
+                  errorMessage =
+                    " **Daily Limit Reached**\n\nYou have reached the daily limit of messages. Please create an account for unlimited access or try again tomorrow.";
+                }
+              } catch (e) {
+                errorMessage =
+                  " **Daily Limit Reached**\n\nYou have reached the daily limit of messages. Please create an account for unlimited access or try again tomorrow.";
+              }
+            } else if (statusCode >= 500) {
+              // 5xx: Server Error
+              const jsonMatch = errorString.match(/\{.*\}/);
+              let detailMsg = "";
+              if (jsonMatch) {
+                try {
+                  const errObj = JSON.parse(jsonMatch[0]);
+                  if (errObj.text && errObj.text.startsWith("[System Error]")) {
+                    errorMessage = errObj.text;
+                    detailMsg = "handled";
+                  }
+                } catch (e) {}
+              }
+
+              if (detailMsg !== "handled") {
+                errorMessage = ` **AI Service Error**\n\nThe AI service is currently unavailable or encountered an internal error (Status: ${statusCode}). Please try again later.`;
+              }
+            } else if (statusCode >= 400) {
+              errorMessage = ` **Request Error**\n\nThere was an issue with your request (Status: ${statusCode}). Please try refreshing the page or checking your input.`;
+            } else if (errorString.includes("malformed function call")) {
+              errorMessage = ` **System Error**\n\nThe AI attempted to perform an invalid action. Please try rephrasing your request.`;
+            }
+
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ chunk: errorMessage })}\n\n`)
             );

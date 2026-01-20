@@ -13,10 +13,7 @@ interface RateLimitStore {
   };
 }
 
-// In-memory store for rate limiting (consider using Redis for production)
 const rateLimitStore: RateLimitStore = {};
-
-// Clean up expired entries every hour
 setInterval(
   () => {
     const now = Date.now();
@@ -29,13 +26,7 @@ setInterval(
   60 * 60 * 1000
 ); // 1 hour
 
-/**
- * Custom rate limiting middleware for AI routes.
- * - Authenticated users: unlimited requests
- * - Unauthenticated users: 2 requests per day (24 hours)
- */
 export const aiRateLimit = (req: AuthRequest, res: Response, next: NextFunction) => {
-  // If user is authenticated, allow unlimited access
   if (req.user) {
     return next();
   }
@@ -55,7 +46,7 @@ export const aiRateLimit = (req: AuthRequest, res: Response, next: NextFunction)
     rateLimitStore[key] = rateLimitData;
   }
 
-  if (rateLimitData.count >= 2) {
+  if (rateLimitData.count >= 3) {
     const resetTimeHours = Math.ceil((rateLimitData.resetTime - now) / (60 * 60 * 1000));
 
     return res.status(429).json({
@@ -76,9 +67,6 @@ export const aiRateLimit = (req: AuthRequest, res: Response, next: NextFunction)
   next();
 };
 
-/**
- * Get current rate limit status for an IP (useful for debugging)
- */
 export const getRateLimitStatus = (ip: string) => {
   const key = `ai_rate_limit:${ip}`;
   const rateLimitData = rateLimitStore[key];

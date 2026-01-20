@@ -300,7 +300,6 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
     }
 
     try {
-     
       const modelParams: any = {
         model: "gemini-2.5-flash",
       };
@@ -315,11 +314,9 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
 
       const model = genAI.getGenerativeModel(modelParams);
 
-     
       let userParts: any[] = [];
 
       if (image) {
-
         let base64Data = image;
         let mimeType = "image/jpeg";
 
@@ -349,11 +346,9 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
         userParts = userParts.concat(parts);
       }
 
-
       let chatHistory: any[] = [];
       if (history && Array.isArray(history)) {
         chatHistory = history.map((msg: any) => {
-        
           if (msg.parts) {
             let role = msg.role === "user" ? "user" : "model";
             if (msg.parts.some((p: any) => p.functionResponse)) {
@@ -364,7 +359,7 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
               parts: msg.parts,
             };
           }
-          
+
           return {
             role: msg.role === "user" ? "user" : "model",
             parts: [{ text: msg.content || "" }],
