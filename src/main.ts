@@ -717,7 +717,7 @@ async function setUpAI() {
                 <text
                   x="0"
                   y="18"
-                  font-family="Pixelify Sans"
+                  font-family="Minecraftia"
                   font-size="20"
                   fill="currentColor"
                   stroke="none"
@@ -773,7 +773,7 @@ async function setUpAI() {
       messageDiv.innerHTML = `
       <div class="ai-avatar">
         <svg width="200px" height="40px" xmlns="http:
-          <text x="0" y="18" font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+          <text x="0" y="18" font-size="1.9rem" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
         </svg>
       </div>
       <div class="message-content">
@@ -965,7 +965,7 @@ async function setUpAI() {
     <div class="ai-avatar">
                 <svg width = 200px height = 40px xmlns="http:
               
-            <text x="0" y="18"  font-size="20" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
+            <text x="0" y="18"  font-size="1rem" fill="currentColor" stroke="none" stroke-width="0.5">AI</text>
             
           </svg>
     </div>

@@ -72,10 +72,10 @@ export class HexDigit extends Component {
     ctx.stroke();
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "48px Pixelify Sans";
+    ctx.font = "48px Minecraftia";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(this.value, x + width / 2, y + height / 2);
+    ctx.fillText(this.value, x + width / 2 + 4, y + height / 2 + 48);
 
     if (Array.isArray(this.inputs[0].value) && this.inputs[0].value.length > 0) {
       ctx.fillStyle = "#ffffff";
@@ -85,7 +85,7 @@ export class HexDigit extends Component {
       ctx.fillText(
         `${this.inputs[0].value.length}b`,
         this.position.x + this.size.width / 2,
-        this.position.y + this.size.height - 10
+        this.position.y + this.size.height - 5
       );
     }
 

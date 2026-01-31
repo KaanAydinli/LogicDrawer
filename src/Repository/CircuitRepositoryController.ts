@@ -165,7 +165,7 @@ export function addRepositoryStyles(): void {
     .repository-title {
       margin: 0;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-optical-sizing: auto;
       font-weight: 900;
       font-size: xx-large;
@@ -194,7 +194,7 @@ export function addRepositoryStyles(): void {
       padding: 12px 24px;
       cursor: pointer;
       border-bottom: 3px solid transparent;
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 500;
       transition: all 0.2s;
       color: var(--text-color);
@@ -242,7 +242,7 @@ export function addRepositoryStyles(): void {
       border: 1px solid var(--border-color);
       border-radius: 4px;
       cursor: pointer;
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 500;
       transition: background-color 0.2s;
     }
@@ -297,7 +297,7 @@ export function addRepositoryStyles(): void {
     .circuit-info h3 {
       margin: 0 0 12px 0;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 600;
     }
     
@@ -350,7 +350,7 @@ export function addRepositoryStyles(): void {
       padding: 8px 0;
       cursor: pointer;
       color: var(--highlight-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 500;
       margin-bottom: 20px;
       display: flex;
@@ -380,7 +380,7 @@ export function addRepositoryStyles(): void {
     .detail-header h2 {
       margin: 0;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 600;
     }
     
@@ -394,7 +394,7 @@ export function addRepositoryStyles(): void {
       border: 1px solid var(--border-color);
       border-radius: 4px;
       cursor: pointer;
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 500;
       transition: background-color 0.2s;
     }
@@ -460,7 +460,7 @@ export function addRepositoryStyles(): void {
     .detail-description h3 {
       margin-top: 0;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 600;
     }
     
@@ -483,7 +483,7 @@ export function addRepositoryStyles(): void {
     .circuit-preview h3 {
       margin-top: 0;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 600;
     }
     
@@ -501,7 +501,7 @@ export function addRepositoryStyles(): void {
     .circuit-code h3 {
       margin-top: 0;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 600;
     }
     
@@ -523,7 +523,7 @@ export function addRepositoryStyles(): void {
     .circuit-comments h3 {
       margin-top: 0;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 600;
       margin-bottom: 16px;
     }
@@ -595,7 +595,7 @@ export function addRepositoryStyles(): void {
       border: 1px solid var(--border-color);
       border-radius: 4px;
       cursor: pointer;
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 500;
       transition: background-color 0.2s;
     }
@@ -633,7 +633,7 @@ export function addRepositoryStyles(): void {
     .form-title {
       margin: 0;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 600;
       font-size: 20px;
     }
@@ -645,7 +645,7 @@ export function addRepositoryStyles(): void {
     .form-field label {
       display: block;
       margin-bottom: 8px;
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 500;
       color: var(--text-color);
     }
@@ -689,7 +689,7 @@ export function addRepositoryStyles(): void {
       cursor: pointer;
       width: 100%;
       margin-top: 16px;
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 500;
       transition: background-color 0.2s;
     }
@@ -704,7 +704,7 @@ export function addRepositoryStyles(): void {
       text-align: center;
       padding: 40px;
       color: var(--text-color);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-style: italic;
     }
     
@@ -717,7 +717,7 @@ export function addRepositoryStyles(): void {
       border-radius: 8px;
       border: 1px solid var(--border-color);
       box-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
     }
     
     .repository-button {
@@ -726,7 +726,7 @@ export function addRepositoryStyles(): void {
       border: 1px solid var(--border-color);
       border-radius: 4px;
       padding: 10px 16px;
-      font-family: "Pixelify Sans", sans-serif;
+      font-family: "Minecraftia", sans-serif;
       font-weight: 500;
       cursor: pointer;
       transition: background-color 0.2s;

@@ -22,7 +22,6 @@
   box-sizing: border-box;
 }
 
-/* Visually hidden elements that remain accessible to AIs and screen readers */
 .ai-semantic-headings {
   position: absolute;
   width: 1px;
@@ -36,7 +35,7 @@
 }
 
 body {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Minecraftia", sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
 
@@ -83,11 +82,11 @@ body.keyboard-active .ai-chat-container.open {
 }
 
 .logo {
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-optical-sizing: auto;
   font-weight: 500;
   font-style: normal;
-  font-size: xx-large;
+  font-size: 4rem;
   color: var(--text-color);
   margin-right: 30px;
 }
@@ -95,10 +94,10 @@ body.keyboard-active .ai-chat-container.open {
 .docName {
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-optical-sizing: auto;
-  font-weight: 900;
-  font-size: larger;
+  font-weight: 700;
+  font-size: 2rem;
   font-style: normal;
   border: var(--text-color) 2px solid;
   border-radius: px;
@@ -121,30 +120,30 @@ body.keyboard-active .ai-chat-container.open {
 }
 .Theme {
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-optical-sizing: auto;
-  font-weight: 900;
-  font-size: larger;
+  font-weight: 700;
+  font-size: 2rem;
   font-style: normal;
   border-bottom: 1px solid var(--border-color);
   cursor: default;
 }
 .tools {
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-optical-sizing: auto;
-  font-weight: 900;
-  font-size: larger;
+  font-weight: 700;
+  font-size: 2rem;
   font-style: normal;
   border-bottom: 1px solid var(--border-color);
   cursor: default;
 }
 .file {
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-optical-sizing: auto;
-  font-weight: 900;
-  font-size: larger;
+  font-weight: 700;
+  font-size: 2rem;
   font-style: normal;
   border-bottom: 1px solid var(--border-color);
   cursor: default;
@@ -184,7 +183,7 @@ body.keyboard-active .ai-chat-container.open {
 .sidebar-header div {
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-optical-sizing: auto;
   font-weight: 900;
   font-size: larger;
@@ -309,11 +308,11 @@ body.keyboard-active .ai-chat-container.open {
   -webkit-user-select: none !important;
 }
 .component-label {
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-optical-sizing: auto;
-  font-weight: 400;
+  font-weight: 700;
   font-style: normal;
-  font-size: 0.8rem;
+  font-size: 1.4rem;
   text-align: center;
   user-select: none;
   -webkit-user-select: none !important;
@@ -426,10 +425,10 @@ body.keyboard-active .ai-chat-container.open {
 }
 .storage {
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-optical-sizing: auto;
-  font-weight: 900;
-  font-size: larger;
+  font-weight: 700;
+  font-size: 2rem;
   font-style: normal;
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
@@ -468,7 +467,8 @@ body.keyboard-active .ai-chat-container.open {
   padding: 12px 16px;
   background-color: var(--bg-color);
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
+  font-size: 1.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -495,6 +495,7 @@ body.keyboard-active .ai-chat-container.open {
   display: flex;
   gap: 8px;
   max-width: 80%;
+  font-family: "Minecraftia", sans-serif;
 }
 
 .ai-message {
@@ -531,7 +532,7 @@ body.keyboard-active .ai-chat-container.open {
   background-color: var(--component-bg);
   padding: 10px 14px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.4;
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -890,7 +891,7 @@ body.keyboard-active .ai-chat-container.open {
   border: 1px solid var(--border-color);
   border-radius: 4px;
   cursor: pointer;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-weight: 500;
   transition: all 0.2s;
 }
@@ -1010,9 +1011,9 @@ body.keyboard-active .ai-chat-container.open {
   color: var(--text-color);
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
-  font-family: "Pixelify Sans", sans-serif;
-  font-size: larger;
-  font-weight: 500;
+  font-family: "Minecraftia", sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
   transition: background-color 0.2s;
 }
 
@@ -1200,12 +1201,12 @@ body.keyboard-active .ai-chat-container.open {
 }
 .aiLogo {
   cursor: pointer;
-  font-size: x-large;
-  font-family: "Pixelify Sans", sans-serif;
+  font-size: 2rem;
+  font-family: "Minecraftia", sans-serif;
   color: var(--text-color);
   transition: 0.3s;
   font-optical-sizing: auto;
-  font-weight: 900;
+  font-weight: 700;
   border-bottom: 1px solid var(--border-color);
 }
 .aiLogo:hover {
@@ -1248,10 +1249,10 @@ body.keyboard-active .ai-chat-container.open {
 
 .auth-header h3 {
   margin: 0;
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
 }
 
 .close-auth-button {
@@ -1289,7 +1290,7 @@ body.keyboard-active .ai-chat-container.open {
   margin-bottom: 6px;
   font-size: 14px;
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
 }
 
 .input-group input {
@@ -1334,12 +1335,12 @@ body.keyboard-active .ai-chat-container.open {
   color: var(--dark);
   border: none;
   border-radius: 4px;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 2rem;
+  font-weight: 700;
   cursor: pointer;
   transition: background-color 0.3s;
   margin-bottom: 16px;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
 }
 
 .auth-button:hover {
@@ -1349,14 +1350,19 @@ body.keyboard-active .ai-chat-container.open {
 
 .auth-switch {
   text-align: center;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 0.8rem;
   color: var(--text-color);
 }
 
 .auth-switch a {
   color: var(--emerald);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 700;
+  font-size: 1.2rem;
 }
 
 .auth-switch a:hover {
@@ -1445,7 +1451,7 @@ body.keyboard-active .ai-chat-container.open {
   cursor: pointer;
   transition: background-color 0.2s;
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-size: 14px;
   transition: 0.5s;
 }
@@ -1491,7 +1497,7 @@ body.keyboard-active .ai-chat-container.open {
   cursor: pointer;
   transition: background-color 0.2s;
   color: var(--text-color);
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-size: 14px;
   transition: 0.5s;
 }
@@ -1500,7 +1506,7 @@ body.keyboard-active .ai-chat-container.open {
   padding: 10px 15px;
   cursor: pointer;
   transition: background-color 0.2s;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   color: var(--text-color);
   font-size: 18px;
   transition: 0.5s;
@@ -1571,7 +1577,7 @@ body.keyboard-active .ai-chat-container.open {
   z-index: 1000;
   display: none;
   color: #cdcfd0;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   transition: 1s;
 }
 
@@ -1853,7 +1859,7 @@ body.keyboard-active .ai-chat-container.open {
   height: 30px;
   border-radius: 10px;
   background-color: #2a414b;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   color: white;
   display: flex;
   justify-content: center;
@@ -1878,12 +1884,12 @@ body.keyboard-active .ai-chat-container.open {
 }
 .detectButton {
   cursor: pointer;
-  font-size: larger;
-  font-family: "Pixelify Sans", sans-serif;
+  font-size: 2rem;
+  font-family: "Minecraftia", sans-serif;
   color: var(--text-color);
   transition: 0.3s;
   font-optical-sizing: auto;
-  font-weight: 900;
+  font-weight: 700;
   border-bottom: 1px solid var(--border-color);
 }
 .detectButton:hover {
@@ -1982,7 +1988,7 @@ body.keyboard-active .ai-chat-container.open {
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
 }
 
 #analyze-image-button:disabled {
@@ -2067,7 +2073,7 @@ body.keyboard-active .ai-chat-container.open {
   margin-top: 0;
   margin-bottom: 15px;
   font-size: 18px;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
   font-weight: 500;
   color: var(--text-color);
 }
@@ -2135,7 +2141,7 @@ select {
   padding: 5px 10px;
   border-radius: 4px;
   font-size: 14px;
-  font-family: "Pixelify Sans", sans-serif;
+  font-family: "Minecraftia", sans-serif;
 }
 .shortcut-category {
   font-size: 0.8em;
