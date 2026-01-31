@@ -45,6 +45,7 @@
         </a>
         <nav class="nav-links">
           <a href="#circuits">Public Circuits</a>
+          <a href="#compare">Compare</a>
           <a href="#faq">FAQ</a>
           <a
             href="https://github.com/KaanAydinli/LogicDrawer"
@@ -60,6 +61,7 @@
       </div>
       <div class="mobile-tray" id="mobileTray">
         <a href="#circuits">Public Circuits</a>
+        <a href="#compare">Compare</a>
         <a href="#faq">FAQ</a>
         <a href="https://github.com/KaanAydinli/LogicDrawer" target="_blank" rel="noopener"
           >View on GitHub</a
@@ -78,11 +80,11 @@
               you create, verify, and share logic circuits—faster than ever.
             </p>
           </div>
-          
+
           <div class="mockup will-fade" aria-hidden="true">
             <a href="logic.html" class="mockup-link">
               <div class="mockup-wrapper">
-                <video class="mockup-video" autoplay muted loop playsinline >
+                <video class="mockup-video" autoplay muted loop playsinline>
                   <source src="assets/logicdrawer.webm" type="video/webm" />
                   Video of working 4-bit counter using LogicDrawer.
                 </video>
@@ -156,6 +158,97 @@
         </div>
       </section>
 
+      <section class="section" id="compare">
+        <div class="container">
+          <header class="section-head will-fade">
+            <h2>Why LogicDrawer?</h2>
+            <p>See how we stack up against other simulators.</p>
+          </header>
+
+          <div class="comparison-wrapper will-fade">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th class="highlight">LogicDrawer</th>
+                  <th>Logicly</th>
+                  <th>CircuitVerse</th>
+                  <th>Logisim</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Free Forever</td>
+                  <td class="center highlight"><i class="fa-solid fa-check tick"></i></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                  <td class="center"><i class="fa-solid fa-check tick"></i></td>
+                  <td class="center"><i class="fa-solid fa-check tick"></i></td>
+                </tr>
+                <tr>
+                  <td>AI Circuit Generator</td>
+                  <td class="center highlight"><i class="fa-solid fa-check tick"></i></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                </tr>
+                <tr>
+                  <td>Image to Circuit</td>
+                  <td class="center highlight"><i class="fa-solid fa-check tick"></i></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                </tr>
+                <tr>
+                  <td>Web-Based (No Install)</td>
+                  <td class="center highlight"><i class="fa-solid fa-check tick"></i></td>
+                  <td class="center"><i class="fa-solid fa-check tick"></i></td>
+                  <td class="center"><i class="fa-solid fa-check tick"></i></td>
+                  <td class="center"><i class="fa-solid fa-check tick"></i></td>
+                </tr>
+                <tr>
+                  <td>Modern UI</td>
+                  <td class="center highlight"><i class="fa-solid fa-check tick"></i></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                  <td class="center"><span>~</span></td>
+                  <td class="center"><i class="fa-solid fa-xmark cross"></i></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="feature-grid will-fade">
+            <div class="feature-card">
+              <h3><i class="fa-solid fa-robot"></i> Intelligent Generation</h3>
+              <p>
+                Describe your circuit in plain text or upload a truth table, and our system builds
+                it for you instantly. Ideal for rapid prototyping.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h3><i class="fa-solid fa-camera"></i> Scan & Simulate</h3>
+              <p>
+                Take a picture of your hand-drawn logic diagrams and convert them into interactive
+                simulations automatically.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h3><i class="fa-solid fa-book"></i> Homework Helper</h3>
+              <p>
+                Solve K-Maps and Boolean expressions effortlessly. Generate truth tables and verify
+                your manual work with ease.
+              </p>
+            </div>
+            <div class="feature-card">
+              <h3><i class="fa-solid fa-bolt"></i> Real-time Simulation</h3>
+              <p>
+                Visualize signal flow with dynamic wire colors (green for high, gray for low) and
+                interact with switches and sensors in real-time.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="section faq" id="faq">
         <div class="container">
           <header class="section-head will-fade">
@@ -178,11 +271,11 @@
               <summary>What AI-powered features does LogicDrawer offer?</summary>
               <p>
                 LogicDrawer features advanced AI circuit recognition and generation. Upload
-                hand-drawn circuit sketches and our YOLO-based computter vision automatically detects
-                and converts them into functional circuits. Extract circuits from truth table or
-                Karnaugh map images using AI. Generate circuits from natural language descriptions
-                using Gemini AI. Get intelligent circuit suggestions and automatic error detection
-                with our AI assistant.
+                hand-drawn circuit sketches and our YOLO-based computter vision automatically
+                detects and converts them into functional circuits. Extract circuits from truth
+                table or Karnaugh map images using AI. Generate circuits from natural language
+                descriptions using Gemini AI. Get intelligent circuit suggestions and automatic
+                error detection with our AI assistant.
               </p>
             </details>
             <details class="glass will-fade">
@@ -273,12 +366,13 @@
         NOR: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 Q30 30 10 50 Q40 50 55 30 Q40 10 10 10"/><circle cx="60" cy="30" r="4"/><line x1="5" y1="22" x2="12" y2="22"/><line x1="5" y1="38" x2="12" y2="38"/><line x1="64" y1="30" x2="75" y2="30"/></svg>',
         XOR: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10 Q27 30 7 50"/><path d="M13 10 Q33 30 13 50 Q43 50 60 30 Q43 10 13 10"/><line x1="5" y1="22" x2="15" y2="22"/><line x1="5" y1="38" x2="15" y2="38"/><line x1="60" y1="30" x2="75" y2="30"/></svg>',
         XNOR: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 10 Q27 30 7 50"/><path d="M13 10 Q33 30 13 50 Q43 50 55 30 Q43 10 13 10"/><circle cx="60" cy="30" r="4"/><line x1="5" y1="22" x2="15" y2="22"/><line x1="5" y1="38" x2="15" y2="38"/><line x1="64" y1="30" x2="75" y2="30"/></svg>',
-        BUFFER: '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 L10 50 L60 30 Z"/><line x1="5" y1="30" x2="10" y2="30"/><line x1="60" y1="30" x2="75" y2="30"/></svg>'
+        BUFFER:
+          '<svg viewBox="0 0 80 60" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 10 L10 50 L60 30 Z"/><line x1="5" y1="30" x2="10" y2="30"/><line x1="60" y1="30" x2="75" y2="30"/></svg>',
       };
 
       function randomizeGateIcons() {
         const gateNames = Object.keys(logicGateSVGs);
-        document.querySelectorAll('[data-gate-icon]').forEach(icon => {
+        document.querySelectorAll("[data-gate-icon]").forEach(icon => {
           const randomGate = gateNames[Math.floor(Math.random() * gateNames.length)];
           icon.innerHTML = logicGateSVGs[randomGate];
         });
@@ -289,7 +383,7 @@
       const tray = document.getElementById("mobileTray");
       const yearEl = document.getElementById("year");
       if (yearEl) yearEl.textContent = new Date().getFullYear();
-      
+
       randomizeGateIcons();
 
       let lastY = 0;
