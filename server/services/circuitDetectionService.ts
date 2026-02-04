@@ -85,8 +85,6 @@ class CircuitDetectionService {
         Logger.error(`Python process exited with code ${code}. Cleaning up...`);
         this.pythonProcess = null;
         this.failActiveRequest(new Error(`Python process exited unexpectedly with code ${code}`));
-
-        // Attempt restart after delay
         setTimeout(() => this.startProcess(), 2000);
       });
 
