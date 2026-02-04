@@ -12,6 +12,7 @@ import { optionalAuth, AuthRequest } from "../middlewares/auth";
 import { aiRateLimit, getRateLimitStatus } from "../middlewares/aiRateLimit";
 
 import { Logger } from "../utils/logger";
+import { circuitDetectionService } from "../services/circuitDetectionService";
 
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
@@ -66,220 +67,22 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
       return res.status(400).json({ error: "No image provided" });
     }
 
-    const base64Data = base64Image.includes(",") ? base64Image.split(",")[1] : base64Image;
-    const serverRoot = path.resolve(__dirname, "..");
-    const pythonScriptPath = path.join(serverRoot, "detectCircuit.py");
+    // Use the persistent service
+    const result = await circuitDetectionService.detect(base64Image);
 
-    const venvPythonPath = path.join(serverRoot, "venv", "bin", "python3");
-    const venvPythonPathAlt = path.join(serverRoot, "..", "venv", "bin", "python3");
-    const venvPythonPathWin = path.join(serverRoot, "venv", "Scripts", "python.exe");
-    const venvPythonPathWinAlt = path.join(serverRoot, "..", "venv", "Scripts", "python.exe");
-
-    let pythonExecutable: string;
-    if (process.env.PYTHON_EXECUTABLE) {
-      pythonExecutable = process.env.PYTHON_EXECUTABLE;
-    } else if (process.platform === "win32") {
-      pythonExecutable = fs.existsSync(venvPythonPathWin)
-        ? venvPythonPathWin
-        : fs.existsSync(venvPythonPathWinAlt)
-          ? venvPythonPathWinAlt
-          : "python";
-    } else {
-      pythonExecutable = fs.existsSync(venvPythonPath)
-        ? venvPythonPath
-        : fs.existsSync(venvPythonPathAlt)
-          ? venvPythonPathAlt
-          : "python3";
-    }
-    if (!fs.existsSync(pythonScriptPath)) {
-      return res.status(500).json({
-        error: "Python script not found",
-        path: pythonScriptPath,
-      });
+    // Check if the service returned an error object
+    if (result.error) {
+      Logger.error("Detection service returned error:", result.error);
+      return res.status(500).json({ error: result.error });
     }
 
-    try {
-      const result = await new Promise((resolve, reject) => {
-        const pythonProcess = spawn(pythonExecutable, [pythonScriptPath], {
-          stdio: ["pipe", "pipe", "pipe"],
-          env: {
-            ...process.env,
-            PYTHONUNBUFFERED: "1",
-            PYTHONIOENCODING: "utf-8",
-          },
-        });
-
-        let scriptOutput = "";
-        let scriptError = "";
-        let isResolved = false;
-
-        pythonProcess.stdout.on("data", data => {
-          scriptOutput += data.toString();
-        });
-
-        pythonProcess.stderr.on("data", data => {
-          scriptError += data.toString();
-        });
-
-        let timeout: NodeJS.Timeout;
-        const safeResolve = (value: any) => {
-          if (timeout) clearTimeout(timeout);
-          if (!isResolved) {
-            isResolved = true;
-            resolve(value);
-          }
-        };
-
-        const safeReject = (reason: any) => {
-          if (timeout) clearTimeout(timeout);
-          if (!isResolved) {
-            isResolved = true;
-            reject(reason);
-          }
-        };
-
-        timeout = setTimeout(() => {
-          if (!isResolved) {
-            isResolved = true;
-            pythonProcess.kill();
-            safeReject(
-              new Error(
-                `Python script timed out after 60 seconds. Output so far: ${scriptOutput.substring(0, 500)}. Errors: ${scriptError.substring(0, 500)}`
-              )
-            );
-          }
-        }, 60000);
-
-        pythonProcess.on("error", err => {
-          safeReject(new Error(`Failed to start Python script: ${err.message}`));
-        });
-
-        pythonProcess.on("close", code => {
-          if (isResolved) return;
-
-          if (code === 0) {
-            try {
-              const jsonStart = scriptOutput.indexOf("{");
-              const jsonEnd = scriptOutput.lastIndexOf("}") + 1;
-
-              if (jsonStart >= 0 && jsonEnd > jsonStart) {
-                const jsonString = scriptOutput.substring(jsonStart, jsonEnd);
-
-                const result = JSON.parse(jsonString);
-                safeResolve(result);
-              } else {
-                safeReject(
-                  new Error(
-                    `No valid JSON found in Python output. Output: ${scriptOutput.substring(0, 500)}. Errors: ${scriptError.substring(0, 500)}`
-                  )
-                );
-              }
-            } catch (e) {
-              safeReject(
-                new Error(
-                  `Failed to parse Python output: ${(e as Error).message}. Output: ${scriptOutput.substring(0, 500)}. Errors: ${scriptError.substring(0, 500)}`
-                )
-              );
-            }
-          } else {
-            safeReject(
-              new Error(
-                `Python script failed with exit code ${code}. Error output: ${scriptError || "No error output captured"}`
-              )
-            );
-          }
-        });
-
-        pythonProcess.stdin.on("error", (err: NodeJS.ErrnoException) => {
-          if (err.code === "EPIPE") {
-            safeReject(
-              new Error(
-                `Python process closed unexpectedly before data could be written. This usually means the script crashed immediately. Error output: ${scriptError || "No error output captured"}`
-              )
-            );
-          } else if (err.code !== "EOF") {
-            safeReject(new Error(`Failed to write to Python script: ${err.message}`));
-          }
-        });
-
-        setImmediate(() => {
-          if (isResolved) return;
-
-          try {
-            if (!pythonProcess.stdin.writable) {
-              safeReject(
-                new Error(
-                  `Cannot write to Python stdin - process may have already closed. Error output: ${scriptError || "No error output captured"}`
-                )
-              );
-              return;
-            }
-
-            const chunkSize = 65536;
-            if (base64Data.length > chunkSize) {
-              let offset = 0;
-              const writeChunk = () => {
-                if (isResolved || !pythonProcess.stdin.writable) return;
-
-                const chunk = base64Data.slice(offset, offset + chunkSize);
-                if (chunk.length > 0) {
-                  const canContinue = pythonProcess.stdin.write(chunk, "utf8");
-                  offset += chunkSize;
-                  if (offset < base64Data.length) {
-                    if (canContinue) {
-                      setImmediate(writeChunk);
-                    } else {
-                      pythonProcess.stdin.once("drain", writeChunk);
-                    }
-                  } else {
-                    pythonProcess.stdin.end();
-                  }
-                } else {
-                  pythonProcess.stdin.end();
-                }
-              };
-              writeChunk();
-            } else {
-              pythonProcess.stdin.write(base64Data, "utf8", err => {
-                if (err) {
-                  safeReject(
-                    new Error(
-                      `Failed to write data to Python script: ${err.message}. Error output: ${scriptError || "No error output captured"}`
-                    )
-                  );
-                } else {
-                  pythonProcess.stdin.end();
-                }
-              });
-            }
-          } catch (writeError) {
-            safeReject(
-              new Error(
-                `Failed to send data to Python script: ${(writeError as Error).message}. Error output: ${scriptError || "No error output captured"}`
-              )
-            );
-          }
-        });
-      });
-
-      res.json(result);
-    } catch (pythonError) {
-      if (!res.headersSent) {
-        Logger.error("Python processing error:", pythonError);
-        res.status(500).json({
-          error: "Python processing error",
-          details: (pythonError as Error).message,
-        });
-      }
-    }
+    res.json(result);
   } catch (error) {
-    if (!res.headersSent) {
-      Logger.error("Internal server error:", error);
-      res.status(500).json({
-        error: "Internal server error",
-        details: (error as Error).message,
-      });
-    }
+    Logger.error("Python processing error:", error);
+    res.status(500).json({
+      error: "Python processing error",
+      details: (error as Error).message,
+    });
   }
 });
 

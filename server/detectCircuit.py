@@ -415,68 +415,89 @@ def find_connections(skeleton, gates):
     return wires
 
 
-if __name__ == "__main__":
-    
-    try:
-        
-        base64_string = sys.stdin.read()
-        if not base64_string:
-             raise ValueError("No base64 data received via stdin.")
 
-        
+def process_image(base64_string):
+    try:
+        # Decode base64
+        if "," in base64_string:
+            base64_string = base64_string.split(",")[1]
+            
         img_bytes = base64.b64decode(base64_string)
         nparr = np.frombuffer(img_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if img is None:
-            raise ValueError("Could not decode image from base64 string")
+            return {"error": "Could not decode image from base64 string"}
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     except Exception as e:
-        print(f"Error loading image from base64 stdin: {e}", file=sys.stderr)
-        sys.exit(1) 
+        return {"error": f"Error loading image: {str(e)}"}
 
-    
-    
     try:
-        model = YOLO(MODEL_PATH)
-        
-        yolo_results = model(img, verbose=False)[0] 
+        yolo_results = model(img, verbose=False)[0]
         gates, gate_boxes = get_gate_info(yolo_results)
         if not gates:
-            print(json.dumps({"gates": [], "wires": []}))
-            sys.exit(0)
+            return {"gates": [], "wires": []}
     except Exception as e:
-        print(f"Error during YOLO detection: {e}", file=sys.stderr)
-        sys.exit(1)
+        return {"error": f"Error during YOLO detection: {str(e)}"}
 
-    
     try:
         wire_mask = create_wire_mask(gray, gate_boxes, 
                                 graph_paper_mode=GRAPH_PAPER_MODE, 
                                 darkness_threshold=DARKNESS_THRESHOLD)
     except Exception as e:
-        print(f"Error creating wire mask: {e}", file=sys.stderr)
-        sys.exit(1)
+        return {"error": f"Error creating wire mask: {str(e)}"}
 
-    
     try:
         skeleton = skeletonize_mask(wire_mask)
         close_kernel = np.ones((5,5), np.uint8)
         closed_skeleton = cv2.morphologyEx(skeleton, cv2.MORPH_CLOSE, close_kernel)
     except Exception as e:
-        print(f"Error during skeletonization: {e}", file=sys.stderr)
-        sys.exit(1)
+        return {"error": f"Error during skeletonization: {str(e)}"}
 
-    
     try:
         wires = find_connections(closed_skeleton, gates)
     except Exception as e:
-        print(f"Error finding connections: {e}", file=sys.stderr)
-        sys.exit(1)
+        return {"error": f"Error finding connections: {str(e)}"}
 
-    
     output_data = {"gates": gates, "wires": wires}
     for gate in output_data["gates"]:
         gate.pop("bbox", None)
         gate.pop("terminals", None)
+        
+    return output_data
 
-    print(json.dumps(output_data, indent=None))
+if __name__ == "__main__":
+    # Load model once at startup
+    try:
+        model = YOLO(MODEL_PATH)
+        # Warmup (optional, helps avoid first request latency)
+        # model(np.zeros((640, 640, 3), dtype=np.uint8), verbose=False)
+        print("READY", file=sys.stderr)
+        sys.stderr.flush()
+    except Exception as e:
+        print(f"Error loading model: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    while True:
+        try:
+            line = sys.stdin.readline()
+            if not line:
+                break
+            
+            line = line.strip()
+            if not line:
+                continue
+                
+            result = process_image(line)
+            print(json.dumps(result))
+            sys.stdout.flush()
+            
+            # GC explicit collection to keep memory mostly stable
+            import gc
+            gc.collect()
+            
+        except KeyboardInterrupt:
+            break
+        except Exception as e:
+            # Catch-all for the loop
+            print(json.dumps({"error": f"System error: {str(e)}"}))
+            sys.stdout.flush()
