@@ -7,7 +7,7 @@ import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import multer from "multer";
+
 import { optionalAuth, AuthRequest } from "../middlewares/auth";
 import { aiRateLimit, getRateLimitStatus } from "../middlewares/aiRateLimit";
 
@@ -50,14 +50,6 @@ router.get("/rate-limit-status", optionalAuth, (req: AuthRequest, res, next) => 
       details: error instanceof Error ? error.message : String(error),
     });
   }
-});
-
-/**
- * Multer settings for file uploads.
- */
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
 router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {

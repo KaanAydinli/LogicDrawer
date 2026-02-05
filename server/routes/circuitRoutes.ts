@@ -21,21 +21,24 @@ router.use(authMiddleware);
 router.get("/", async (req: AuthRequest, res) => {
   try {
     const ownCircuits = await Circuit.find({ userId: req.user?.id })
+      .select("-components -wires")
       .populate("userId", "name")
       .sort({ createdAt: -1 });
 
     const sharedCircuits = await Circuit.find({
       sharedWith: req.user?.id,
     })
+      .select("-components -wires")
       .populate("userId", "name")
       .sort({ createdAt: -1 });
-
     const publicCircuits = await Circuit.find({
       userId: { $ne: req.user?.id },
       isPublic: true,
     })
+      .select("-components -wires")
       .populate("userId", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(50); // Added safety limit
 
     const sharedCircuitsWithFlag = sharedCircuits.map(circuit => {
       const circuitObj = circuit.toObject();
@@ -63,6 +66,9 @@ router.get("/", async (req: AuthRequest, res) => {
 router.get("/search", async (req: AuthRequest, res) => {
   try {
     const query = req.query.q as string;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const skip = (page - 1) * limit;
 
     if (!query || typeof query !== "string") {
       return res.status(400).json({ error: "Search query is required" });
@@ -78,8 +84,11 @@ router.get("/search", async (req: AuthRequest, res) => {
         },
       ],
     })
+      .select("-components -wires")
       .populate("userId", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.json(matchingCircuits);
   } catch (error) {
@@ -103,6 +112,7 @@ router.get("/shared-with-me", async (req: AuthRequest, res) => {
 
     try {
       const circuits = await Circuit.find({ sharedWith: user.name })
+        .select("-components -wires")
         .populate("userId", "name email")
         .sort({ dateCreated: -1 });
 
@@ -120,9 +130,16 @@ router.get("/shared-with-me", async (req: AuthRequest, res) => {
  */
 router.get("/public", async (req, res) => {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20; // Default limit 20
+    const skip = (page - 1) * limit;
+
     const circuits = await Circuit.find({ isPublic: true })
+      .select("-components -wires")
       .populate("userId", "name")
-      .sort({ dateCreated: -1 });
+      .sort({ dateCreated: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.json(circuits);
   } catch (error) {
