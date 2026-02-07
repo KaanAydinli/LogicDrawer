@@ -18,6 +18,6 @@ RUN npm install && npm run build \
  && chmod +x detectCircuit.py
 
 ENV PYTHONPATH=/app:/app/server \
-    NODE_OPTIONS="--max_old_space_size=1024 --gc-interval=100"
+    NODE_OPTIONS="--max_old_space_size=1024"
 
 CMD ["node", "server/dist/index.js"]
