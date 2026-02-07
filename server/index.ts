@@ -31,12 +31,23 @@ app.use(
   })
 );
 
-app.use(express.json({ limit: "25mb" }));
-app.use(express.urlencoded({ limit: "25mb", extended: true }));
+// Default smaller limit for most routes
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ limit: "1mb", extended: true }));
+
+// Larger limit only for AI routes that handle images
+app.use("/api/analyze", express.json({ limit: "25mb" }));
+app.use("/api/generate", express.json({ limit: "25mb" }));
+app.use("/api/agent", express.json({ limit: "25mb" }));
 app.use(cookieParser());
 
 mongoose
-  .connect(MONGODB_URI)
+  .connect(MONGODB_URI, {
+    maxPoolSize: 5, // Reduced from default 100
+    minPoolSize: 1, // Don't keep idle connections
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  })
   .then(() => {
     Logger.log("Connected to MongoDB");
   })
