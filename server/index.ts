@@ -86,13 +86,16 @@ app.get("/sitemap.xml", (req, res) => {
   res.type("application/xml");
   res.sendFile(path.join(rootPath, "sitemap.xml"));
 });
+app.get("/logic.html", (req, res) => {
+  res.redirect(301, "/logic/");
+});
 
 app.get("*", (req, res) => {
   if (req.path.includes(".") || req.path.startsWith("/api/")) {
     res.status(404).send("Not Found");
     return;
   }
-  res.sendFile(path.join(distPath, "logic.html"));
+  res.sendFile(path.join(distPath, "logic/index.html"));
 });
 
 // Global error handler for aborted requests

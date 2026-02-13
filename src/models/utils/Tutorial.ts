@@ -43,7 +43,7 @@ export class Tutorial {
         <p>LogicDrawer is a powerful tool that allows you to design, simulate, and share digital logic circuits.</p>
         <p>This quick guide will introduce you to the basic features and help you get started.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/login.mp4" type="video/mp4">
+          <source src="../assets/login.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       `,
@@ -54,7 +54,7 @@ export class Tutorial {
         <p>You can select components from the panel on the left and drag them into the workspace.</p>
         <p>Use logic gates like And, Or, Not, as well as input/output components like switches and LEDs to build your circuits.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/dragdrop.mp4" type="video/mp4">
+          <source src="../assets/dragdrop.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
         <p><strong>Tip:</strong> You can rotate a gate by double-clicking on it.</p>
@@ -66,7 +66,7 @@ export class Tutorial {
         <p>You can create a connection by clicking on the input/output points of the components and dragging to the other point you want to connect.</p>
         <p>Once the connection is established, the wires will automatically adjust themselves.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/connect.mp4" type="video/mp4">
+          <source src="../assets/connect.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       `,
@@ -77,7 +77,7 @@ export class Tutorial {
         <p>After creating your circuit, you can run the simulation by changing the input values.</p>
         <p>You can click on the switches to change their values and observe the behavior of your circuit.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/toggle.mp4" type="video/mp4">
+          <source src="../assets/toggle.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       `,
@@ -89,7 +89,7 @@ export class Tutorial {
         <p>You can chat with it to generate Verilog code, transition from K-Map and Truth Table visuals to the circuit, and get information about logic circuits.</p>
         <p>You can also upload photos of circuits you drew by hand and watch the AI transform that photo into a circuit you can manipulate.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/ai.mp4" type="video/mp4">
+          <source src="../assets/ai.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       `,
@@ -101,7 +101,7 @@ export class Tutorial {
         <p>You can collaborate on the shared circuit using your friend's username and save your changes.</p>
         <p>You can also access circuits shared by the community, review them, and use them in your own projects.</p>
         <video autoplay loop muted playsinline class="tutorial-video">
-          <source src="assets/repository.mp4" type="video/mp4">
+          <source src="../assets/repository.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
       `,

@@ -1064,7 +1064,7 @@ async function createExampleCircuit() {
   //   circuitBoard.addComponent(lightBulb);
   // }
 
-  const response = await fetch("./Counter.json");
+  const response = await fetch("../Counter.json");
   const jsonString = await response.text();
   circuitBoard.importCircuit(jsonString);
   circuitBoard.draw();

@@ -266,7 +266,7 @@ Simulation happens in `CircuitBoard.simulate()`:
 Vite builds two HTML entry points:
 
 - `index.html`: Landing page
-- `logic.html`: Main circuit editor application
+- `logic/index.html`: Main circuit editor application
 
 Both defined in `vite.config.ts` rollup options.
 

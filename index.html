@@ -84,7 +84,7 @@
           </div>
 
           <div class="mockup will-fade" aria-hidden="true">
-            <a href="logic.html" class="mockup-link">
+            <a href="/logic/" class="mockup-link">
               <div class="mockup-wrapper">
                 <video class="mockup-video" autoplay muted loop playsinline>
                   <source src="assets/logicdrawer.webm" type="video/webm" />
@@ -453,7 +453,7 @@
           tryButton.addEventListener("click", e => {
             e.preventDefault();
             localStorage.setItem("hasVisitedLogicDrawer", "true");
-            window.location.href = "/logic.html";
+            window.location.href = "/logic/";
           });
         }
 
@@ -461,7 +461,7 @@
         const fromApp = params.get("from_app");
 
         if (!fromApp && localStorage.getItem("hasVisitedLogicDrawer")) {
-          window.location.href = "/logic.html";
+          window.location.href = "/logic/";
         }
 
         if (fromApp) {
