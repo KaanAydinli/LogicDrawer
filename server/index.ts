@@ -12,6 +12,7 @@ import { validateInput } from "./middlewares/validation";
 import authRoutes from "./routes/authRoutes";
 import circuitRoutes from "./routes/circuitRoutes";
 import aiRoutes from "./routes/aiRoutes";
+import statsRoutes from "./routes/statsRoutes";
 import { Logger } from "./utils/logger";
 
 const app = express();
@@ -63,6 +64,7 @@ app.use(validateInput);
 app.use("/api/auth", authRoutes);
 app.use("/api/circuits", circuitRoutes);
 app.use("/api", aiRoutes);
+app.use("/api/stats", statsRoutes);
 
 app.get("/health", (req, res) => {
   res.json({

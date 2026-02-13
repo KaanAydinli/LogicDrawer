@@ -13,6 +13,7 @@ import { aiRateLimit, getRateLimitStatus } from "../middlewares/aiRateLimit";
 
 import { Logger } from "../utils/logger";
 import { circuitDetectionService } from "../services/circuitDetectionService";
+import { updateDetectionStats } from "../models/DetectionStats";
 
 const router = express.Router();
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
@@ -84,6 +85,15 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
     if (result.error) {
       Logger.error("Detection service returned error:", result.error);
       return res.status(500).json({ error: result.error });
+    }
+
+    // Update statistics after successful detection
+    if (result.gates && Array.isArray(result.gates)) {
+      const componentsCount = result.gates.length;
+      // Update stats asynchronously (fire and forget)
+      updateDetectionStats(1, componentsCount).catch(err => {
+        Logger.error("Failed to update detection stats:", err);
+      });
     }
 
     res.json(result);
