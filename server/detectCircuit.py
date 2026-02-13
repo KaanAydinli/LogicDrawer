@@ -10,12 +10,14 @@ import os
 import base64
 
 
-MODEL_PATH = "best.pt" 
+# Get the directory where this script is located
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(SCRIPT_DIR, "best.pt")
 
 if not os.path.exists(MODEL_PATH):
     possible_paths = [
-        "./best.pt",
-        "../best.pt",
+        os.path.join(SCRIPT_DIR, "best.pt"),
+        os.path.join(SCRIPT_DIR, "..", "best.pt"),
         "/app/server/best.pt",
         "/app/server/dist/best.pt"
     ]
