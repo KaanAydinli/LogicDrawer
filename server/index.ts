@@ -31,9 +31,12 @@ app.use(
   })
 );
 
-app.use("/api/analyze", express.json({ limit: "25mb" }));
-app.use("/api/generate", express.json({ limit: "25mb" }));
-app.use("/api/agent", express.json({ limit: "25mb" }));
+// Increase timeout for API routes with large payloads (e.g., base64 images)
+// Default is 120 seconds to accommodate slow YOLO processing
+const apiJsonParser = express.json({ limit: "25mb" });
+app.use("/api/analyze", apiJsonParser);
+app.use("/api/generate", apiJsonParser);
+app.use("/api/agent", apiJsonParser);
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ limit: "1mb", extended: true }));
@@ -90,7 +93,24 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(distPath, "logic.html"));
 });
 
-app.listen(PORT, () => {
+// Global error handler for aborted requests
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err.type === "request.aborted") {
+    Logger.log(`Client aborted request to ${req.path}`);
+    // Don't send a response since client already disconnected
+    return;
+  }
+
+  if (err.name === "BadRequestError" && err.message.includes("aborted")) {
+    Logger.log(`Request aborted for ${req.path}`);
+    return;
+  }
+
+  // Pass to default error handler
+  next(err);
+});
+
+const server = app.listen(PORT, () => {
   const interfaces = os.networkInterfaces();
   const ipAddress =
     Object.values(interfaces)

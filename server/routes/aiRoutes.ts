@@ -59,8 +59,26 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
       return res.status(400).json({ error: "No image provided" });
     }
 
-    // Use the persistent service
-    const result = await circuitDetectionService.detect(base64Image);
+    // Track if client disconnects
+    let clientAborted = false;
+    req.on("aborted", () => {
+      clientAborted = true;
+      Logger.log("Client aborted YOLO detection request");
+    });
+
+    // Use the persistent service with timeout protection
+    const detectionPromise = circuitDetectionService.detect(base64Image);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Detection timeout after 90s")), 90000)
+    );
+
+    const result = await Promise.race([detectionPromise, timeoutPromise]);
+
+    // Don't send response if client already disconnected
+    if (clientAborted) {
+      Logger.log("Client disconnected before detection completed");
+      return;
+    }
 
     // Check if the service returned an error object
     if (result.error) {
@@ -70,6 +88,12 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
 
     res.json(result);
   } catch (error) {
+    // Check if request was already aborted
+    if (req.socket.destroyed) {
+      Logger.log("Cannot send error response - client already disconnected");
+      return;
+    }
+
     Logger.error("Python processing error:", error);
     res.status(500).json({
       error: "Python processing error",
