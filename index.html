@@ -88,6 +88,27 @@
               LogicDrawer combines artificial intelligence with a precision design workspace to help
               you create, verify, and share logic circuits—faster than ever.
             </p>
+
+            <div class="stats-container will-fade" id="logicDrawerStats">
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <i class="fa-solid fa-microchip"></i>
+                </div>
+                <div class="stat-text">
+                  <span class="stat-value" id="statsCircuits">80+</span>
+                  <span class="stat-label">Circuits Created</span>
+                </div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-icon">
+                  <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div class="stat-text">
+                  <span class="stat-value" id="statsComponents">1.2k+</span>
+                  <span class="stat-label">Total Components</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="mockup will-fade" aria-hidden="true">
@@ -480,6 +501,20 @@
           const newUrl = window.location.pathname;
           window.history.replaceState({}, document.title, newUrl);
         }
+
+        // Fetch Stats
+        fetch("/api/stats/overview")
+          .then(res => res.json())
+          .then(data => {
+            if (data.totalCircuits) {
+              const circuitsEl = document.getElementById("statsCircuits");
+              const componentsEl = document.getElementById("statsComponents");
+
+              if (circuitsEl) circuitsEl.textContent = data.totalCircuits.toLocaleString();
+              if (componentsEl) componentsEl.textContent = data.totalComponents.toLocaleString();
+            }
+          })
+          .catch(err => console.error("Failed to load stats:", err));
       });
 
       setTheme();

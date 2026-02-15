@@ -228,6 +228,59 @@ html {
   line-height: 1.6;
 }
 
+.stats-container {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  margin-bottom: 40px;
+  margin-top: 0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(63, 208, 191, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  font-size: 22px;
+  border: 1px solid rgba(63, 208, 191, 0.2);
+}
+
+.stat-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.stat-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .stats-container {
+    justify-content: center;
+    margin-top: 24px;
+    margin-bottom: 32px;
+  }
+}
+
 .cta-row {
   display: flex;
   justify-content: flex-start;

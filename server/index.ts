@@ -45,9 +45,9 @@ app.use(cookieParser());
 
 mongoose
   .connect(MONGODB_URI, {
-    maxPoolSize: 5, // Reduced from default 100
-    minPoolSize: 1, // Don't keep idle connections
-    serverSelectionTimeoutMS: 5000,
+    maxPoolSize: 5,
+    minPoolSize: 1,
+    serverSelectionTimeoutMS: 10000,
     socketTimeoutMS: 45000,
   })
   .then(() => {
