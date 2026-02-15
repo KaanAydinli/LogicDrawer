@@ -41,16 +41,16 @@ export class Constant1 extends Component {
     ctx.stroke();
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "48px Minecraftia";
+    ctx.font = "64px Minecraftia";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("1", x + width / 2 + 4, y + height / 2 + 48);
+    ctx.fillText("1", x + width / 2 + 2, y + height / 2);
 
     const outputPort = this.outputs[0];
     ctx.beginPath();
     ctx.arc(outputPort.position.x, outputPort.position.y, 5, 0, Math.PI * 2);
 
-    ctx.fillStyle = "#427cb0";
+    ctx.fillStyle = "#50C878";
     ctx.fill();
 
     ctx.strokeStyle = "#cdcfd0";

@@ -41,10 +41,10 @@ export class Constant0 extends Component {
     ctx.stroke();
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "48px Minecraftia";
+    ctx.font = "64px Minecraftia";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("0", x + width / 2 + 4, y + height / 2 + 48);
+    ctx.fillText("0", x + width / 2 + 2, y + height / 2);
 
     const outputPort = this.outputs[0];
     ctx.beginPath();

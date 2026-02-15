@@ -46,8 +46,6 @@ export class SmartDisplay extends Component {
   evaluate(): void {
     for (let i = 0; i < this.bitWidth; i++) {
       this.bits[i] = this.inputs[i].value as boolean;
-
-     
     }
 
     this.value = bitsToNumber(this.bits);
@@ -95,7 +93,7 @@ export class SmartDisplay extends Component {
     ctx.stroke();
 
     ctx.fillStyle = "#8f8f8f";
-    ctx.font = "10px Arial";
+    ctx.font = "10px Minecraftia";
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
     ctx.fillText(
@@ -107,21 +105,21 @@ export class SmartDisplay extends Component {
     const { value, format } = this.getDisplayValue();
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "24px Arial";
+    ctx.font = "30px Minecraftia";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
     if (value.length > 8) {
-      ctx.font = "18px Arial";
+      ctx.font = "24px Minecraftia";
     }
     if (value.length > 16) {
-      ctx.font = "14px Arial";
+      ctx.font = "20px Minecraftia";
     }
 
     ctx.fillText(value, this.position.x + this.size.width / 2, this.position.y + 30);
 
     ctx.fillStyle = "#50C878";
-    ctx.font = "12px Arial";
+    ctx.font = "18px Minecraftia";
     ctx.fillText(format, this.position.x + this.size.width / 2, this.position.y + 44);
 
     const bitStartY = this.position.y + 60;
@@ -136,7 +134,7 @@ export class SmartDisplay extends Component {
       ctx.stroke();
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = "12px Arial";
+      ctx.font = "18px Minecraftia";
       ctx.textAlign = "center";
       ctx.fillText(
         `${i}: ${this.bits[i] ? "1" : "0"}`,

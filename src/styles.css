@@ -532,8 +532,7 @@ body.keyboard-active .ai-chat-container.open {
   background-color: var(--component-bg);
   padding: 10px 14px;
   border-radius: 8px;
-  font-size: 1rem;
-  line-height: 1.4;
+  font-size: 1.5rem;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -1162,8 +1161,8 @@ body.keyboard-active .ai-chat-container.open {
   border: none;
   outline: none;
   background-color: transparent;
-  font-size: 14px;
-  padding: 8px 12px;
+  font-size: 24px;
+
   resize: none;
   overflow-y: auto;
   min-height: 24px;

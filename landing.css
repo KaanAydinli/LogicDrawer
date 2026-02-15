@@ -717,9 +717,23 @@ html {
   .feature-grid {
     grid-template-columns: 1fr;
   }
+  .comparison-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .comparison-table {
+    min-width: 0; /* Allow table to shrink below 600px */
+    font-size: 12px;
+  }
   .comparison-table th,
   .comparison-table td {
-    padding: 12px 16px;
-    font-size: 14px;
+    padding: 8px 4px; /* Significantly reduced padding for meaningful content density */
+    text-align: center; /* Center align all cells on mobile */
+  }
+  .comparison-table td:first-child,
+  .comparison-table th:first-child {
+    text-align: left; /* Keep feature names left-aligned */
+    padding-left: 8px;
+    font-weight: 600;
   }
 }
