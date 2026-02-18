@@ -17,6 +17,7 @@ export default defineConfig({
         main: resolve(__dirname, "index.html"),
         app: resolve(__dirname, "logic/index.html"),
         compare: resolve(__dirname, "compare/index.html"),
+        stats: resolve(__dirname, "stats/index.html"),
       },
     },
     outDir: "dist",

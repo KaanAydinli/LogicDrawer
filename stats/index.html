@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LogicDrawer Stats – Live Platform Statistics</title>
+    <link rel="icon" type="image/png" href="/public/images/drawerLogo.png" />
+    <meta
+      name="description"
+      content="Live statistics for LogicDrawer – see how many circuits have been created, components placed, and users registered on the platform."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://logicdrawer.app/stats/" />
+
+    <meta property="og:title" content="LogicDrawer Stats – Live Platform Statistics" />
+    <meta
+      property="og:description"
+      content="Real-time platform statistics for LogicDrawer: circuits created, components placed, AI detections run, and registered users."
+    />
+    <meta property="og:url" content="https://logicdrawer.app/stats/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://logicdrawer.app/public/images/LogicDrawerImg.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="LogicDrawer Stats – Live Platform Statistics" />
+    <meta name="twitter:description" content="Real-time platform statistics for LogicDrawer." />
+    <meta name="twitter:image" content="https://logicdrawer.app/public/images/LogicDrawerImg.png" />
+
+    <link href="https://fonts.cdnfonts.com/css/minecraftia" rel="stylesheet" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="/landing.css" />
+
+    <style>
+      .stats-hero {
+        min-height: 52vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 120px 24px 60px;
+        position: relative;
+      }
+
+      .stats-hero .eyebrow {
+        margin-bottom: 20px;
+      }
+
+      .stats-hero h1 {
+        font-size: 80px;
+        line-height: 1.05;
+        margin: 0 0 16px;
+        letter-spacing: -1.2px;
+        font-weight: 500;
+      }
+
+      .stats-hero h1 .accent {
+        color: var(--accent);
+        text-shadow: 0 0 28px rgba(102, 230, 213, 0.4);
+      }
+
+      .stats-hero .subhead {
+        max-width: 560px;
+        margin: 0 auto 0;
+        font-size: 24px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .stats-section {
+        padding: 0 24px 100px;
+        max-width: 1500px;
+        margin: 0 auto;
+      }
+
+      .primary-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 24px;
+        margin-bottom: 50px;
+      }
+
+      .stat-card {
+        background: var(--glass);
+        border: 1px solid var(--glass-stroke);
+        border-radius: 24px;
+        padding: 36px 32px;
+        position: relative;
+        overflow: hidden;
+        transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease,
+          border-color 0.25s ease;
+        backdrop-filter: blur(12px);
+      }
+
+      .stat-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 24px;
+        background: radial-gradient(ellipse at top left, rgba(63, 208, 191, 0.08), transparent 60%);
+        pointer-events: none;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-6px);
+        box-shadow:
+          0 24px 60px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgba(63, 208, 191, 0.2);
+        border-color: rgba(63, 208, 191, 0.35);
+      }
+
+      .stat-card.featured {
+        background: linear-gradient(135deg, rgba(63, 208, 191, 0.12), rgba(63, 208, 191, 0.04));
+        border-color: rgba(63, 208, 191, 0.3);
+      }
+
+      .stat-card.featured::before {
+        background: radial-gradient(ellipse at top left, rgba(63, 208, 191, 0.15), transparent 60%);
+      }
+
+      .card-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 24px;
+        position: relative;
+      }
+
+      .card-icon.teal {
+        background: rgba(63, 208, 191, 0.12);
+        color: var(--accent);
+        border: 1px solid rgba(63, 208, 191, 0.25);
+        box-shadow: 0 0 20px rgba(63, 208, 191, 0.15);
+      }
+
+      .card-icon.purple {
+        background: rgba(164, 108, 255, 0.12);
+        color: #a46cff;
+        border: 1px solid rgba(164, 108, 255, 0.25);
+        box-shadow: 0 0 20px rgba(164, 108, 255, 0.15);
+      }
+
+      .card-icon.blue {
+        background: rgba(96, 165, 250, 0.12);
+        color: #60a5fa;
+        border: 1px solid rgba(96, 165, 250, 0.25);
+        box-shadow: 0 0 20px rgba(96, 165, 250, 0.15);
+      }
+
+      .card-icon.orange {
+        background: rgba(251, 146, 60, 0.12);
+        color: #fb923c;
+        border: 1px solid rgba(251, 146, 60, 0.25);
+        box-shadow: 0 0 20px rgba(251, 146, 60, 0.15);
+      }
+
+      .card-icon.green {
+        background: rgba(74, 222, 128, 0.12);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.25);
+        box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+      }
+
+      .card-label {
+        font-size: 20px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+
+      .card-value {
+        font-size: 50px;
+        font-weight: 500;
+        color: #fff;
+        line-height: 1;
+        margin-bottom: 8px;
+        letter-spacing: -1px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .card-value.loading {
+        opacity: 0.3;
+      }
+
+      .card-desc {
+        font-size: 16px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .card-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(63, 208, 191, 0.15);
+        border: 1px solid rgba(63, 208, 191, 0.3);
+        color: var(--accent);
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+
+      .live-dot {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 19px;
+        color: var(--muted);
+        margin-top: 40px;
+      }
+
+      .live-dot::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #4ade80;
+        box-shadow: 0 0 8px #4ade80;
+        animation: pulse-dot 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse-dot {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(0.85);
+        }
+      }
+
+      .stats-divider {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .stats-divider h2 {
+        font-size: 28px;
+        letter-spacing: -0.5px;
+        margin: 0 0 8px;
+        color: #fff;
+      }
+
+      .stats-divider p {
+        color: var(--muted);
+        font-size: 15px;
+        margin: 0;
+      }
+
+      .last-updated {
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 12px;
+        opacity: 0.7;
+      }
+
+      .stats-cta {
+        text-align: center;
+        padding: 60px 24px 100px;
+        border-top: 1px solid var(--border-color);
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .stats-cta h2 {
+        font-size: 36px;
+        margin: 0 0 12px;
+        letter-spacing: -0.8px;
+      }
+
+      .stats-cta p {
+        color: var(--muted);
+        margin: 0 0 32px;
+        font-size: 17px;
+      }
+
+      @media (max-width: 900px) {
+        .primary-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 600px) {
+        .stats-hero h1 {
+          font-size: 38px;
+        }
+
+        .primary-grid,
+        .secondary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .card-value {
+          font-size: 40px;
+        }
+
+        .stat-card {
+          padding: 28px 24px;
+        }
+      }
+
+      @keyframes count-in {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card-value.counted {
+        animation: count-in 0.4s ease forwards;
+      }
+
+      .nav-links a.active {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-glow"></div>
+    <div class="bg-circuit" aria-hidden="true"></div>
+
+    <header class="nav" id="nav">
+      <div class="nav-inner">
+        <a href="/" class="brand">
+          <span>LogicDrawer</span>
+        </a>
+        <nav class="nav-links">
+          <a href="/#circuits">Public Circuits</a>
+          <a href="/compare/">Compare</a>
+          <a href="/#faq">FAQ</a>
+          <a href="#" class="active">Stats</a>
+          <a
+            href="https://github.com/KaanAydinli/LogicDrawer"
+            target="_blank"
+            rel="noopener"
+            class="ghost"
+            >GitHub</a
+          >
+        </nav>
+        <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <div class="mobile-tray" id="mobileTray">
+        <a href="/#circuits">Public Circuits</a>
+        <a href="/compare/">Compare</a>
+        <a href="/#faq">FAQ</a>
+        <a href="#">Stats</a>
+        <a href="https://github.com/KaanAydinli/LogicDrawer" target="_blank" rel="noopener"
+          >View on GitHub</a
+        >
+      </div>
+    </header>
+
+    <main>
+      <section class="stats-hero will-fade">
+        <div class="eyebrow">LIVE PLATFORM DATA</div>
+        <h1>LogicDrawer <span class="accent">by the Numbers</span></h1>
+        <p class="subhead">
+          Real-time statistics from the LogicDrawer platform — circuits built, components placed, AI
+          detections run, and the community behind it all.
+        </p>
+        <div class="live-dot">Data refreshed on page load</div>
+      </section>
+
+      <div class="stats-section">
+        <div class="primary-grid">
+          <div class="stat-card featured will-fade" id="card-circuits">
+            <div class="card-icon teal"><i class="fa-solid fa-microchip"></i></div>
+            <div class="card-label">Circuits Created</div>
+            <div class="card-value loading" id="val-circuits">—</div>
+            <div class="card-desc">Total circuits saved to the platform by all users.</div>
+          </div>
+          <div class="stat-card will-fade" id="card-components">
+            <div class="card-icon purple"><i class="fa-solid fa-layer-group"></i></div>
+            <div class="card-label">Components Placed</div>
+            <div class="card-value loading" id="val-components">—</div>
+            <div class="card-desc">
+              Logic gates, flip-flops, displays and more across all circuits.
+            </div>
+          </div>
+
+          <div class="stat-card will-fade" id="card-users">
+            <div class="card-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div class="card-label">Registered Users</div>
+            <div class="card-value loading" id="val-users">—</div>
+            <div class="card-desc">Community members with a LogicDrawer account.</div>
+          </div>
+          <div class="stat-card will-fade" id="card-detected-circuits">
+            <div class="card-badge">AI Powered</div>
+            <div class="card-icon orange"><i class="fa-solid fa-camera"></i></div>
+            <div class="card-label">Circuits Detected</div>
+            <div class="card-value loading" id="val-detected-circuits">—</div>
+            <div class="card-desc">
+              Hand-drawn circuit images processed by the YOLO v8 detection model.
+            </div>
+          </div>
+
+          <div class="stat-card will-fade" id="card-detected-components">
+            <div class="card-badge">AI Powered</div>
+            <div class="card-icon green"><i class="fa-solid fa-eye"></i></div>
+            <div class="card-label">Components Detected</div>
+            <div class="card-value loading" id="val-detected-components">—</div>
+            <div class="card-desc">
+              Individual logic gates identified from images using computer vision.
+            </div>
+          </div>
+        </div>
+
+        <div class="last-updated" id="last-updated"></div>
+      </div>
+
+      <div class="stats-cta will-fade">
+        <h2>Join the community</h2>
+        <p>Start designing circuits and contribute to these numbers.</p>
+        <div class="cta-row" style="justify-content: center">
+          <a href="/logic/" class="btn btn-primary">Open LogicDrawer</a>
+          <a
+            href="https://github.com/KaanAydinli/LogicDrawer"
+            class="btn btn-ghost"
+            target="_blank"
+            rel="noopener"
+            >View on GitHub</a
+          >
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <span>© <span id="year"></span> LogicDrawer</span>
+        <a
+          href="https://github.com/KaanAydinli/LogicDrawer"
+          class="btn btn-ghost"
+          target="_blank"
+          rel="noopener"
+          >View on GitHub</a
+        >
+      </div>
+    </footer>
+
+    <script>
+      const nav = document.getElementById("nav");
+      const burger = document.getElementById("burger");
+      const tray = document.getElementById("mobileTray");
+      const yearEl = document.getElementById("year");
+      if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+      const onScroll = () => {
+        const y = window.scrollY || window.pageYOffset;
+        if (y > 10 && !nav.classList.contains("scrolled")) nav.classList.add("scrolled");
+        else if (y <= 10 && nav.classList.contains("scrolled")) nav.classList.remove("scrolled");
+      };
+      document.addEventListener("scroll", onScroll, { passive: true });
+      onScroll();
+
+      if (burger && tray) {
+        const toggle = () => {
+          const open = tray.classList.toggle("open");
+          burger.setAttribute("aria-expanded", open ? "true" : "false");
+          document.body.style.overflow = open ? "hidden" : "";
+        };
+        burger.addEventListener("click", toggle);
+        tray.querySelectorAll("a").forEach(a => a.addEventListener("click", toggle));
+      }
+
+      const observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { rootMargin: "0px 0px -10% 0px", threshold: 0.12 }
+      );
+      document.querySelectorAll(".will-fade").forEach((el, i) => {
+        el.style.transitionDelay = `${Math.min(i * 80, 400)}ms`;
+        observer.observe(el);
+      });
+
+      const closeTrayOnResize = () => {
+        const isDesktop = window.matchMedia("(min-width: 1025px)").matches;
+        if (isDesktop && tray && tray.classList.contains("open")) {
+          tray.classList.remove("open");
+          burger && burger.setAttribute("aria-expanded", "false");
+          document.body.style.overflow = "";
+        }
+      };
+      window.addEventListener("resize", closeTrayOnResize);
+      closeTrayOnResize();
+
+      const setTheme = () => {
+        const r = document.documentElement.style;
+        r.setProperty("--bg-color", "#0f2027");
+        r.setProperty("--text-color", "#e0f2f1");
+        r.setProperty("--component-bg", "#203a43");
+        r.setProperty("--border-color", "#2c5364");
+        r.setProperty("--secondary-bg", "#192f38");
+        r.setProperty("--input-bg", "#D1F2EB");
+      };
+      setTheme();
+
+      function animateCount(el, target, duration = 1400) {
+        const start = performance.now();
+        const isLarge = target > 999;
+
+        el.classList.remove("loading");
+        el.classList.add("counted");
+
+        const step = now => {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+
+          const eased = 1 - Math.pow(1 - progress, 3);
+          const current = Math.round(eased * target);
+          el.textContent = current.toLocaleString();
+          if (progress < 1) requestAnimationFrame(step);
+          else el.textContent = target.toLocaleString();
+        };
+        requestAnimationFrame(step);
+      }
+
+      async function loadStats() {
+        try {
+          const res = await fetch("/api/stats/all");
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          const map = [
+            ["val-circuits", data.totalCircuits],
+            ["val-components", data.totalComponents],
+            ["val-users", data.totalUsers],
+            ["val-detected-circuits", data.totalCircuitsDetected],
+            ["val-detected-components", data.totalComponentsDetected],
+          ];
+
+          map.forEach(([id, value], i) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            setTimeout(() => animateCount(el, value ?? 0), i * 120);
+          });
+
+          if (data.lastUpdated) {
+            const lu = document.getElementById("last-updated");
+            if (lu) {
+              const d = new Date(data.lastUpdated);
+              lu.textContent = `AI detection stats last updated: ${d.toLocaleString()}`;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load stats:", err);
+
+          document.querySelectorAll(".card-value.loading").forEach(el => {
+            el.textContent = "N/A";
+            el.classList.remove("loading");
+          });
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", loadStats);
+    </script>
+  </body>
+</html>
