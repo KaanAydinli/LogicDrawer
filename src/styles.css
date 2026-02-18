@@ -1434,7 +1434,7 @@ body.keyboard-active .ai-chat-container.open {
   top: 100%;
   right: -100%;
   background-color: var(--secondary-bg);
-  min-width: 120px;
+  min-width: 150px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
   z-index: 1000;
@@ -1451,7 +1451,7 @@ body.keyboard-active .ai-chat-container.open {
   transition: background-color 0.2s;
   color: var(--text-color);
   font-family: "Minecraftia", sans-serif;
-  font-size: 14px;
+  font-size: 24px;
   transition: 0.5s;
 }
 .tools-dropdown.show {
@@ -1497,7 +1497,7 @@ body.keyboard-active .ai-chat-container.open {
   transition: background-color 0.2s;
   color: var(--text-color);
   font-family: "Minecraftia", sans-serif;
-  font-size: 14px;
+  font-size: 24px;
   transition: 0.5s;
 }
 
@@ -1507,7 +1507,7 @@ body.keyboard-active .ai-chat-container.open {
   transition: background-color 0.2s;
   font-family: "Minecraftia", sans-serif;
   color: var(--text-color);
-  font-size: 18px;
+  font-size: 24px;
   transition: 0.5s;
 }
 
@@ -1562,6 +1562,38 @@ body.keyboard-active .ai-chat-container.open {
 
 .settings-icon:hover {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-divider {
+  color: var(--border-color);
+  font-size: 1.4rem;
+  user-select: none;
+  opacity: 0.7;
+}
+
+.contact-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 2rem;
+  font-family: "Minecraftia", sans-serif;
+  color: var(--text-color);
+  text-decoration: none;
+  transition: 0.3s;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.contact-button:hover {
+  transform: scale(1.1) translateY(-2px);
+  color: var(--text-color);
+}
+
+.mobile-contact-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
 }
 
 .settings-panel {

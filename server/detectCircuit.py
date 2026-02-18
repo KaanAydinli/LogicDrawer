@@ -254,7 +254,6 @@ def get_terminal_regions(gate):
                                   x2 + terminal_width // 2, y1 + 2*h // 3 + terminal_height // 2)
     else:
         
-        print(f"Uyarı: '{gate_type}' için spesifik terminal bölgeleri tanımlanmadı. Varsayılan kullanılıyor.", file=sys.stderr)
         terminals['input0'] = (x1 - terminal_width // 2, cy - terminal_height // 2,
                                x1 + terminal_width // 2, cy + terminal_height // 2)
         terminals['output0'] = (x2 - terminal_width // 2, cy - terminal_height // 2,
