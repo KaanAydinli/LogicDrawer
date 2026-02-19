@@ -24,9 +24,9 @@ import { Logger } from "../../utils/logger";
 export class VerilogCircuitConverter {
   private parser: VerilogParser;
   public circuitBoard: CircuitBoard;
-  private componentPositions: Map<string, Point> = new Map();
-  private components: { [name: string]: Component } = {};
-  private outputPorts: { [name: string]: any } = {};
+  private componentPositions = new Map<string, Point>();
+  private components: Record<string, Component> = {};
+  private outputPorts: Record<string, any> = {};
   private feedbackWires: { source: string; target: string }[] = [];
 
   constructor(circuitBoard: CircuitBoard) {
@@ -319,7 +319,7 @@ export class VerilogCircuitConverter {
         });
       });
     }
-    let effectiveMaxLayer = Math.min(maxLayer, 4);
+    const effectiveMaxLayer = Math.min(maxLayer, 4);
     const outputXPos = xBase + (effectiveMaxLayer + 1) * xLayerSpacing + 50;
 
     yPos = yBase + 100;
@@ -334,7 +334,7 @@ export class VerilogCircuitConverter {
   }
 
   private groupRelatedSignals(signals: VerilogPort[]): VerilogPort[][] {
-    const groups: { [key: string]: VerilogPort[] } = {};
+    const groups: Record<string, VerilogPort[]> = {};
 
     signals.forEach(signal => {
       const match = signal.name.match(/^([a-zA-Z_]+)(\d+)$/);
@@ -719,7 +719,7 @@ export class VerilogCircuitConverter {
     component: Component,
     inputIndex: number
   ): void {
-    var trimmedInputName = inputName.trim();
+    const trimmedInputName = inputName.trim();
     if (this.isConstant(trimmedInputName)) {
       this.connectConstantValue(trimmedInputName, component, inputIndex);
       return;
@@ -880,7 +880,7 @@ export class VerilogCircuitConverter {
         const hexMatch = condition.value.match(/(\d+)'h([0-9A-Fa-f]+)/);
         const decimalMatch = condition.value.match(/^(\d+)$/);
 
-        let binaryValue: string = "";
+        let binaryValue = "";
 
         if (binaryMatch) {
           binaryValue = binaryMatch[2].padStart(parseInt(binaryMatch[1]), "0");
@@ -1072,7 +1072,7 @@ export class VerilogCircuitConverter {
   }
 
   private findUnusedPosition(): Point {
-    let x = 50;
+    const x = 50;
     let y = 50;
 
     while (this.isPositionUsed(x, y)) {
@@ -1086,12 +1086,12 @@ export class VerilogCircuitConverter {
     const multiBitInputs = module.inputs.filter(input => input.bitWidth && input.bitWidth > 1);
     const multiBitOutputs = module.outputs.filter(output => output.bitWidth && output.bitWidth > 1);
 
-    var horizontalSpacing = 100;
+    const horizontalSpacing = 100;
 
-    var verticalSpacing = 200;
+    const verticalSpacing = 200;
 
-    var inputBaseX = 50;
-    var inputBaseY = 100;
+    const inputBaseX = 50;
+    let inputBaseY = 100;
 
     multiBitInputs.forEach((input, signalIndex) => {
       if (!input.bitWidth) return;

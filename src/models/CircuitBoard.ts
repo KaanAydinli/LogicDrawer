@@ -1,4 +1,4 @@
-import { Component, Point, Port } from "./Component";
+import { Component, Point, Port, GRID_SIZE } from "./Component";
 import { Wire } from "./Wire";
 import { AndGate } from "./gates/AndGate";
 import { OrGate } from "./gates/OrGate";
@@ -49,30 +49,21 @@ export class CircuitBoard {
   dragOffset: Point;
   currentWire: Wire | null;
   grid: boolean;
-  public scale: number = 1;
-  public offsetX: number = 0;
-  public offsetY: number = 0;
-  isDraggingCanvas: boolean = false;
-  lastMouseX: number = 0;
-  lastMouseY: number = 0;
-  public minimapWidth: number = 200;
-  public minimapHeight: number = 200;
+  public scale = 1;
+  public offsetX = 0;
+  public offsetY = 0;
+  isDraggingCanvas = false;
+  lastMouseX = 0;
+  lastMouseY = 0;
+  public minimapWidth = 200;
+  public minimapHeight = 200;
   private truthTableManager: TruthTableManager;
 
-  // Control point interaction state
-  private isDraggingControlPoint: boolean = false;
-  private draggedControlPointIndex: number | null = null;
-
-  // Wire drag detection for creating control points
-  private wireClickStartPos: Point | null = null;
-  private potentialWireForControlPoint: Wire | null = null;
-  private isWireDragDetection: boolean = false;
-  private readonly MIN_DRAG_DISTANCE = 3; // pixels
-
   private selectionRect: { start: Point; end: Point } | null = null;
-  private isSelecting: boolean = false;
+  private isSelecting = false;
   public selectedComponents: Component[] = [];
   private gatePropertiesPanel: GatePanel;
+  private dragStartPositions = new Map<string, Point>();
 
   constructor(canvas: HTMLCanvasElement, minimap: HTMLCanvasElement) {
     this.components = [];
@@ -182,18 +173,12 @@ export class CircuitBoard {
 
     // Editing operations
     else if (event.key === "Delete" || event.key === "Backspace") {
-      // Try to delete selected control point first
-      if (this.selectedWire && this.selectedWire.selectedPointIndex !== null) {
-        this.selectedWire.removeSelectedControlPoint();
-        this.draw();
-      } else {
-        this.deleteSelected();
-      }
+      this.deleteSelected();
     } else if (event.key === "Escape") {
       // Clear all selections
       if (this.selectedWire) {
-        this.selectedWire.selectControlPoint(null);
-        this.selectedWire.setHoveredControlPoint(null);
+        this.selectedWire.selected = false;
+        this.selectedWire = null;
         this.draw();
       }
     } else if (event.ctrlKey && event.key === "a") {
@@ -203,7 +188,7 @@ export class CircuitBoard {
       event.preventDefault();
       this.toggleGrid();
     } else if (event.ctrlKey && event.key === "z") {
-      let json = ActionHistory.undo();
+      const json = ActionHistory.undo();
 
       if (json != null) this.importCircuit(json);
     }
@@ -238,10 +223,10 @@ export class CircuitBoard {
       }
     }
     // Wire routing reset
-    else if (event.key === "R" && event.shiftKey && this.selectedWire) {
-      event.preventDefault();
-      this.selectedWire.resetToAutoRoute();
-      this.selectedWire.forceAutoRoute(this.components);
+    else if (event.key === "r" && this.selectedWire) {
+      if (this.selectedComponents.length > 0) {
+        this.selectedWire.forceAutoRoute(this.components);
+      }
       this.draw();
     }
   }
@@ -255,13 +240,9 @@ export class CircuitBoard {
 
     const mousePos = this.getMousePosition(event);
 
-    // Check if right-clicking on a control point
-    if (this.selectedWire) {
-      const controlPointIndex = this.selectedWire.isNearControlPoint(mousePos);
-      if (controlPointIndex !== null) {
-        // Remove the control point
-        this.selectedWire.removeControlPoint(controlPointIndex);
-        this.draw();
+    for (let i = this.wires.length - 1; i >= 0; i--) {
+      const wire = this.wires[i];
+      if (wire.isNearPoint(mousePos)) {
         return;
       }
     }
@@ -626,8 +607,8 @@ export class CircuitBoard {
     });
   }
 
-  private analyzeGateLayers(gates: Component[]): { [layer: number]: Component[] } {
-    const layeredGates: { [layer: number]: Component[] } = { 0: [] };
+  private analyzeGateLayers(gates: Component[]): Record<number, Component[]> {
+    const layeredGates: Record<number, Component[]> = { 0: [] };
     const assignedGates = new Set<string>();
 
     gates.forEach(gate => {
@@ -686,7 +667,7 @@ export class CircuitBoard {
     gate: Component,
     assignedGates: Set<string>,
     currentLayer: number,
-    layeredGates: { [layer: number]: Component[] }
+    layeredGates: Record<number, Component[]>
   ): boolean {
     const inputConnections = this.getInputConnections(gate);
 
@@ -1309,7 +1290,7 @@ export class CircuitBoard {
     content: string,
     fileName: string,
     contentType: string,
-    isDataURL: boolean = false
+    isDataURL = false
   ): void {
     const a = document.createElement("a");
 
@@ -1379,11 +1360,11 @@ export class CircuitBoard {
     const inputs: Component[] = [];
     const outputs: Component[] = [];
     const gates: Component[] = [];
-    const wires: Map<string, string> = new Map();
-    const wireConnections: Map<string, string[]> = new Map();
+    const wires = new Map<string, string>();
+    const wireConnections = new Map<string, string[]>();
     let internalWireCount = 0;
 
-    const directOutputConnections: Map<string, string> = new Map();
+    const directOutputConnections = new Map<string, string>();
 
     for (const comp of this.components) {
       if (
@@ -1511,14 +1492,14 @@ export class CircuitBoard {
 
     if (gates.length > 0) {
       moduleCode += "// Gate instantiations\n";
-      let instanceCount: Map<string, number> = new Map();
+      const instanceCount = new Map<string, number>();
 
       for (const gate of gates) {
-        let gateType = this.mapGateTypeToVerilog(gate.type);
+        const gateType = this.mapGateTypeToVerilog(gate.type);
 
-        let instanceNum = instanceCount.get(gateType) || 0;
+        const instanceNum = instanceCount.get(gateType) || 0;
         instanceCount.set(gateType, instanceNum + 1);
-        let instanceName = `${gateType}${instanceNum}`;
+        const instanceName = `${gateType}${instanceNum}`;
 
         let outputSignal = "";
 
@@ -1738,7 +1719,7 @@ export class CircuitBoard {
     this.minimap.addEventListener("mouseleave", this.handleMinimapLeave.bind(this));
   }
 
-  private isDraggingMinimap: boolean = false;
+  private isDraggingMinimap = false;
 
   private handleMinimapClick(event: MouseEvent): void {
     this.isDraggingMinimap = true;
@@ -1923,11 +1904,11 @@ export class CircuitBoard {
       }
     });
 
-    // Remove each wire
+    
     wiresToRemove.forEach(wire => {
       wire.disconnect();
 
-      // Remove from wires array
+     
       const index = this.wires.indexOf(wire);
       if (index !== -1) {
         this.wires.splice(index, 1);
@@ -1972,7 +1953,6 @@ export class CircuitBoard {
   }
 
   private drawGrid(): void {
-    const gridSize = 20;
     const width = this.canvas.width;
     const height = this.canvas.height;
 
@@ -1981,26 +1961,29 @@ export class CircuitBoard {
     const visibleRight = (width - this.offsetX) / this.scale;
     const visibleBottom = (height - this.offsetY) / this.scale;
 
-    const startX = Math.floor(visibleLeft / gridSize) * gridSize;
-    const startY = Math.floor(visibleTop / gridSize) * gridSize;
-    const endX = Math.ceil(visibleRight / gridSize) * gridSize;
-    const endY = Math.ceil(visibleBottom / gridSize) * gridSize;
+   
+    let step = GRID_SIZE;
+    if (this.scale < 0.5) step *= 2;
+    if (this.scale < 0.25) step *= 4;
+    if (this.scale < 0.1) step *= 10;
 
-    this.ctx.strokeStyle = "rgba(80, 80, 80, 0.2)";
-    this.ctx.lineWidth = 1 / this.scale;
+    const startX = Math.floor(visibleLeft / step) * step;
+    const startY = Math.floor(visibleTop / step) * step;
+    const endX = Math.ceil(visibleRight / step) * step;
+    const endY = Math.ceil(visibleBottom / step) * step;
 
-    for (let x = startX; x <= endX; x += gridSize) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(x, visibleTop);
-      this.ctx.lineTo(x, visibleBottom);
-      this.ctx.stroke();
-    }
+   
+    this.ctx.fillStyle = "rgba(100, 100, 100, 0.4)";
 
-    for (let y = startY; y <= endY; y += gridSize) {
-      this.ctx.beginPath();
-      this.ctx.moveTo(startX, y);
-      this.ctx.lineTo(endX, y);
-      this.ctx.stroke();
+    
+    const dotSize = Math.max(1 / this.scale, 1.5);
+    const offset = dotSize / 2;
+
+    this.ctx.beginPath();
+    for (let x = startX; x <= endX; x += step) {
+      for (let y = startY; y <= endY; y += step) {
+        this.ctx.fillRect(x - offset, y - offset, dotSize, dotSize);
+      }
     }
   }
 
@@ -2171,6 +2154,14 @@ export class CircuitBoard {
         this.draggedComponent = component;
 
         this.dragOffset = { ...mousePos };
+        this.dragStartPositions.clear();
+        if (this.selectedComponents.length > 0) {
+          this.selectedComponents.forEach(c => {
+            this.dragStartPositions.set(c.id, { ...c.position });
+          });
+        } else {
+          this.dragStartPositions.set(component.id, { ...component.position });
+        }
 
         this.draw();
         return;
@@ -2209,34 +2200,24 @@ export class CircuitBoard {
 
         this.draggedComponent = component;
 
-        this.dragOffset = mousePos;
+        this.dragOffset = { ...mousePos };
+        this.dragStartPositions.clear();
+        if (this.selectedComponents.length > 0) {
+          this.selectedComponents.forEach(c => {
+            this.dragStartPositions.set(c.id, { ...c.position });
+          });
+        } else {
+          this.dragStartPositions.set(component.id, { ...component.position });
+        }
 
         this.draw();
         return;
       }
     }
     for (const wire of this.wires) {
-      // Check if clicking on a control point first
-      const controlPointIndex = wire.isNearControlPoint(mousePos);
-      if (controlPointIndex !== null) {
-        wire.selected = true;
-        this.selectedWire = wire;
-        wire.startDraggingControlPoint(controlPointIndex);
-        this.isDraggingControlPoint = true;
-        this.draggedControlPointIndex = controlPointIndex;
-        this.gatePropertiesPanel.show(wire);
-        this.draw();
-        return;
-      }
-
       if (wire.isNearPoint(mousePos)) {
         wire.selected = true;
         this.selectedWire = wire;
-        wire.selectControlPoint(null);
-
-        this.potentialWireForControlPoint = wire;
-        this.wireClickStartPos = { x: mousePos.x, y: mousePos.y };
-        this.isWireDragDetection = true;
 
         this.gatePropertiesPanel.show(wire);
         this.draw();
@@ -2317,53 +2298,6 @@ export class CircuitBoard {
   private handleMouseMove(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
 
-    if (this.isWireDragDetection && this.wireClickStartPos && this.potentialWireForControlPoint) {
-      const dragDistance = Math.sqrt(
-        Math.pow(mousePos.x - this.wireClickStartPos.x, 2) +
-          Math.pow(mousePos.y - this.wireClickStartPos.y, 2)
-      );
-
-      if (dragDistance >= this.MIN_DRAG_DISTANCE) {
-        const wire = this.potentialWireForControlPoint;
-
-        const midpointInfo = wire.isNearMidpoint(this.wireClickStartPos);
-        if (midpointInfo) {
-          wire.addControlPointAtMidpoint(midpointInfo.segmentIndex);
-        } else {
-          wire.addControlPoint(this.wireClickStartPos);
-        }
-
-        this.isDraggingControlPoint = true;
-        this.draggedControlPointIndex = wire.selectedPointIndex;
-        wire.startDraggingControlPoint(wire.selectedPointIndex!);
-
-        this.isWireDragDetection = false;
-        this.wireClickStartPos = null;
-        this.potentialWireForControlPoint = null;
-
-        this.draw();
-      }
-      return;
-    }
-
-    if (
-      this.isDraggingControlPoint &&
-      this.selectedWire &&
-      this.draggedControlPointIndex !== null
-    ) {
-      this.selectedWire.moveControlPoint(this.draggedControlPointIndex, mousePos);
-      this.draw();
-      return;
-    }
-
-    if (this.selectedWire && !this.isDraggingControlPoint) {
-      const hoveredIndex = this.selectedWire.isNearControlPoint(mousePos);
-      if (hoveredIndex !== this.selectedWire.hoveredControlPointIndex) {
-        this.selectedWire.setHoveredControlPoint(hoveredIndex);
-        this.draw();
-      }
-    }
-
     if (this.isSelecting && this.selectionRect) {
       this.selectionRect.end = mousePos;
       this.draw();
@@ -2375,25 +2309,32 @@ export class CircuitBoard {
       const deltaY = mousePos.y - this.dragOffset.y;
 
       this.selectedComponents.forEach(component => {
-        const newPos = {
-          x: component.position.x + deltaX,
-          y: component.position.y + deltaY,
-        };
-        component.move(newPos);
+        const startPos = this.dragStartPositions.get(component.id);
+        if (startPos) {
+          const newPos = {
+            x: startPos.x + deltaX,
+            y: startPos.y + deltaY,
+          };
+          component.move(newPos);
+        }
       });
-
-      this.dragOffset = { x: mousePos.x, y: mousePos.y };
 
       this.draw();
       return;
     }
 
     if (this.draggedComponent) {
-      const newPos = {
-        x: mousePos.x - this.dragOffset.x,
-        y: mousePos.y - this.dragOffset.y,
-      };
-      this.draggedComponent.move(newPos);
+      const deltaX = mousePos.x - this.dragOffset.x;
+      const deltaY = mousePos.y - this.dragOffset.y;
+      const startPos = this.dragStartPositions.get(this.draggedComponent.id);
+
+      if (startPos) {
+        const newPos = {
+          x: startPos.x + deltaX,
+          y: startPos.y + deltaY,
+        };
+        this.draggedComponent.move(newPos);
+      }
       this.draw();
     }
 
@@ -2427,20 +2368,6 @@ export class CircuitBoard {
 
   private handleMouseUp(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
-
-    if (this.isWireDragDetection) {
-      this.isWireDragDetection = false;
-      this.wireClickStartPos = null;
-      this.potentialWireForControlPoint = null;
-    }
-
-    if (this.isDraggingControlPoint && this.selectedWire) {
-      this.selectedWire.stopDraggingControlPoint();
-      this.isDraggingControlPoint = false;
-      this.draggedControlPointIndex = null;
-      this.draw();
-      return;
-    }
 
     if (this.isSelecting && this.selectionRect) {
       this.selectionRect.end = mousePos;
@@ -2742,7 +2669,7 @@ export class CircuitBoard {
 
         if (component instanceof Text) {
           component.setText(compData.state.text || "");
-          var comp = this.getComponentById(compData.state.attachedToId);
+          const comp = this.getComponentById(compData.state.attachedToId);
 
           if (comp) component.attachToComponent(comp);
 
@@ -2808,7 +2735,7 @@ export class CircuitBoard {
     }
   }
 
-  public saveToFile(filename: string = "circuit.json"): void {
+  public saveToFile(filename = "circuit.json"): void {
     const jsonData = this.exportCircuit();
     const blob = new Blob([jsonData], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -2822,7 +2749,7 @@ export class CircuitBoard {
 
     URL.revokeObjectURL(url);
   }
-  public saveVerilogToFile(verilogCode: string, filename: string = "circuit.v"): void {
+  public saveVerilogToFile(verilogCode: string, filename = "circuit.v"): void {
     const blob = new Blob([verilogCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
 
@@ -2857,7 +2784,7 @@ export class CircuitBoard {
     });
   }
 
-  saveToLocalStorage(key: string = "savedCircuit"): void {
+  saveToLocalStorage(key = "savedCircuit"): void {
     try {
       const jsonData = this.exportCircuit();
       localStorage.setItem(key, jsonData);
@@ -2867,7 +2794,7 @@ export class CircuitBoard {
     }
   }
 
-  loadFromLocalStorage(key: string = "savedCircuit"): boolean {
+  loadFromLocalStorage(key = "savedCircuit"): boolean {
     try {
       const jsonData = localStorage.getItem(key);
       if (jsonData) {

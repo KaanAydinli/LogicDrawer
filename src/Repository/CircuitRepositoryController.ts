@@ -748,7 +748,7 @@ export class CircuitRepositoryController {
   private detailViewElement: HTMLElement | null = null;
   private uploadFormElement: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
-  private currentUserId: string = "unknown-user";
+  private currentUserId = "unknown-user";
 
   private currentCircuits: CircuitEntry[] = [];
   private currentTab: "browse" | "my-circuits" | "shared-me" = "browse";

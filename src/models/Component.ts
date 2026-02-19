@@ -1,6 +1,15 @@
 import { BitArray } from "./MultibitTypes";
 import { Logger } from "../utils/logger";
 
+export const GRID_SIZE = 16;
+
+export function snapPositionToGrid(point: Point): Point {
+  return {
+    x: Math.round(point.x / GRID_SIZE) * GRID_SIZE,
+    y: Math.round(point.y / GRID_SIZE) * GRID_SIZE,
+  };
+}
+
 export interface Point {
   x: number;
   y: number;
@@ -24,15 +33,15 @@ export abstract class Component {
   inputs: Port[];
   outputs: Port[];
   selected: boolean;
-  isMultiBit: boolean = false;
-  public defaultBitWidth: number = 1;
-  public rotation: number = 0;
+  isMultiBit = false;
+  public defaultBitWidth = 1;
+  public rotation = 0;
 
   constructor(type: string, position: Point, size?: { width: number; height: number }) {
-    this.size = size || { width: 60, height: 60 };
+    this.size = size || { width: 64, height: 64 };
     this.id = Math.random().toString(36).substring(2, 15);
     this.type = type;
-    this.position = position;
+    this.position = snapPositionToGrid(position);
 
     this.inputs = [];
     this.outputs = [];
@@ -97,7 +106,7 @@ export abstract class Component {
     Logger.log("increaseInputCount not implemented for this component");
   }
 
-  public getCustomProperties(): Array<{ name: string; value: any }> {
+  public getCustomProperties(): { name: string; value: any }[] {
     return [];
   }
 
@@ -140,10 +149,11 @@ export abstract class Component {
   abstract draw(ctx: CanvasRenderingContext2D): void;
 
   move(position: Point): void {
-    const dx = position.x - this.position.x;
-    const dy = position.y - this.position.y;
+    const snappedPosition = snapPositionToGrid(position);
+    const dx = snappedPosition.x - this.position.x;
+    const dy = snappedPosition.y - this.position.y;
 
-    this.position = position;
+    this.position = snappedPosition;
 
     this.inputs.forEach(port => {
       port.position.x += dx;
@@ -313,7 +323,7 @@ export abstract class Component {
     };
   }
   // Add this method to the Component class
-  public getPortAtPositionRadius(point: Point, radius: number = 10): Port | null {
+  public getPortAtPositionRadius(point: Point, radius = 10): Port | null {
     for (const port of [...this.inputs, ...this.outputs]) {
       const distance = Math.sqrt(
         Math.pow(port.position.x - point.x, 2) + Math.pow(port.position.y - point.y, 2)

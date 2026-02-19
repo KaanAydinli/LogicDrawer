@@ -5,7 +5,7 @@ export class State extends LogicGate {
   static idCounter = 0;
   id: string;
   constructor(position: Point) {
-    let size = { width: 160, height: 160 };
+    const size = { width: 160, height: 160 };
     super("state", position, 2, 2, size);
     this.id = `State-${State.idCounter++}`;
   }

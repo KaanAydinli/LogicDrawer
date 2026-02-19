@@ -46,7 +46,7 @@ export class FullAdder extends LogicGate {
         this.outputs[1].value = numberToBits(carryPart, maxWidth);
       }
     } else {
-      let initialSum = this.xor(inputA.value, inputB.value);
+      const initialSum = this.xor(inputA.value, inputB.value);
       const carryValue = this.and(inputA.value, inputB.value) || this.and(inputC.value, initialSum);
       const finalSum = this.xor(initialSum, inputC.value);
 

@@ -3,7 +3,7 @@ import { LogicGate } from "../LogicGate";
 import { BitArray, BitwiseOperations } from "../MultibitTypes";
 
 export class NandGate extends LogicGate {
-  constructor(position: Point, inputCount: number = 2) {
+  constructor(position: Point, inputCount = 2) {
     super("nand", position, inputCount);
   }
 
@@ -23,7 +23,7 @@ export class NandGate extends LogicGate {
         ? (input2.value as BitArray)
         : [input2.value as boolean];
 
-      var result = BitwiseOperations.AND(value1, value2);
+      let result = BitwiseOperations.AND(value1, value2);
 
       result = BitwiseOperations.NOT(result);
 

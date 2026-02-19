@@ -5,20 +5,20 @@ export class Text extends Component {
   private fontSize: number;
   private fontFamily: string;
   private color: string;
-  private dragging: boolean = false;
+  private dragging = false;
   private dragOffset: Point = { x: 0, y: 0 };
-  private isEditing: boolean = false;
+  private isEditing = false;
   private editor: HTMLTextAreaElement | null = null;
   private attachedTo: Component | null = null;
   private relativeOffset: Point = { x: 0, y: 0 };
-  private snapDistance: number = 20;
+  private snapDistance = 20;
 
   constructor(
     position: Point,
-    text: string = "Label",
-    fontSize: number = 16,
-    fontFamily: string = "Arial",
-    color: string = "#e0e0e0"
+    text = "Label",
+    fontSize = 16,
+    fontFamily = "Arial",
+    color = "#e0e0e0"
   ) {
     super("text", position);
     this.text = text;
@@ -72,7 +72,7 @@ export class Text extends Component {
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 3]);
       ctx.strokeRect(
-        this.position.x - 5,
+        this.position.x - 40,
         this.position.y - this.size.height / 2 - 5,
         this.size.width + 10,
         this.size.height + 10

@@ -69,13 +69,13 @@ export class Queue {
 const queue = new Queue();
 
 const circuitService = new CircuitService();
-var converter;
-var aiAgent: AIAgent;
+let converter;
+let aiAgent: AIAgent;
 
-var imageUploader: ImageUploader;
+let imageUploader: ImageUploader;
 
 const fileUpload = document.getElementById("file-upload") as HTMLInputElement;
-var spaceBarPressed = false;
+let spaceBarPressed = false;
 let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
@@ -85,8 +85,8 @@ const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
 const sidebar = document.querySelector(".sidebar") as HTMLElement;
 const sidebarClose = document.querySelector(".closeSide") as HTMLElement;
-var repository: CircuitRepositoryController;
-var minimap: HTMLCanvasElement;
+let repository: CircuitRepositoryController;
+let minimap: HTMLCanvasElement;
 
 const authService = AuthService.getInstance();
 
@@ -602,7 +602,7 @@ function setupKeyboardShortcuts() {
   document.addEventListener("keydown", event => {
     if (event.ctrlKey && event.key === "s") {
       event.preventDefault();
-      var text = inputText.value;
+      let text = inputText.value;
       if (text === "") {
         text = "circuit";
       }
@@ -684,14 +684,14 @@ async function setUpAI() {
   const messagesContainer = document.getElementById("ai-chat-messages") as HTMLElement;
 
   aiAgent = new AIAgent(circuitBoard, queue as Queue, promptAI, imageUploader);
-  var userData: {
+  const userData: {
     authenticated: boolean;
     unlimited: boolean;
     remaining?: number;
     resetTime?: string;
     message: string;
   } = await aiAgent.checkRateLimitStatus();
-  var messageText = ` Hello, my name is Logix. I can help you design circuits or explain logic gates. How
+  let messageText = ` Hello, my name is Logix. I can help you design circuits or explain logic gates. How
               can I assist you today?`;
 
   if (
@@ -787,7 +787,7 @@ async function setUpAI() {
       let fullResponse = "";
       let displayedResponse = "";
       streamingMessageElement.innerHTML = "<strong>Thinking...<strong>";
-      let typeQueue = [] as string[];
+      const typeQueue = [] as string[];
 
       const typeInterval = setInterval(() => {
         if (typeQueue.length > 0) {
@@ -944,7 +944,7 @@ async function setUpAI() {
     const messageDiv = document.createElement("div");
 
     const code = extractVerilogFromPrompt(text);
-    var aiText = escapeHTML(text);
+    const aiText = escapeHTML(text);
 
     if (code) {
       Logger.log("Verilog code detected:", code);
@@ -1851,7 +1851,7 @@ function setUpLoginAndSignup() {
       }
     } catch (error) {
       Logger.error("Login error:", error);
-      let e = error as Error;
+      const e = error as Error;
       alert(`Login failed: ${e.message}`);
     }
   }
@@ -2328,7 +2328,7 @@ inputText.addEventListener("keydown", event => {
     circuitBoard.saveToFile(filePath + ".json");
   }
 });
-function saveToLocalStorage(key: string = "history"): void {
+function saveToLocalStorage(key = "history"): void {
   try {
     const queueString = JSON.stringify(aiAgent.queue);
     localStorage.setItem(key, queueString);

@@ -9,8 +9,8 @@ export interface User {
 export class AuthService {
   private static instance: AuthService;
   private _currentUser: User | null = null;
-  private _isAuthenticated: boolean = false;
-  private _isInitialized: boolean = false;
+  private _isAuthenticated = false;
+  private _isInitialized = false;
   private _authInitPromise: Promise<boolean> | null = null;
 
   private constructor() {

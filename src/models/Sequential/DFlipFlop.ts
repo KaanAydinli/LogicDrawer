@@ -3,11 +3,11 @@ import { BitArray } from "../MultibitTypes";
 
 export class DFlipFlop extends Component {
   private qValue: BitArray | boolean = false;
-  private lastClk: boolean = false;
+  private lastClk = false;
 
   constructor(position: Point) {
     super("dflipflop", position);
-    this.size = { width: 80, height: 70 };
+    this.size = { width: 80, height: 64 };
 
     this.inputs.push({
       id: `${this.id}-input-0`,
@@ -65,7 +65,7 @@ export class DFlipFlop extends Component {
   evaluate(): void {
     const dataIn = this.inputs[0].value;
 
-    let clockIn = this.inputs[1].value as boolean;
+    const clockIn = this.inputs[1].value as boolean;
 
     if (clockIn && !this.lastClk) {
       if (Array.isArray(dataIn)) {
@@ -208,24 +208,24 @@ export class DFlipFlop extends Component {
     if (this.inputs.length >= 2) {
       this.inputs[0].position = {
         x: this.position.x - 10,
-        y: this.position.y + 20,
+        y: this.position.y + Math.round(20 / 16) * 16,
       };
 
       this.inputs[1].position = {
         x: this.position.x - 10,
-        y: this.position.y + 50,
+        y: this.position.y + Math.round(50 / 16) * 16,
       };
     }
 
     if (this.outputs.length >= 2) {
       this.outputs[0].position = {
         x: this.position.x + this.size.width + 10,
-        y: this.position.y + 20,
+        y: this.position.y + Math.round(20 / 16) * 16,
       };
 
       this.outputs[1].position = {
         x: this.position.x + this.size.width + 10,
-        y: this.position.y + 50,
+        y: this.position.y + Math.round(50 / 16) * 16,
       };
     }
   }

@@ -1,6 +1,5 @@
-import { Point, Port } from "../models/Component";
+import { Point, Port , Component } from "../models/Component";
 import { CircuitBoard } from "../models/CircuitBoard";
-import { Component } from "../models/Component";
 import { Wire } from "../models/Wire";
 import { Logger } from "../utils/logger";
 
@@ -104,7 +103,7 @@ export class CircuitRecognizer {
       const usedInputPorts = new Set<string>();
       const externalOffset = 120;
 
-      const gateToggleOffsets: Map<string, number> = new Map();
+      const gateToggleOffsets = new Map<string, number>();
 
       for (const wire of wires) {
         let fromComponent: Component | null = null;

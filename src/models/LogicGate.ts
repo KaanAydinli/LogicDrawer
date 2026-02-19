@@ -1,22 +1,22 @@
-import { Component, Point, Port } from "./Component";
+import { Component, Point, Port, snapPositionToGrid } from "./Component";
 
 export abstract class LogicGate extends Component {
-  rotation: number = 0;
-  defaultBitWidth: number = 1;
+  rotation = 0;
+  defaultBitWidth = 1;
 
   constructor(
     type: string,
     position: Point,
-    inputCount: number = 2,
-    outputs: number = 1,
-    size: { width: number; height: number } = { width: 60, height: 60 }
+    inputCount = 2,
+    outputs = 1,
+    size: { width: number; height: number } = { width: 64, height: 64 }
   ) {
     super(type, position, size);
 
     this.initializePorts(inputCount, outputs);
   }
 
-  public initializePorts(inputCount: number, outputCount: number = 1): void {
+  public initializePorts(inputCount: number, outputCount = 1): void {
     this.inputs = [];
     this.outputs = [];
 
@@ -207,7 +207,8 @@ export abstract class LogicGate extends Component {
     }
 
     const spacing = this.size.height / (total + 1);
-    const offset = (index + 1) * spacing;
+    let offset = (index + 1) * spacing;
+    offset = Math.round(offset / 16) * 16;
 
     if (this.rotation < 0) {
       this.rotation += 360;
@@ -238,7 +239,7 @@ export abstract class LogicGate extends Component {
     }
   }
 
-  private getOutputPortPosition(index: number = 0, total: number = 1): Point {
+  private getOutputPortPosition(index = 0, total = 1): Point {
     const isNotOrBuffer = this.type === "not" || this.type === "buffer";
 
     if (isNotOrBuffer) {
@@ -269,7 +270,8 @@ export abstract class LogicGate extends Component {
     }
 
     const spacing = this.size.height / (total + 1);
-    const offset = (index + 1) * spacing;
+    let offset = (index + 1) * spacing;
+    offset = Math.round(offset / 16) * 16;
 
     if (this.rotation < 0) {
       this.rotation += 360;
@@ -317,7 +319,8 @@ export abstract class LogicGate extends Component {
   }
 
   override move(position: Point): void {
-    this.position = position;
+    const snappedPosition = snapPositionToGrid(position);
+    this.position = snappedPosition;
     this.updatePortPositions();
   }
 

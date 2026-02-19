@@ -3,7 +3,7 @@ import { LogicGate } from "../LogicGate";
 import { BitArray, BitwiseOperations } from "../MultibitTypes";
 
 export class AndGate extends LogicGate {
-  constructor(position: Point, inputCount: number = 2) {
+  constructor(position: Point, inputCount = 2) {
     super("and", position, inputCount);
   }
 

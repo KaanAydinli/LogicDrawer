@@ -9,7 +9,7 @@ export class ImageUploader {
   private previewContainer!: HTMLDivElement;
   private loadingIndicator!: HTMLDivElement;
   private circuitRecognizer: CircuitRecognizer;
-  private hasUI: boolean = false;
+  private hasUI = false;
   private originalDimensions: ImageDimensions = { originalWidth: 0, originalHeight: 0 };
 
   private static instance: ImageUploader;

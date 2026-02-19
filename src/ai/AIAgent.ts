@@ -62,7 +62,7 @@ export class AIAgent {
             );
 
             const allMessages = this.queue.messages.slice(-10);
-            let sessionHistory: any[] = allMessages.map((msg: any) => ({
+            const sessionHistory: any[] = allMessages.map((msg: any) => ({
               role: msg.role,
               content: msg.content,
               parts: msg.parts,
@@ -203,7 +203,7 @@ export class AIAgent {
                 // Execute tool
                 let toolResult = "";
                 let toolKey = "";
-                let extraContext: any = {};
+                const extraContext: any = {};
                 let newContextMessage = currentMessage || "Tool Execution";
 
                 switch (call.name) {
@@ -626,7 +626,7 @@ export class AIAgent {
 
       // Prepare initial history from queue
       const allMessages = this.queue.messages.slice(-10);
-      let sessionHistory: any[] = allMessages.map((msg: any) => ({
+      const sessionHistory: any[] = allMessages.map((msg: any) => ({
         role: msg.role,
         content: msg.content,
         parts: msg.parts, // Pass through existing parts if any
@@ -721,7 +721,7 @@ export class AIAgent {
           // Execute Tool
           let toolResult = "";
           let toolKey = "";
-          let extraContext: any = {};
+          const extraContext: any = {};
           let newContextMessage = currentMessage || "Tool Execution";
 
           switch (call.name) {

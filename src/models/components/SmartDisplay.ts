@@ -5,9 +5,9 @@ export class SmartDisplay extends Component {
   private bits: BitArray;
   private bitWidth: number;
   private displayMode: "auto" | "binary" | "decimal" | "hex" = "auto";
-  private value: number = 0;
+  private value = 0;
 
-  constructor(position: Point, bitWidth: number = 4) {
+  constructor(position: Point, bitWidth = 4) {
     super("smartdisplay", position, { width: 120, height: 80 + bitWidth * 20 });
 
     this.isMultiBit = true;

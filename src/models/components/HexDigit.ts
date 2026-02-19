@@ -12,7 +12,7 @@ export class HexDigit extends Component {
 
     const portPosition = {
       x: this.position.x - 10,
-      y: this.position.y + this.size.height / 2,
+      y: this.position.y + Math.round(this.size.height / 2 / 16) * 16,
     };
 
     this.inputs.push({
@@ -28,7 +28,7 @@ export class HexDigit extends Component {
 
   evaluate(): void {
     if (Array.isArray(this.inputs[0].value)) {
-      var outputValue = bitsToNumber(this.inputs[0].value as BitArray);
+      const outputValue = bitsToNumber(this.inputs[0].value as BitArray);
 
       this.convertToHex(outputValue);
     } else {
