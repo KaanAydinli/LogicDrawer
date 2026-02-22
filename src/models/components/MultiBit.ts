@@ -16,7 +16,7 @@ export class MultiBit extends Component {
       id: `${this.id}-output-0`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + this.size.height / 2,
       },
       value: [...this.bits],
@@ -196,7 +196,7 @@ export class MultiBit extends Component {
 
     if (this.outputs.length > 0) {
       this.outputs[0].position = {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + this.size.height / 2,
       };
     }

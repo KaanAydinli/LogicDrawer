@@ -13,7 +13,7 @@ export class DFlipFlop extends Component {
       id: `${this.id}-input-0`,
       type: "input",
       position: {
-        x: this.position.x - 10,
+        x: this.position.x - 16,
         y: this.position.y + 20,
       },
       bitWidth: 1,
@@ -26,7 +26,7 @@ export class DFlipFlop extends Component {
       id: `${this.id}-clock`,
       type: "input",
       position: {
-        x: this.position.x - 10,
+        x: this.position.x - 16,
         y: this.position.y + 50,
       },
       bitWidth: 1,
@@ -39,7 +39,7 @@ export class DFlipFlop extends Component {
       id: `${this.id}-output-0`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + 20,
       },
       bitWidth: 1,
@@ -52,7 +52,7 @@ export class DFlipFlop extends Component {
       id: `${this.id}-output-1`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + 50,
       },
       bitWidth: 4,
@@ -207,24 +207,24 @@ export class DFlipFlop extends Component {
 
     if (this.inputs.length >= 2) {
       this.inputs[0].position = {
-        x: this.position.x - 10,
+        x: this.position.x - 16,
         y: this.position.y + Math.round(20 / 16) * 16,
       };
 
       this.inputs[1].position = {
-        x: this.position.x - 10,
+        x: this.position.x - 16,
         y: this.position.y + Math.round(50 / 16) * 16,
       };
     }
 
     if (this.outputs.length >= 2) {
       this.outputs[0].position = {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + Math.round(20 / 16) * 16,
       };
 
       this.outputs[1].position = {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + Math.round(50 / 16) * 16,
       };
     }

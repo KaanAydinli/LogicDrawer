@@ -250,24 +250,19 @@ export abstract class Component {
     this.id = state.id || this.id;
 
     if (state.position) {
-      this.position = {
+      this.position = snapPositionToGrid({
         x: state.position.x ?? this.position.x,
         y: state.position.y ?? this.position.y,
-      };
+      });
     }
 
-    if (state.size) {
-      this.size = {
-        width: state.size.width ?? this.size.width,
-        height: state.size.height ?? this.size.height,
-      };
-    }
+    // Size is intentionally NOT restored from saved state.
+    // Components always use their constructor-defined sizes to ensure grid alignment.
 
     this.selected = state.selected ?? this.selected;
 
-    // BitWidth ve diğer özellikleri geri yükle
     if (state.defaultBitWidth !== undefined) {
-      this.setBitWidth(state.defaultBitWidth); // setBitWidth metodunu çağır ki tüm portlar güncellenir
+      this.setBitWidth(state.defaultBitWidth);
     }
 
     if (state.isMultiBit !== undefined) {

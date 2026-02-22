@@ -1,4 +1,4 @@
-import { Component, Point, Port } from "./Component";
+import { Component, GRID_SIZE, Point, Port, snapPositionToGrid } from "./Component";
 import { BitArray } from "./MultibitTypes";
 import { Logger } from "../utils/logger";
 
@@ -14,14 +14,17 @@ export class Wire {
   hoveredControlPointIndex: number | null = null;
   hasManualControlPoints = false;
 
-  // Cache the generated Path2D geometric path for fast hit-testing without maths overhead
+  // Cache the generated Path2D geometric path for fast hit-testing
   private cachedPath: Path2D | null = null;
   private pathCacheKey: string = "";
 
-  // n8n routing geometry constants
+  // Bezier routing geometry constants (only used for backward routing when no CPs)
   readonly EDGE_BORDER_RADIUS = 16;
   readonly EDGE_PADDING_BOTTOM = 60;
   readonly EDGE_PADDING_X = 40;
+
+  // Control point handle size (half-width)
+  readonly CP_HANDLE_SIZE = 5;
 
   constructor(fromPort: Port, which = true) {
     if (which) {
@@ -61,16 +64,12 @@ export class Wire {
 
     if (isOutputToInput) {
       this.to = toPort;
-
       if (toPort.type === "input") {
         toPort.isConnected = true;
       }
       this.tempEndPoint = null;
-
       this.autoRoute();
-
       if (this.from && this.to) this.from.value = this.to.value;
-
       this.transferValue();
       return true;
     }
@@ -79,18 +78,15 @@ export class Wire {
       const temp = this.from;
       this.from = toPort;
       this.to = temp;
-
       if (this.to && this.to.type === "input") {
         this.to.isConnected = true;
       }
       this.tempEndPoint = null;
       this.transferValue();
       this.autoRoute();
-
       if (this.to) {
         this.from.value = this.to.value;
       }
-
       return true;
     }
 
@@ -108,7 +104,6 @@ export class Wire {
         this.to.value = sourceValue.length > 0 ? sourceValue[0] : false;
       } else {
         const targetArray: BitArray = [];
-
         for (let i = 0; i < this.to.bitWidth; i++) {
           if (i < sourceValue.length) {
             targetArray.push(sourceValue[i]);
@@ -116,7 +111,6 @@ export class Wire {
             targetArray.push(false);
           }
         }
-
         this.to.value = targetArray;
       }
     } else {
@@ -142,34 +136,87 @@ export class Wire {
     }
 
     this.controlPoints = [];
+    this.hasManualControlPoints = false;
   }
 
+  // ─── Auto-route ─────────────────────────────────────────────
   public autoRoute(_components: Component[] = []): void {
-    // n8n wire implementation relies purely on the algorithmic path geometry during drawing.
-    // So we no longer need to calculate an exhaustive array of points here.
+    if (this.hasManualControlPoints) return;
     this.controlPoints = [];
+    this.invalidatePathCache();
   }
 
   public forceAutoRoute(_components: Component[] = []): void {
-    this.autoRoute(_components);
+    this.hasManualControlPoints = false;
+    this.controlPoints = [];
+    this.invalidatePathCache();
   }
 
   public updateTempEndPoint(point: Point): void {
     this.tempEndPoint = point;
+    this.invalidatePathCache();
   }
 
-  private updatePathCache(startX: number, startY: number, endX: number, endY: number): void {
-    const key = `${startX},${startY}->${endX},${endY}`;
-    if (this.pathCacheKey === key && this.cachedPath) return;
+  // ─── Path cache ─────────────────────────────────────────────
+  private invalidatePathCache(): void {
+    this.cachedPath = null;
+    this.pathCacheKey = "";
+  }
 
-    this.pathCacheKey = key;
+  private buildCacheKey(): string {
+    if (!this.from?.position) return "";
+    const start = this.from.position;
+    const end = this.to?.position ?? this.tempEndPoint;
+    if (!end) return "";
+    const cpKey = this.controlPoints.map(p => `${p.x},${p.y}`).join("|");
+    return `${start.x},${start.y}->${end.x},${end.y}::${cpKey}`;
+  }
+
+  /**
+   * Are two points "aligned" (within 1 grid unit on one axis)?
+   * If so → draw a straight line. Otherwise → Bezier curve.
+   */
+  private isAligned(a: Point, b: Point): boolean {
+    return Math.abs(a.x - b.x) <= GRID_SIZE || Math.abs(a.y - b.y) <= GRID_SIZE;
+  }
+
+  /** Build a Bezier sub-curve between two points */
+  private addBezierSegment(path: Path2D, a: Point, b: Point): void {
+    const controlOffset = Math.abs(b.x - a.x) / 2;
+    path.bezierCurveTo(a.x + controlOffset, a.y, b.x - controlOffset, b.y, b.x, b.y);
+  }
+
+  // Build Path2D through [from, ...controlPoints, to] using per-segment logic
+  private buildControlPointPath(points: Point[]): Path2D {
+    const path = new Path2D();
+    if (points.length < 2) return path;
+
+    path.moveTo(points[0].x, points[0].y);
+
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1];
+      const b = points[i];
+
+      if (this.isAligned(a, b)) {
+        // Straight line if aligned
+        path.lineTo(b.x, b.y);
+      } else {
+        // Bezier curve if not aligned
+        this.addBezierSegment(path, a, b);
+      }
+    }
+
+    return path;
+  }
+
+  // Build original Bezier/smooth-step Path2D (no control points)
+  private buildDefaultPath(startX: number, startY: number, endX: number, endY: number): Path2D {
     const path = new Path2D();
     path.moveTo(startX, startY);
 
     const isRightOfSourceHandle = startX - this.EDGE_PADDING_X > endX;
 
     if (!isRightOfSourceHandle) {
-      // Forward connection (Bezier Curve)
       const controlOffset = Math.abs(endX - startX) / 2;
       path.bezierCurveTo(startX + controlOffset, startY, endX - controlOffset, endY, endX, endY);
     } else {
@@ -199,16 +246,36 @@ export class Wire {
       path.quadraticCurveTo(endX - pX, endY, endX - pX + actualR2, endY);
       path.lineTo(endX, endY);
     }
-    this.cachedPath = path;
+    return path;
   }
 
+  private updatePathCache(): void {
+    const key = this.buildCacheKey();
+    if (!key) return;
+    if (this.pathCacheKey === key && this.cachedPath) return;
+
+    this.pathCacheKey = key;
+    const start = this.from!.position;
+    const end = this.to?.position ?? this.tempEndPoint!;
+
+    if (this.controlPoints.length > 0) {
+      // Render through control points
+      const allPoints = [start, ...this.controlPoints, end];
+      this.cachedPath = this.buildControlPointPath(allPoints);
+    } else {
+      // Default: original Bezier/smooth-step
+      this.cachedPath = this.buildDefaultPath(start.x, start.y, end.x, end.y);
+    }
+  }
+
+  // ─── Drawing ────────────────────────────────────────────────
   draw(ctx: CanvasRenderingContext2D): void {
     if (!this.from || !this.from.position) return;
     if (this.to && !this.to.position && !this.tempEndPoint) return;
 
     const startX = this.from.position.x;
     const startY = this.from.position.y;
-    let endX, endY;
+    let endX: number, endY: number;
 
     if (this.to && this.to.position) {
       endX = this.to.position.x;
@@ -220,8 +287,9 @@ export class Wire {
       return;
     }
 
-    this.updatePathCache(startX, startY, endX, endY);
+    this.updatePathCache();
 
+    // Wire color
     let wireColor = "#cdcfd0";
     if (this.from.value) {
       if (Array.isArray(this.from.value)) {
@@ -251,23 +319,28 @@ export class Wire {
     }
     ctx.setLineDash([]);
 
+    // Multi-bit label
     if (this.bitWidth > 1) {
-      let midX, midY;
+      let midX: number, midY: number;
 
-      const isRightOfSourceHandle = startX - this.EDGE_PADDING_X > endX;
-
-      if (!isRightOfSourceHandle) {
-        // Forward (bezier) midpoint roughly at t=0.5
-        midX = (startX + endX) / 2;
-        midY = (startY + endY) / 2;
+      if (this.controlPoints.length > 0) {
+        const midIdx = Math.floor(this.controlPoints.length / 2);
+        midX = this.controlPoints[midIdx].x;
+        midY = this.controlPoints[midIdx].y;
       } else {
-        // Backward (orthogonal) midpoint is on the horizontal segment routing back
-        const shouldRouteUp = endY < startY - 20;
-        const yOffsetAmount = shouldRouteUp ? -this.EDGE_PADDING_BOTTOM : this.EDGE_PADDING_BOTTOM;
-        const firstTargetY = startY + yOffsetAmount;
-
-        midX = (startX + endX) / 2; // Middle of the horizontal return loop
-        midY = firstTargetY; // Sitting on the return wire Y height
+        const isRightOfSourceHandle = startX - this.EDGE_PADDING_X > endX;
+        if (!isRightOfSourceHandle) {
+          midX = (startX + endX) / 2;
+          midY = (startY + endY) / 2;
+        } else {
+          const shouldRouteUp = endY < startY - 20;
+          const yOffsetAmount = shouldRouteUp
+            ? -this.EDGE_PADDING_BOTTOM
+            : this.EDGE_PADDING_BOTTOM;
+          const firstTargetY = startY + yOffsetAmount;
+          midX = (startX + endX) / 2;
+          midY = firstTargetY;
+        }
       }
 
       ctx.fillStyle = "#ffffff";
@@ -276,14 +349,99 @@ export class Wire {
       ctx.textBaseline = "middle";
       ctx.fillText(`${this.bitWidth}b`, midX, midY - 8);
     }
+
+    // Draw control point handles when selected
+    if (this.selected && this.controlPoints.length > 0) {
+      this.drawControlPoints(ctx);
+    }
   }
 
+  private drawControlPoints(ctx: CanvasRenderingContext2D): void {
+    const s = this.CP_HANDLE_SIZE;
+    for (let i = 0; i < this.controlPoints.length; i++) {
+      const p = this.controlPoints[i];
+      const isHovered = this.hoveredControlPointIndex === i;
+      const isSelected = this.selectedPointIndex === i;
+
+      ctx.fillStyle = isSelected ? "#ffcc00" : isHovered ? "#66ddff" : "#ffffff";
+      ctx.strokeStyle = "#0B6E4F";
+      ctx.lineWidth = 1.5;
+
+      ctx.fillRect(p.x - s, p.y - s, s * 2, s * 2);
+      ctx.strokeRect(p.x - s, p.y - s, s * 2, s * 2);
+    }
+  }
+
+  // ─── Control point management ───────────────────────────────
+
+  /** Insert a new control point at the given position (grid-snapped),
+   *  placed on the correct segment so ordering is preserved. */
+  public insertControlPoint(pos: Point): number {
+    const snapped = snapPositionToGrid(pos);
+    const allPoints = this.getAllPoints();
+
+    // Find which segment this point is closest to
+    let bestIdx = 0;
+    let bestDist = Infinity;
+
+    for (let i = 0; i < allPoints.length - 1; i++) {
+      const d = this.distanceToSegment(snapped, allPoints[i], allPoints[i + 1]);
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+      }
+    }
+
+    // Insert into controlPoints array at the right position
+    // bestIdx is the segment index in allPoints; subtract 1 because allPoints[0] is the from-port
+    // so controlPoints insertion index = bestIdx (since allPoints[0] = from, allPoints[1..n-1] = CPs, allPoints[n] = to)
+    const cpInsertIdx = Math.max(0, bestIdx);
+    // But cpInsertIdx is relative to allPoints, and controlPoints starts at allPoints[1]
+    // so the actual CP array insert position is: bestIdx (because from is at index 0)
+    const insertAt = Math.min(cpInsertIdx, this.controlPoints.length);
+
+    this.controlPoints.splice(insertAt, 0, snapped);
+    this.hasManualControlPoints = true;
+    this.invalidatePathCache();
+
+    return insertAt;
+  }
+
+  /** Get control point index near position, or null */
+  public getControlPointAt(pos: Point, threshold = 8): number | null {
+    for (let i = 0; i < this.controlPoints.length; i++) {
+      const cp = this.controlPoints[i];
+      if (Math.abs(cp.x - pos.x) <= threshold && Math.abs(cp.y - pos.y) <= threshold) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  /** Move a control point to a grid-snapped position */
+  public moveControlPoint(index: number, pos: Point): void {
+    if (index < 0 || index >= this.controlPoints.length) return;
+    this.controlPoints[index] = snapPositionToGrid(pos);
+    this.invalidatePathCache();
+  }
+
+  /** Remove a control point. If none remain, revert to default Bezier. */
+  public removeControlPoint(index: number): void {
+    if (index < 0 || index >= this.controlPoints.length) return;
+    this.controlPoints.splice(index, 1);
+    if (this.controlPoints.length === 0) {
+      this.hasManualControlPoints = false;
+    }
+    this.invalidatePathCache();
+  }
+
+  // ─── Hit testing ────────────────────────────────────────────
   isNearPoint(point: Point, threshold = 5): boolean {
     if (!this.from || !this.from.position) return false;
 
     const startX = this.from.position.x;
     const startY = this.from.position.y;
-    let endX, endY;
+    let endX: number, endY: number;
 
     if (this.to && this.to.position) {
       endX = this.to.position.x;
@@ -295,11 +453,43 @@ export class Wire {
       return false;
     }
 
-    // Apply exact same rules as draw()
+    // With control points: test each segment
+    if (this.controlPoints.length > 0) {
+      const allPoints = this.getAllPoints();
+      for (let i = 0; i < allPoints.length - 1; i++) {
+        const a = allPoints[i];
+        const b = allPoints[i + 1];
+
+        if (this.isAligned(a, b)) {
+          // Straight segment
+          if (this.distanceToSegment(point, a, b) <= threshold) return true;
+        } else {
+          // Bezier curve: sample it
+          const controlOffset = Math.abs(b.x - a.x) / 2;
+          const steps = 16;
+          let prev = a;
+          for (let s = 1; s <= steps; s++) {
+            const t = s / steps;
+            const mt = 1 - t;
+            const x =
+              mt * mt * mt * a.x +
+              3 * mt * mt * t * (a.x + controlOffset) +
+              3 * mt * t * t * (b.x - controlOffset) +
+              t * t * t * b.x;
+            const y =
+              mt * mt * mt * a.y + 3 * mt * mt * t * a.y + 3 * mt * t * t * b.y + t * t * t * b.y;
+            if (this.distanceToSegment(point, prev, { x, y }) <= threshold) return true;
+            prev = { x, y };
+          }
+        }
+      }
+      return false;
+    }
+
+    // No control points: original algorithm
     const isRightOfSourceHandle = startX - this.EDGE_PADDING_X > endX;
 
     if (!isRightOfSourceHandle) {
-      // Forward connection (Bezier Curve)
       const controlOffset = Math.abs(endX - startX) / 2;
       const steps = 20;
       let prevPoint = { x: startX, y: startY };
@@ -322,9 +512,10 @@ export class Wire {
         prevPoint = { x, y };
       }
     } else {
-      // Backward connection (Smooth step approximation using straight segments)
       const pX = this.EDGE_PADDING_X;
-      const firstTargetY = startY + this.EDGE_PADDING_BOTTOM;
+      const shouldRouteUp = endY < startY - 15;
+      const yOffsetAmount = shouldRouteUp ? -this.EDGE_PADDING_BOTTOM : this.EDGE_PADDING_BOTTOM;
+      const firstTargetY = startY + yOffsetAmount;
 
       const p1 = { x: startX, y: startY };
       const p2 = { x: startX + pX, y: startY };
@@ -342,6 +533,7 @@ export class Wire {
     return false;
   }
 
+  // ─── Geometry helpers ───────────────────────────────────────
   private distanceToSegment(p: Point, v: Point, w: Point): number {
     const projection = this.projectPointOnSegment(p, v, w);
     return this.distance(p, projection);
@@ -386,5 +578,26 @@ export class Wire {
     }
 
     return points;
+  }
+
+  // ─── Serialization ─────────────────────────────────────────
+  public getWireState(): {
+    controlPoints: Point[];
+    hasManualControlPoints: boolean;
+  } {
+    return {
+      controlPoints: this.controlPoints.map(p => ({ x: p.x, y: p.y })),
+      hasManualControlPoints: this.hasManualControlPoints,
+    };
+  }
+
+  public setWireState(state: { controlPoints?: Point[]; hasManualControlPoints?: boolean }): void {
+    if (state.controlPoints && Array.isArray(state.controlPoints)) {
+      this.controlPoints = state.controlPoints.map(p => ({ x: p.x, y: p.y }));
+    }
+    if (state.hasManualControlPoints !== undefined) {
+      this.hasManualControlPoints = state.hasManualControlPoints;
+    }
+    this.invalidatePathCache();
   }
 }

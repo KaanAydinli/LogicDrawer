@@ -183,23 +183,23 @@ export abstract class LogicGate extends Component {
       switch (this.rotation) {
         case 0:
           return {
-            x: this.position.x - 10,
+            x: this.position.x - 16,
             y: this.position.y + this.size.height / 2,
           };
         case 90:
           return {
             x: this.position.x + this.size.width / 2,
-            y: this.position.y - 15,
+            y: this.position.y - 16,
           };
         case 180:
           return {
-            x: this.position.x + this.size.width + 10,
+            x: this.position.x + this.size.width + 16,
             y: this.position.y + this.size.height / 2,
           };
         case 270:
           return {
             x: this.position.x + this.size.width / 2,
-            y: this.position.y + this.size.height + 15,
+            y: this.position.y + this.size.height + 16,
           };
         default:
           return { x: this.position.x, y: this.position.y };
@@ -216,23 +216,23 @@ export abstract class LogicGate extends Component {
     switch (this.rotation) {
       case 0:
         return {
-          x: this.position.x - 10,
+          x: this.position.x - 16,
           y: this.position.y + offset,
         };
       case 90:
         return {
           x: this.position.x + offset,
-          y: this.position.y - 10,
+          y: this.position.y - 16,
         };
       case 180:
         return {
-          x: this.position.x + this.size.width + 10,
+          x: this.position.x + this.size.width + 16,
           y: this.position.y + offset,
         };
       case 270:
         return {
           x: this.position.x + offset,
-          y: this.position.y + this.size.height + 10,
+          y: this.position.y + this.size.height + 16,
         };
       default:
         return { x: this.position.x, y: this.position.y };
@@ -246,23 +246,23 @@ export abstract class LogicGate extends Component {
       switch (this.rotation) {
         case 0:
           return {
-            x: this.position.x + this.size.width + 10,
+            x: this.position.x + this.size.width + 16,
             y: this.position.y + this.size.height / 2,
           };
         case 90:
           return {
             x: this.position.x + this.size.width / 2,
-            y: this.position.y + this.size.height + 15,
+            y: this.position.y + this.size.height + 16,
           };
         case 180:
           return {
-            x: this.position.x - 10,
+            x: this.position.x - 16,
             y: this.position.y + this.size.height / 2,
           };
         case 270:
           return {
             x: this.position.x + this.size.width / 2,
-            y: this.position.y - 15,
+            y: this.position.y - 16,
           };
         default:
           return { x: this.position.x, y: this.position.y };
@@ -279,23 +279,23 @@ export abstract class LogicGate extends Component {
     switch (this.rotation) {
       case 0:
         return {
-          x: this.position.x + this.size.width + 10,
+          x: this.position.x + this.size.width + 16,
           y: this.position.y + offset,
         };
       case 90:
         return {
           x: this.position.x + offset,
-          y: this.position.y + this.size.height + 15,
+          y: this.position.y + this.size.height + 16,
         };
       case 180:
         return {
-          x: this.position.x - 10,
+          x: this.position.x - 16,
           y: this.position.y + offset,
         };
       case 270:
         return {
           x: this.position.x + offset,
-          y: this.position.y - 15,
+          y: this.position.y - 16,
         };
       default:
         return { x: this.position.x, y: this.position.y };

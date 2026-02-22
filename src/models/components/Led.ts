@@ -9,7 +9,7 @@ export class Led extends Component {
 
     for (let i = 0; i < 3; i++) {
       const portPosition = {
-        y: this.position.y + this.size.height + 30,
+        y: this.position.y + this.size.height + 32,
         x: this.position.x + (i + 1) * (this.size.width / 4),
       };
 

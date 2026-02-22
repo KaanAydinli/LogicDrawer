@@ -1423,10 +1423,12 @@ export class CircuitRepositoryController {
 
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
-      const inputText = document.querySelector(".docName") as HTMLInputElement;
-      if (inputText && circuit.name) {
-        inputText.value = circuit.name;
-      }
+      const docNameInputs = document.querySelectorAll(".docName") as NodeListOf<HTMLInputElement>;
+      docNameInputs.forEach(input => {
+        if (input && circuit.name) {
+          input.value = circuit.name;
+        }
+      });
 
       const response = await fetch(`${apiBaseUrl}/api/circuits/${circuit.id}`, {
         headers: {
@@ -1500,6 +1502,10 @@ export class CircuitRepositoryController {
 
         circuitBoard.simulate();
         circuitBoard.draw();
+
+        // Store the circuit ID and Name so Ctrl+S updates this circuit ONLY if name matches
+        localStorage.setItem("currentCircuitId", circuit.id);
+        localStorage.setItem("currentCircuitName", circuit.name || circuit.title || "Untitled");
 
         this.close();
         alert(`Circuit "${circuit.name || circuit.title || "Untitled"}" loaded successfully!`);

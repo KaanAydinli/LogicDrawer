@@ -11,7 +11,7 @@ export class HexDigit extends Component {
     this.value = "0";
 
     const portPosition = {
-      x: this.position.x - 10,
+      x: this.position.x - 16,
       y: this.position.y + Math.round(this.size.height / 2 / 16) * 16,
     };
 

@@ -11,14 +11,24 @@ export class ToggleSwitch extends Component {
       id: `${this.id}-output-0`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
-        y: this.position.y + this.size.height / 2,
+        x: this.position.x + this.size.width + 16,
+        y: this.position.y + Math.round(this.size.height / 2 / 16) * 16,
       },
       bitWidth: 1,
       value: this.on,
       isConnected: false,
       component: this,
     });
+  }
+
+  move(position: Point): void {
+    super.move(position);
+    if (this.outputs.length > 0) {
+      this.outputs[0].position = {
+        x: this.position.x + this.size.width + 16,
+        y: this.position.y + Math.round(this.size.height / 2 / 16) * 16,
+      };
+    }
   }
 
   protected getComponentSpecificState(): any {

@@ -90,10 +90,23 @@ let minimap: HTMLCanvasElement;
 
 const authService = AuthService.getInstance();
 
+function syncDocNames() {
+  const docNameInputs = document.querySelectorAll(".docName") as NodeListOf<HTMLInputElement>;
+  docNameInputs.forEach(input => {
+    input.addEventListener("input", e => {
+      const val = (e.target as HTMLInputElement).value;
+      docNameInputs.forEach(el => {
+        if (el !== e.target) el.value = val;
+      });
+    });
+  });
+}
+
 async function initApp() {
   setupCanvasPolyfills();
   setUpLoginAndSignup();
   setMobile();
+  syncDocNames();
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
   minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
 
@@ -2016,8 +2029,9 @@ async function saveToMongoDB(name: string, circuitData: any) {
     Logger.log("Sending circuit data:", data);
 
     const currentCircuitId = localStorage.getItem("currentCircuitId");
+    const currentCircuitName = localStorage.getItem("currentCircuitName");
 
-    if (currentCircuitId) {
+    if (currentCircuitId && name === currentCircuitName) {
       Logger.log("Updating existing circuit ID:", currentCircuitId);
 
       try {
@@ -2037,12 +2051,37 @@ async function saveToMongoDB(name: string, circuitData: any) {
         } else {
           Logger.log("Failed to update, creating new circuit");
           localStorage.removeItem("currentCircuitId");
+          localStorage.removeItem("currentCircuitName");
         }
       } catch (error) {
         Logger.error("Error updating circuit:", error);
       }
     }
     Logger.log("Creating new circuit");
+
+    // Ensure unique name per user before creating
+    try {
+      const existingRes = await fetch(`${apiBaseUrl}/api/circuits`, { credentials: "include" });
+      if (existingRes.ok) {
+        const existingCircuits = await existingRes.json();
+        const existingNames = new Set(existingCircuits.map((c: any) => c.name?.toLowerCase()));
+        let uniqueName = name;
+        let counter = 1;
+        while (existingNames.has(uniqueName.toLowerCase())) {
+          uniqueName = `${name}_${counter}`;
+          counter++;
+        }
+        data.name = uniqueName;
+        // Update the input field to reflect the actual name saved
+        const docNameInputs = document.querySelectorAll(".docName") as NodeListOf<HTMLInputElement>;
+        docNameInputs.forEach(input => {
+          if (input) input.value = uniqueName;
+        });
+      }
+    } catch (e) {
+      Logger.warn("Could not check existing circuit names:", e);
+    }
+
     const response = await fetch(`${apiBaseUrl}/api/circuits`, {
       method: "POST",
       headers: {
@@ -2064,7 +2103,8 @@ async function saveToMongoDB(name: string, circuitData: any) {
       Logger.log("New circuit created:", newCircuit);
 
       localStorage.setItem("currentCircuitId", newCircuit._id);
-      alert(`Circuit "${name}" saved successfully`);
+      localStorage.setItem("currentCircuitName", data.name);
+      alert(`Circuit "${data.name}" saved successfully`);
     } else {
       alert("Failed to save circuit");
     }

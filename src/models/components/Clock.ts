@@ -13,15 +13,15 @@ export class Clock extends Component {
 
   constructor(position: Point, circuitBoard: CircuitBoard) {
     super("clock", position);
-    this.size = { width: 64, height: 64 };
+    this.size = { width: 80, height: 64 };
     this.circuitBoard = circuitBoard;
 
     this.outputs.push({
       id: `${this.id}-output-0`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
-        y: this.position.y + this.size.height / 2,
+        x: this.position.x + this.size.width + 16,
+        y: this.position.y + Math.round(this.size.height / 2 / 16) * 16,
       },
       bitWidth: 1,
       value: false,
@@ -108,7 +108,7 @@ export class Clock extends Component {
 
     if (this.outputs.length > 0) {
       this.outputs[0].position = {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + Math.round(this.size.height / 2 / 16) * 16,
       };
     }

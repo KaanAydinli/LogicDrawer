@@ -65,6 +65,10 @@ export class CircuitBoard {
   private gatePropertiesPanel: GatePanel;
   private dragStartPositions = new Map<string, Point>();
 
+  // Wire control point drag state
+  private draggingWire: Wire | null = null;
+  private draggingCPIndex: number | null = null;
+
   constructor(canvas: HTMLCanvasElement, minimap: HTMLCanvasElement) {
     this.components = [];
     this.wires = [];
@@ -110,6 +114,19 @@ export class CircuitBoard {
   private handleDoubleClick(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
     this.selectedComponent = null;
+
+    // ── Wire control point removal on double-click ──
+    for (const wire of this.wires) {
+      if (wire.controlPoints.length > 0) {
+        const cpIdx = wire.getControlPointAt(mousePos);
+        if (cpIdx !== null) {
+          wire.removeControlPoint(cpIdx);
+          ActionHistory.saveState(this.exportCircuit());
+          this.draw();
+          return;
+        }
+      }
+    }
 
     for (const component of this.components) {
       if (component.type === "text" && component.containsPoint(mousePos)) {
@@ -173,7 +190,15 @@ export class CircuitBoard {
 
     // Editing operations
     else if (event.key === "Delete" || event.key === "Backspace") {
-      this.deleteSelected();
+      // If a wire is selected and has a selected control point, delete the CP only
+      if (this.selectedWire && this.selectedWire.selectedPointIndex !== null) {
+        this.selectedWire.removeControlPoint(this.selectedWire.selectedPointIndex);
+        this.selectedWire.selectedPointIndex = null;
+        ActionHistory.saveState(this.exportCircuit());
+        this.draw();
+      } else {
+        this.deleteSelected();
+      }
     } else if (event.key === "Escape") {
       // Clear all selections
       if (this.selectedWire) {
@@ -532,7 +557,7 @@ export class CircuitBoard {
   }
 
   private snapAllComponentsToGrid(): void {
-    const gridSize = 20;
+    const gridSize = 16;
 
     this.components.forEach(component => {
       const currentPos = component.position;
@@ -1904,11 +1929,9 @@ export class CircuitBoard {
       }
     });
 
-    
     wiresToRemove.forEach(wire => {
       wire.disconnect();
 
-     
       const index = this.wires.indexOf(wire);
       if (index !== -1) {
         this.wires.splice(index, 1);
@@ -1961,7 +1984,6 @@ export class CircuitBoard {
     const visibleRight = (width - this.offsetX) / this.scale;
     const visibleBottom = (height - this.offsetY) / this.scale;
 
-   
     let step = GRID_SIZE;
     if (this.scale < 0.5) step *= 2;
     if (this.scale < 0.25) step *= 4;
@@ -1972,10 +1994,8 @@ export class CircuitBoard {
     const endX = Math.ceil(visibleRight / step) * step;
     const endY = Math.ceil(visibleBottom / step) * step;
 
-   
     this.ctx.fillStyle = "rgba(100, 100, 100, 0.4)";
 
-    
     const dotSize = Math.max(1 / this.scale, 1.5);
     const offset = dotSize / 2;
 
@@ -2085,7 +2105,7 @@ export class CircuitBoard {
     width: number,
     height: number
   ): void {
-    const gridSize = 20;
+    const gridSize = 16;
 
     const startX = Math.floor(offsetX / gridSize) * gridSize - offsetX;
     const startY = Math.floor(offsetY / gridSize) * gridSize - offsetY;
@@ -2127,6 +2147,39 @@ export class CircuitBoard {
     });
     this.selectedComponent = null;
     this.selectedWire = null;
+
+    // ── Wire control point interaction (before component checks) ──
+    // 1. Check if clicking on an existing control point → start dragging it
+    for (const wire of this.wires) {
+      if (wire.controlPoints.length > 0) {
+        const cpIdx = wire.getControlPointAt(mousePos);
+        if (cpIdx !== null) {
+          wire.selected = true;
+          this.selectedWire = wire;
+          this.draggingWire = wire;
+          this.draggingCPIndex = cpIdx;
+          wire.selectedPointIndex = cpIdx;
+          wire.isDraggingControlPoint = true;
+          this.draw();
+          return;
+        }
+      }
+    }
+
+    // 2. Check if clicking on a wire segment → insert a new CP and start dragging it
+    for (const wire of this.wires) {
+      if (wire.isNearPoint(mousePos) && wire.from && wire.to) {
+        const cpIdx = wire.insertControlPoint(mousePos);
+        wire.selected = true;
+        this.selectedWire = wire;
+        this.draggingWire = wire;
+        this.draggingCPIndex = cpIdx;
+        wire.selectedPointIndex = cpIdx;
+        wire.isDraggingControlPoint = true;
+        this.draw();
+        return;
+      }
+    }
 
     for (const component of this.components) {
       if (component.type === "button") {
@@ -2298,6 +2351,13 @@ export class CircuitBoard {
   private handleMouseMove(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
 
+    // ── Wire control point dragging ──
+    if (this.draggingWire && this.draggingCPIndex !== null) {
+      this.draggingWire.moveControlPoint(this.draggingCPIndex, mousePos);
+      this.draw();
+      return;
+    }
+
     if (this.isSelecting && this.selectionRect) {
       this.selectionRect.end = mousePos;
       this.draw();
@@ -2368,6 +2428,17 @@ export class CircuitBoard {
 
   private handleMouseUp(event: MouseEvent): void {
     const mousePos = this.getMousePosition(event);
+
+    // ── End wire control point drag ──
+    if (this.draggingWire && this.draggingCPIndex !== null) {
+      this.draggingWire.isDraggingControlPoint = false;
+      this.draggingWire.selectedPointIndex = null;
+      ActionHistory.saveState(this.exportCircuit());
+      this.draggingWire = null;
+      this.draggingCPIndex = null;
+      this.draw();
+      return;
+    }
 
     if (this.isSelecting && this.selectionRect) {
       this.selectionRect.end = mousePos;
@@ -2546,7 +2617,10 @@ export class CircuitBoard {
             (wire.to && wire.to.component === component)) &&
           !updatedWires.includes(wire)
         ) {
-          wire.autoRoute(this.components);
+          // Don't reset manual control points, just invalidate the path cache
+          if (!wire.hasManualControlPoints) {
+            wire.autoRoute(this.components);
+          }
           updatedWires.push(wire);
         }
       }
@@ -2648,6 +2722,7 @@ export class CircuitBoard {
           fromPortId: wire.from?.id,
           toComponentId: wire.to ? wire.to.component.id : null,
           toPortId: wire.to ? wire.to.id : null,
+          wireState: wire.getWireState(),
         };
       }),
     };
@@ -2686,6 +2761,10 @@ export class CircuitBoard {
 
           component.setState(compData.state);
 
+          // Snap position to grid and recalculate port positions.
+          // Old saved circuits may have non-grid-aligned positions.
+          component.move(component.position);
+
           if (compData.state.inputs && Array.isArray(compData.state.inputs)) {
             compData.state.inputs.forEach((portState: any, index: number) => {
               if (component.inputs[index] && portState.bitWidth !== undefined) {
@@ -2720,6 +2799,11 @@ export class CircuitBoard {
 
           fromPort.isConnected = true;
           toPort.isConnected = true;
+
+          // Restore control point state if saved
+          if (wireData.wireState) {
+            wire.setWireState(wireData.wireState);
+          }
 
           this.wires.push(wire);
         }

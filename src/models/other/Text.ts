@@ -270,6 +270,18 @@ export class Text extends Component {
   setState(state: any): void {
     super.setState(state);
 
+    if (state.text !== undefined) {
+      this.setText(state.text);
+    }
+    if (state.fontSize !== undefined) {
+      this.fontSize = state.fontSize;
+    }
+    if (state.fontFamily !== undefined) {
+      this.fontFamily = state.fontFamily;
+    }
+    if (state.color !== undefined) {
+      this.color = state.color;
+    }
     if (state.relativeOffset) {
       this.relativeOffset = state.relativeOffset;
     }

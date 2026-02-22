@@ -4,7 +4,7 @@ import { BitArray, BitwiseOperations } from "../MultibitTypes";
 
 export class NotGate extends LogicGate {
   constructor(position: Point) {
-    super("not", position, 1, 1, { width: 64, height: 48 });
+    super("not", position, 1, 1, { width: 64, height: 32 });
   }
 
   evaluate(): void {
