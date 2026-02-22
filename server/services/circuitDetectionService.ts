@@ -3,6 +3,8 @@ import path from "path";
 import fs from "fs";
 import { Logger } from "../utils/logger";
 
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+
 class CircuitDetectionService {
   private pythonProcess: ChildProcess | null = null;
   private queue: Array<{ resolve: (val: any) => void; reject: (err: any) => void; data: string }> =
@@ -11,13 +13,33 @@ class CircuitDetectionService {
   private pythonScriptPath: string;
   private pythonExecutable: string;
   private buffer: string = "";
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    // Assuming this file is in server/services/
     const serverRoot = path.resolve(__dirname, "..");
     this.pythonScriptPath = path.join(serverRoot, "detectCircuit.py");
     this.pythonExecutable = this.findPythonExecutable(serverRoot);
-    this.startProcess();
+  }
+
+  private resetIdleTimer() {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+    }
+    this.idleTimer = setTimeout(() => {
+      this.stopProcess();
+    }, IDLE_TIMEOUT_MS);
+  }
+
+  private stopProcess() {
+    if (this.pythonProcess) {
+      Logger.log("Python Circuit Detection Service idle. Shutting down to free RAM.");
+      this.pythonProcess.kill("SIGTERM");
+      this.pythonProcess = null;
+    }
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
   }
 
   private findPythonExecutable(serverRoot: string): string {
@@ -65,13 +87,9 @@ class CircuitDetectionService {
 
       this.pythonProcess.stderr?.on("data", data => {
         const msg = data.toString();
-        // Filter out some noise if needed, but logging stderr is generally good
-        // Especially "READY"
         if (msg.includes("READY")) {
           Logger.log("Python Circuit Detection Service is READY");
         } else {
-          // Treat as debug info unless it looks like an error
-          // LogicDrawer python script prints to stderr for debug logs
           console.error(`[Python Service Output]: ${msg.trim()}`);
         }
       });
@@ -81,11 +99,16 @@ class CircuitDetectionService {
         this.processBuffer();
       });
 
-      this.pythonProcess.on("exit", code => {
-        Logger.error(`Python process exited with code ${code}. Cleaning up...`);
+      this.pythonProcess.on("exit", (code, signal) => {
         this.pythonProcess = null;
+        if (signal === "SIGTERM") {
+          Logger.log("Python Circuit Detection Service stopped (idle timeout).");
+          return;
+        }
+        Logger.error(
+          `Python process exited unexpectedly with code ${code}. Will restart on next request.`
+        );
         this.failActiveRequest(new Error(`Python process exited unexpectedly with code ${code}`));
-        setTimeout(() => this.startProcess(), 2000);
       });
 
       this.pythonProcess.on("error", err => {
@@ -100,11 +123,6 @@ class CircuitDetectionService {
 
   private processBuffer() {
     const lines = this.buffer.split("\n");
-    // If the last part is empty, it means the buffer ended with \n, so we have a complete line.
-    // If not, it's an incomplete line, put it back in buffer.
-
-    // But wait, split("\n") on "A\n" gives ["A", ""]
-    // split("\n") on "A" gives ["A"]
 
     if (this.buffer.endsWith("\n")) {
       this.buffer = "";
@@ -139,17 +157,25 @@ class CircuitDetectionService {
       this.activeRequest.reject(error);
       this.activeRequest = null;
     }
-    // Also maybe clear queue or let them fail on processNext check?
-    // Retrying queued items might be better if we restart.
-    // For now, let's keep the queue and try to process them when process restarts.
   }
 
   private processNext() {
     if (this.activeRequest) return;
     if (this.queue.length === 0) return;
-    if (!this.pythonProcess || !this.pythonProcess.stdin || !this.pythonProcess.stdin.writable) {
-      // Attempt restart if not running? startProcess does that on exit.
-      // If it's just starting up, we wait.
+
+    if (!this.pythonProcess) {
+      this.startProcess();
+
+      const pollInterval = setInterval(() => {
+        if (this.pythonProcess?.stdin?.writable) {
+          clearInterval(pollInterval);
+          this.processNext();
+        }
+      }, 200);
+      return;
+    }
+
+    if (!this.pythonProcess.stdin || !this.pythonProcess.stdin.writable) {
       return;
     }
 
@@ -159,7 +185,7 @@ class CircuitDetectionService {
     this.activeRequest = item;
 
     try {
-      const cleanData = item.data.replace(/[\n\r]/g, ""); // Ensure single line
+      const cleanData = item.data.replace(/[\n\r]/g, "");
       this.pythonProcess.stdin.write(cleanData + "\n");
     } catch (err) {
       item.reject(err);
@@ -169,6 +195,7 @@ class CircuitDetectionService {
   }
 
   public detect(base64Image: string): Promise<any> {
+    this.resetIdleTimer();
     return new Promise((resolve, reject) => {
       this.queue.push({ resolve, reject, data: base64Image });
       this.processNext();
