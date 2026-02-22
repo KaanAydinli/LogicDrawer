@@ -38,6 +38,8 @@ body {
   color: var(--text-color);
   background: var(--bg-color);
   letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html {
@@ -99,7 +101,7 @@ html {
   text-decoration: none;
   font-weight: 500;
   letter-spacing: 0.6px;
-  font-size: 48px;
+  font-size: clamp(24px, 3.5vw, 56px);
 }
 .brand-orb {
   width: 12px;
@@ -209,7 +211,7 @@ html {
   background: rgba(255, 255, 255, 0.03);
 }
 .headline {
-  font-size: 72px;
+  font-size: clamp(36px, 5.5vw, 80px);
   line-height: 1.05;
   margin: 24px 0 16px;
   letter-spacing: -1.2px;
@@ -224,7 +226,7 @@ html {
   max-width: 720px;
   margin: 0 0 32px;
   font-weight: 100;
-  font-size: 18px;
+  font-size: clamp(14px, 1.3vw, 20px);
   line-height: 1.6;
 }
 
@@ -386,7 +388,7 @@ html {
   margin-bottom: 28px;
 }
 .section-head h2 {
-  font-size: 36px;
+  font-size: clamp(22px, 2.8vw, 42px);
   letter-spacing: -0.8px;
   margin: 0 0 8px;
 }
@@ -583,7 +585,7 @@ html {
 }
 @media (max-width: 720px) {
   .headline {
-    font-size: 40px;
+    font-size: clamp(28px, 8vw, 44px);
   }
   .circuits-grid {
     grid-template-columns: 1fr;
@@ -621,7 +623,7 @@ html {
 
   .headline {
     margin: 12px 0 8px;
-    font-size: 36px;
+    font-size: clamp(24px, 7vw, 38px);
   }
 
   .subhead {
