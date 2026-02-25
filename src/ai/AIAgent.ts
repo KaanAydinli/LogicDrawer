@@ -549,7 +549,7 @@ export class AIAgent {
                           "state",
                         ],
                         description:
-                          "The type of component to add. Must be one of the allowed values.",
+                          "The type of component to add. Must be one of the allowed values. The gaps on positions at least be 64",
                       },
                       position: {
                         type: "OBJECT",
@@ -624,26 +624,24 @@ export class AIAgent {
     try {
       Logger.log("AIAgent processing user input via Gemini:", message.substring(0, 50) + "...");
 
-      // Prepare initial history from queue
+
       const allMessages = this.queue.messages.slice(-10);
       const sessionHistory: any[] = allMessages.map((msg: any) => ({
         role: msg.role,
         content: msg.content,
-        parts: msg.parts, // Pass through existing parts if any
+        parts: msg.parts, 
       }));
 
-      // Pop the last message (current user request) to serve as the active turn
+
       let currentMessage: string | null = null;
       let currentParts: any[] | null = null;
 
-      // Note: processUserInputWithStreaming adds the user message to the queue before calling this.
-      // So the last message in sessionHistory is the current prompt.
-      // We extract it to pass it as the 'message' field (or part) for the active turn.
+
       const lastMsg = sessionHistory.pop();
       if (lastMsg && lastMsg.role === "user") {
-        currentMessage = lastMsg.content || message; // Fallback to arg if content missing
+        currentMessage = lastMsg.content || message; 
       } else {
-        // If the last message wasn't user (unlikely), put it back.
+      
         if (lastMsg) sessionHistory.push(lastMsg);
         currentMessage = message;
       }
@@ -652,8 +650,7 @@ export class AIAgent {
 
       for (let step = 0; step < MAX_STEPS; step++) {
         Logger.log(`[ReAct Loop] Step ${step + 1}/${MAX_STEPS}`);
-        // console.log("Current Message:", currentMessage ? "Text" : "Null", "Parts:", currentParts ? "Yes" : "Null");
-
+  
         const payload: any = {
           message: currentMessage,
           parts: currentParts,
@@ -685,24 +682,24 @@ export class AIAgent {
           const call = data.functionCalls[0];
           Logger.log("Gemini routed to tool:", call.name);
 
-          // Update history with the "User" turn that caused this
+         
           if (currentMessage) {
             sessionHistory.push({ role: "user", content: currentMessage });
           } else if (currentParts) {
             sessionHistory.push({ role: "user", parts: currentParts });
           }
 
-          // Add the Model's "Function Call" to history
+        
           sessionHistory.push({
             role: "model",
             parts: [{ functionCall: { name: call.name, args: call.args } }],
           });
 
-          // SPECIAL CASE: final_answer terminates the loop
+       
           if (call.name === "final_answer") {
             const finalText = call.args.text || "Task completed.";
 
-            // Also add the "result" of the final answer (which is just the text)
+            
             sessionHistory.push({
               role: "function",
               parts: [
@@ -776,7 +773,6 @@ export class AIAgent {
             }
           }
 
-          // Prepare next turn: Function Response
           let responseContent = {};
           try {
             responseContent = JSON.parse(toolResult);

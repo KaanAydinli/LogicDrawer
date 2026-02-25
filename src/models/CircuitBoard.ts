@@ -2825,8 +2825,8 @@ export class CircuitBoard {
           ) {
             component.setBitWidth(compData.state.defaultBitWidth);
           }
-
-          const newState = { ...compData.state, position: newPos, id: component.id };
+          const { inputs, outputs, ...strippedState } = compData.state;
+          const newState = { ...strippedState, position: newPos, id: component.id };
           component.setState(newState);
           component.move(newPos);
 
