@@ -24,7 +24,7 @@ export class HalfSubtractor extends LogicGate {
       const numA = bitsToNumber(valueA);
       const numB = bitsToNumber(valueB);
 
-      let result = numA - numB;
+      const result = numA - numB;
 
       const maxWidth = Math.max(valueA.length, valueB.length);
 

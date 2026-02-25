@@ -4,9 +4,9 @@ import { BitArray, numberToBits, bitsToNumber } from "../MultibitTypes";
 export class MultiBit extends Component {
   private bits: BitArray;
 
-  constructor(position: Point, bitWidth: number = 2) {
+  constructor(position: Point, bitWidth = 2) {
     bitWidth = Math.max(1, Math.min(16, bitWidth));
-    super("multibit", position, { width: 80, height: 30 * bitWidth });
+    super("multibit", position, { width: 80, height: 32 * bitWidth });
 
     this.isMultiBit = true;
     this.defaultBitWidth = bitWidth;
@@ -16,7 +16,7 @@ export class MultiBit extends Component {
       id: `${this.id}-output-0`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + this.size.height / 2,
       },
       value: [...this.bits],
@@ -72,7 +72,7 @@ export class MultiBit extends Component {
 
     this.size = {
       width: this.size.width,
-      height: 30 * this.defaultBitWidth,
+      height: 32 * this.defaultBitWidth,
     };
 
     const oldBits = [...this.bits];
@@ -196,7 +196,7 @@ export class MultiBit extends Component {
 
     if (this.outputs.length > 0) {
       this.outputs[0].position = {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + this.size.height / 2,
       };
     }

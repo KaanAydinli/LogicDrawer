@@ -16,9 +16,9 @@ export class CircuitSuggester {
   private circuitBoard: CircuitBoard;
   private patterns: CircuitPattern[] = [];
   private currentSuggestion: CircuitPattern | null = null;
-  private suggestionVisible: boolean = false;
+  private suggestionVisible = false;
   private changeTimeout: number | null = null;
-  private similarityThreshold: number = 0.6;
+  private similarityThreshold = 0.6;
   private ghostComponents: Component[] = [];
 
   constructor(circuitBoard: CircuitBoard) {

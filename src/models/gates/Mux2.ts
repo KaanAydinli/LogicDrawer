@@ -5,7 +5,7 @@ export class Mux2 extends LogicGate {
   constructor(position: Point) {
     super("mux2", position, 3);
   }
-  initializePorts(inputCount: number, outputCount: number = 1): void {
+  initializePorts(inputCount: number, outputCount = 1): void {
     super.initializePorts(inputCount, outputCount);
 
     if (this.inputs.length >= 3) {

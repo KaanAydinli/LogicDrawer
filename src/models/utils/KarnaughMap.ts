@@ -13,7 +13,7 @@ export class KarnaughMap {
     truthTable: { inputs: boolean[]; outputs: boolean[] }[],
     inputLabels: string[],
     outputLabels: string[],
-    outputIndex: number = 0
+    outputIndex = 0
   ) {
     this.truthTable = truthTable;
     this.inputLabels = inputLabels;
@@ -916,7 +916,7 @@ export class KarnaughMap {
     const inputs = this.inputLabels.map(label => `input ${label}`).join(", ");
     const outputs = this.outputLabels.map(label => `output ${label}`).join(", ");
 
-    let verilogExpr = expr.replace(/∧/g, "&").replace(/∨/g, "|").replace(/¬/g, "~");
+    const verilogExpr = expr.replace(/∧/g, "&").replace(/∨/g, "|").replace(/¬/g, "~");
 
     return `module boolean_circuit(${inputs}, ${outputs});
       assign ${this.outputLabels[0]} = ${verilogExpr};

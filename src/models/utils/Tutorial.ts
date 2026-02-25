@@ -1,7 +1,7 @@
 export class Tutorial {
   private modal: HTMLElement;
   private contentContainer: HTMLElement;
-  private currentStep: number = 0;
+  private currentStep = 0;
   private steps: TutorialStep[] = [];
   private stepIndicators: HTMLElement;
   private prevButton: HTMLButtonElement;

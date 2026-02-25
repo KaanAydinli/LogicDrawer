@@ -3,7 +3,7 @@ import { LogicGate } from "../LogicGate";
 
 export class BufferGate extends LogicGate {
   constructor(position: Point) {
-    super("buffer", position, 1, 1, { width: 60, height: 40 });
+    super("buffer", position, 1, 1, { width: 64, height: 32 });
   }
 
   evaluate(): void {

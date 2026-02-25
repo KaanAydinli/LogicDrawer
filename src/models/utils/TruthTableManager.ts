@@ -78,7 +78,7 @@ export class TruthTableManager {
   }
 
   private readOutputValues(): boolean[] {
-    var outputValues: boolean[] = [];
+    const outputValues: boolean[] = [];
 
     for (const component of this.outputComponents) {
       if (component.type === "light-bulb") {
@@ -137,7 +137,7 @@ export class TruthTableManager {
 
     return state;
   }
-  public createKarnaughMap(outputIndex: number = 0): KarnaughMap {
+  public createKarnaughMap(outputIndex = 0): KarnaughMap {
     const inputLabels = this.inputComponents.map(component => this.getComponentLabel(component));
     const outputLabels = this.outputComponents.map(component => this.getComponentLabel(component));
 

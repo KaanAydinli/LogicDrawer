@@ -69,13 +69,13 @@ export class Queue {
 const queue = new Queue();
 
 const circuitService = new CircuitService();
-var converter;
-var aiAgent: AIAgent;
+let converter;
+let aiAgent: AIAgent;
 
-var imageUploader: ImageUploader;
+let imageUploader: ImageUploader;
 
 const fileUpload = document.getElementById("file-upload") as HTMLInputElement;
-var spaceBarPressed = false;
+let spaceBarPressed = false;
 let canvas: HTMLCanvasElement;
 let circuitBoard: CircuitBoard;
 const inputText = document.querySelector(".docName") as HTMLInputElement;
@@ -85,15 +85,28 @@ const storage = document.querySelector(".storage") as HTMLElement;
 const settingsPanel = document.getElementById("settings-panel");
 const sidebar = document.querySelector(".sidebar") as HTMLElement;
 const sidebarClose = document.querySelector(".closeSide") as HTMLElement;
-var repository: CircuitRepositoryController;
-var minimap: HTMLCanvasElement;
+let repository: CircuitRepositoryController;
+let minimap: HTMLCanvasElement;
 
 const authService = AuthService.getInstance();
+
+function syncDocNames() {
+  const docNameInputs = document.querySelectorAll(".docName") as NodeListOf<HTMLInputElement>;
+  docNameInputs.forEach(input => {
+    input.addEventListener("input", e => {
+      const val = (e.target as HTMLInputElement).value;
+      docNameInputs.forEach(el => {
+        if (el !== e.target) el.value = val;
+      });
+    });
+  });
+}
 
 async function initApp() {
   setupCanvasPolyfills();
   setUpLoginAndSignup();
   setMobile();
+  syncDocNames();
   canvas = document.getElementById("circuit-canvas") as HTMLCanvasElement;
   minimap = document.getElementById("minicanvas") as HTMLCanvasElement;
 
@@ -602,7 +615,7 @@ function setupKeyboardShortcuts() {
   document.addEventListener("keydown", event => {
     if (event.ctrlKey && event.key === "s") {
       event.preventDefault();
-      var text = inputText.value;
+      let text = inputText.value;
       if (text === "") {
         text = "circuit";
       }
@@ -684,14 +697,14 @@ async function setUpAI() {
   const messagesContainer = document.getElementById("ai-chat-messages") as HTMLElement;
 
   aiAgent = new AIAgent(circuitBoard, queue as Queue, promptAI, imageUploader);
-  var userData: {
+  const userData: {
     authenticated: boolean;
     unlimited: boolean;
     remaining?: number;
     resetTime?: string;
     message: string;
   } = await aiAgent.checkRateLimitStatus();
-  var messageText = ` Hello, my name is Logix. I can help you design circuits or explain logic gates. How
+  let messageText = ` Hello, my name is Logix. I can help you design circuits or explain logic gates. How
               can I assist you today?`;
 
   if (
@@ -787,7 +800,7 @@ async function setUpAI() {
       let fullResponse = "";
       let displayedResponse = "";
       streamingMessageElement.innerHTML = "<strong>Thinking...<strong>";
-      let typeQueue = [] as string[];
+      const typeQueue = [] as string[];
 
       const typeInterval = setInterval(() => {
         if (typeQueue.length > 0) {
@@ -944,7 +957,7 @@ async function setUpAI() {
     const messageDiv = document.createElement("div");
 
     const code = extractVerilogFromPrompt(text);
-    var aiText = escapeHTML(text);
+    const aiText = escapeHTML(text);
 
     if (code) {
       Logger.log("Verilog code detected:", code);
@@ -1851,7 +1864,7 @@ function setUpLoginAndSignup() {
       }
     } catch (error) {
       Logger.error("Login error:", error);
-      let e = error as Error;
+      const e = error as Error;
       alert(`Login failed: ${e.message}`);
     }
   }
@@ -2016,8 +2029,9 @@ async function saveToMongoDB(name: string, circuitData: any) {
     Logger.log("Sending circuit data:", data);
 
     const currentCircuitId = localStorage.getItem("currentCircuitId");
+    const currentCircuitName = localStorage.getItem("currentCircuitName");
 
-    if (currentCircuitId) {
+    if (currentCircuitId && name === currentCircuitName) {
       Logger.log("Updating existing circuit ID:", currentCircuitId);
 
       try {
@@ -2037,12 +2051,37 @@ async function saveToMongoDB(name: string, circuitData: any) {
         } else {
           Logger.log("Failed to update, creating new circuit");
           localStorage.removeItem("currentCircuitId");
+          localStorage.removeItem("currentCircuitName");
         }
       } catch (error) {
         Logger.error("Error updating circuit:", error);
       }
     }
     Logger.log("Creating new circuit");
+
+    // Ensure unique name per user before creating
+    try {
+      const existingRes = await fetch(`${apiBaseUrl}/api/circuits`, { credentials: "include" });
+      if (existingRes.ok) {
+        const existingCircuits = await existingRes.json();
+        const existingNames = new Set(existingCircuits.map((c: any) => c.name?.toLowerCase()));
+        let uniqueName = name;
+        let counter = 1;
+        while (existingNames.has(uniqueName.toLowerCase())) {
+          uniqueName = `${name}_${counter}`;
+          counter++;
+        }
+        data.name = uniqueName;
+        // Update the input field to reflect the actual name saved
+        const docNameInputs = document.querySelectorAll(".docName") as NodeListOf<HTMLInputElement>;
+        docNameInputs.forEach(input => {
+          if (input) input.value = uniqueName;
+        });
+      }
+    } catch (e) {
+      Logger.warn("Could not check existing circuit names:", e);
+    }
+
     const response = await fetch(`${apiBaseUrl}/api/circuits`, {
       method: "POST",
       headers: {
@@ -2064,7 +2103,8 @@ async function saveToMongoDB(name: string, circuitData: any) {
       Logger.log("New circuit created:", newCircuit);
 
       localStorage.setItem("currentCircuitId", newCircuit._id);
-      alert(`Circuit "${name}" saved successfully`);
+      localStorage.setItem("currentCircuitName", data.name);
+      alert(`Circuit "${data.name}" saved successfully`);
     } else {
       alert("Failed to save circuit");
     }
@@ -2328,7 +2368,7 @@ inputText.addEventListener("keydown", event => {
     circuitBoard.saveToFile(filePath + ".json");
   }
 });
-function saveToLocalStorage(key: string = "history"): void {
+function saveToLocalStorage(key = "history"): void {
   try {
     const queueString = JSON.stringify(aiAgent.queue);
     localStorage.setItem(key, queueString);

@@ -29,7 +29,7 @@ export class FullSubtractor extends LogicGate {
       const numB = bitsToNumber(valueB);
       const numC = bitsToNumber(valueC);
 
-      let result = numA - numB - numC;
+      const result = numA - numB - numC;
 
       const maxWidth = Math.max(valueA.length, valueB.length, valueC.length);
 

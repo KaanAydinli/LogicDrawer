@@ -9,7 +9,7 @@ export class AddComponentsTool implements Tool {
         return "No components provided or invalid format.";
       }
 
-      const addedComponents: Array<{ type: string; id: string }> = [];
+      const addedComponents: { type: string; id: string }[] = [];
 
       for (const comp of components) {
         if (comp.type && comp.position) {

@@ -4,9 +4,9 @@ import { BitArray, bitsToNumber } from "../MultibitTypes";
 
 export class Mux4 extends LogicGate {
   constructor(position: Point) {
-    super("mux4", position, 5, 1, { width: 100, height: 120 });
+    super("mux4", position, 5, 1, { width: 96, height: 128 });
   }
-  initializePorts(inputCount: number, outputCount: number = 1): void {
+  initializePorts(inputCount: number, outputCount = 1): void {
     super.initializePorts(inputCount, outputCount);
 
     if (this.inputs.length >= 4) {
@@ -22,7 +22,7 @@ export class Mux4 extends LogicGate {
 
     if (!input0 || !input1 || !input2 || !input3 || !select) return;
 
-    let selectValue: number = 0;
+    let selectValue = 0;
 
     if (Array.isArray(select.value)) {
       selectValue = bitsToNumber(select.value as BitArray);

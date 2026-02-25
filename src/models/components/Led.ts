@@ -2,14 +2,14 @@ import { Component, Point } from "../Component";
 import { BitArray } from "../MultibitTypes";
 
 export class Led extends Component {
-  private rgbColor: string = "#353535";
+  private rgbColor = "#353535";
 
   constructor(position: Point) {
     super("led", position);
 
     for (let i = 0; i < 3; i++) {
       const portPosition = {
-        y: this.position.y + this.size.height + 30,
+        y: this.position.y + this.size.height + 32,
         x: this.position.x + (i + 1) * (this.size.width / 4),
       };
 
@@ -167,7 +167,7 @@ export class Led extends Component {
       const labels = ["R", "G", "B"];
       ctx.fillStyle = "#ffffff";
       ctx.font = "12px Arial";
-      ctx.fillText(labels[i], inputPort.position.x - 5, inputPort.position.y + 15);
+      ctx.fillText(labels[i], inputPort.position.x + 5, inputPort.position.y + 15);
 
       if (inputPort.bitWidth > 1) {
         ctx.fillStyle = "#bbbbbb";

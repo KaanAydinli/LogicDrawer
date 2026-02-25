@@ -5,10 +5,10 @@ export class SmartDisplay extends Component {
   private bits: BitArray;
   private bitWidth: number;
   private displayMode: "auto" | "binary" | "decimal" | "hex" = "auto";
-  private value: number = 0;
+  private value = 0;
 
-  constructor(position: Point, bitWidth: number = 4) {
-    super("smartdisplay", position, { width: 120, height: 80 + bitWidth * 20 });
+  constructor(position: Point, bitWidth = 4) {
+    super("smartdisplay", position, { width: 128, height: 80 + bitWidth * 32 });
 
     this.isMultiBit = true;
     this.bitWidth = Math.max(1, Math.min(16, bitWidth));
@@ -19,8 +19,8 @@ export class SmartDisplay extends Component {
         id: `${this.id}-input-${i}`,
         type: "input",
         position: {
-          x: this.position.x - 10,
-          y: this.position.y + 30 + i * 30,
+          x: this.position.x - 16,
+          y: this.position.y + 32 + i * 32,
         },
         value: false,
         bitWidth: 1,
@@ -33,7 +33,7 @@ export class SmartDisplay extends Component {
       id: `${this.id}-output`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + this.size.height / 2,
       },
       value: [...this.bits],

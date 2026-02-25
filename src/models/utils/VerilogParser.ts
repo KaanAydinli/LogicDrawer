@@ -907,7 +907,7 @@ export class VerilogParser {
 
     return [];
   }
-  private findMatchingEnd(text: string, startIndex: number = 0): number {
+  private findMatchingEnd(text: string, startIndex = 0): number {
     let balance = 0;
     let currentIndex = startIndex;
     const beginKeyword = "begin";

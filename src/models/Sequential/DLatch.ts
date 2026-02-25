@@ -6,13 +6,13 @@ export class DLatch extends Component {
 
   constructor(position: Point) {
     super("dlatch", position);
-    this.size = { width: 80, height: 70 };
+    this.size = { width: 80, height: 64 };
 
     this.inputs.push({
       id: `${this.id}-input-0`,
       type: "input",
       position: {
-        x: this.position.x - 10,
+        x: this.position.x - 16,
         y: this.position.y + 20,
       },
       bitWidth: 1,
@@ -25,7 +25,7 @@ export class DLatch extends Component {
       id: `${this.id}-input-1`,
       type: "input",
       position: {
-        x: this.position.x - 10,
+        x: this.position.x - 16,
         y: this.position.y + 50,
       },
       bitWidth: 1,
@@ -38,7 +38,7 @@ export class DLatch extends Component {
       id: `${this.id}-output-0`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + 20,
       },
       bitWidth: 1,
@@ -51,7 +51,7 @@ export class DLatch extends Component {
       id: `${this.id}-output-1`,
       type: "output",
       position: {
-        x: this.position.x + this.size.width + 10,
+        x: this.position.x + this.size.width + 16,
         y: this.position.y + 50,
       },
       bitWidth: 1,
@@ -91,15 +91,15 @@ export class DLatch extends Component {
   }
 
   draw(ctx: CanvasRenderingContext2D): void {
-   const x = this.position.x;
+    const x = this.position.x;
     const y = this.position.y;
     const width = this.size.width;
     const height = this.size.height;
 
-    ctx.fillStyle ="#663354";
+    ctx.fillStyle = "#663354";
     ctx.fillRect(x, y, width, height);
 
-    ctx.strokeStyle = this.selected ? "#ffcc00" :"#5a2355";
+    ctx.strokeStyle = this.selected ? "#ffcc00" : "#5a2355";
     ctx.lineWidth = this.selected ? 3 : 2;
     ctx.strokeRect(x, y, width, height);
 
@@ -185,25 +185,25 @@ export class DLatch extends Component {
 
     if (this.inputs.length >= 2) {
       this.inputs[0].position = {
-        x: this.position.x - 10,
-        y: this.position.y + 20,
+        x: this.position.x - 16,
+        y: this.position.y + Math.round(20 / 16) * 16,
       };
 
       this.inputs[1].position = {
-        x: this.position.x - 10,
-        y: this.position.y + 50,
+        x: this.position.x - 16,
+        y: this.position.y + Math.round(50 / 16) * 16,
       };
     }
 
     if (this.outputs.length >= 2) {
       this.outputs[0].position = {
-        x: this.position.x + this.size.width + 10,
-        y: this.position.y + 20,
+        x: this.position.x + this.size.width + 16,
+        y: this.position.y + Math.round(20 / 16) * 16,
       };
 
       this.outputs[1].position = {
-        x: this.position.x + this.size.width + 10,
-        y: this.position.y + 50,
+        x: this.position.x + this.size.width + 16,
+        y: this.position.y + Math.round(50 / 16) * 16,
       };
     }
   }
