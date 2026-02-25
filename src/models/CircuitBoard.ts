@@ -69,6 +69,8 @@ export class CircuitBoard {
   private draggingWire: Wire | null = null;
   private draggingCPIndex: number | null = null;
 
+  public clipboard: string | null = null;
+
   constructor(canvas: HTMLCanvasElement, minimap: HTMLCanvasElement) {
     this.components = [];
     this.wires = [];
@@ -212,9 +214,22 @@ export class CircuitBoard {
     } else if (event.ctrlKey && event.key === "g") {
       event.preventDefault();
       this.toggleGrid();
-    } else if (event.ctrlKey && event.key === "z") {
+    } else if (event.ctrlKey && event.key === "c") {
+      event.preventDefault();
+      this.copySelected();
+    } else if (event.ctrlKey && event.key === "v") {
+      event.preventDefault();
+      this.paste();
+    } else if (event.ctrlKey && event.key === "z" && !event.shiftKey) {
+      event.preventDefault();
       const json = ActionHistory.undo();
-
+      if (json != null) this.importCircuit(json);
+    } else if (
+      (event.ctrlKey && event.key === "y") ||
+      (event.ctrlKey && event.shiftKey && event.key === "Z")
+    ) {
+      event.preventDefault();
+      const json = ActionHistory.redo();
       if (json != null) this.importCircuit(json);
     }
 
@@ -533,8 +548,8 @@ export class CircuitBoard {
   }
 
   addComponent(component: Component): void {
-    ActionHistory.saveState(this.exportCircuit());
     this.components.push(component);
+    ActionHistory.saveState(this.exportCircuit());
     this.draw();
   }
 
@@ -2367,6 +2382,7 @@ export class CircuitBoard {
     if (this.draggedComponent && this.selectedComponents.length > 0) {
       const deltaX = mousePos.x - this.dragOffset.x;
       const deltaY = mousePos.y - this.dragOffset.y;
+      let didMove = false;
 
       this.selectedComponents.forEach(component => {
         const startPos = this.dragStartPositions.get(component.id);
@@ -2375,9 +2391,15 @@ export class CircuitBoard {
             x: startPos.x + deltaX,
             y: startPos.y + deltaY,
           };
+          if (component.position.x !== newPos.x || component.position.y !== newPos.y)
+            didMove = true;
           component.move(newPos);
         }
       });
+
+      if (didMove && event.type === "mouseup") {
+        ActionHistory.saveState(this.exportCircuit());
+      }
 
       this.draw();
       return;
@@ -2393,11 +2415,16 @@ export class CircuitBoard {
           x: startPos.x + deltaX,
           y: startPos.y + deltaY,
         };
+        if (
+          this.draggedComponent.position.x !== newPos.x ||
+          this.draggedComponent.position.y !== newPos.y
+        ) {
+          if (event.type === "mouseup") ActionHistory.saveState(this.exportCircuit());
+        }
         this.draggedComponent.move(newPos);
       }
       this.draw();
     }
-
     if (this.currentWire) {
       this.currentWire.updateTempEndPoint(mousePos);
       this.draw();
@@ -2496,13 +2523,12 @@ export class CircuitBoard {
 
           const success = this.currentWire.connect(port);
           if (success) {
-            ActionHistory.saveState(this.exportCircuit());
-
             Logger.log("Connection successful! Adding wire to list.");
             port.isConnected = true;
             this.wires.push(this.currentWire);
             this.currentWire.autoRoute(this.components);
             this.currentWire = null;
+            ActionHistory.saveState(this.exportCircuit());
             this.simulate();
           } else {
             Logger.log("Connection failed!");
@@ -2521,10 +2547,20 @@ export class CircuitBoard {
       if (component.type === "button") {
         if (component.containsPoint(mousePos)) {
           (component as any).onMouseUp();
+          ActionHistory.saveState(this.exportCircuit());
           this.simulate();
           this.draw();
           return;
         }
+      }
+    }
+
+    // Only save positional movements on mouseup if they actually changed position
+    if (this.draggedComponent && Object.keys(this.dragStartPositions).length > 0) {
+      const comp = this.draggedComponent as Component;
+      const startPos = this.dragStartPositions.get(comp.id);
+      if (startPos && (startPos.x !== comp.position.x || startPos.y !== comp.position.y)) {
+        ActionHistory.saveState(this.exportCircuit());
       }
     }
   }
@@ -2637,6 +2673,8 @@ export class CircuitBoard {
       if (this.selectedComponent.type === "state") {
         State.idCounter--;
       }
+
+      let wiresDeleted = false;
       this.wires = this.wires.filter(wire => {
         const isConnectedToSelected =
           wire.from?.component === this.selectedComponent ||
@@ -2644,15 +2682,21 @@ export class CircuitBoard {
 
         if (isConnectedToSelected) {
           wire.disconnect();
+          wiresDeleted = true;
         }
 
         return !isConnectedToSelected;
       });
 
+      if (wiresDeleted) {
+        ActionHistory.saveState(this.exportCircuit());
+      }
+
       this.components = this.components.filter(component => component !== this.selectedComponent);
 
       this.selectedComponent = null;
       this.draw();
+      ActionHistory.saveState(this.exportCircuit());
     }
     if (this.selectedWire) {
       const index = this.wires.indexOf(this.selectedWire);
@@ -2669,9 +2713,11 @@ export class CircuitBoard {
 
         this.selectedWire = null;
         this.draw();
+        ActionHistory.saveState(this.exportCircuit());
       }
     }
     if (this.selectedComponents.length > 0) {
+      let wiresDeleted = false;
       for (const component of this.selectedComponents) {
         this.wires = this.wires.filter(wire => {
           const isConnectedToSelected =
@@ -2679,20 +2725,175 @@ export class CircuitBoard {
 
           if (isConnectedToSelected) {
             wire.disconnect();
+            wiresDeleted = true;
           }
 
           return !isConnectedToSelected;
         });
+
+        if (wiresDeleted) {
+          // Save state immediately after cutting all connections for the current component
+          ActionHistory.saveState(this.exportCircuit());
+          wiresDeleted = false; // Reset for next iteration (though we usually batch select)
+        }
 
         this.components = this.components.filter(c => c !== component);
 
         this.selectedComponent = null;
         this.draw();
       }
+      this.selectedComponents = [];
+      ActionHistory.saveState(this.exportCircuit());
     }
     this.simulate();
   }
 
+  public copySelected(): void {
+    const componentsToCopy =
+      this.selectedComponents.length > 0
+        ? this.selectedComponents
+        : this.selectedComponent
+          ? [this.selectedComponent]
+          : [];
+
+    if (componentsToCopy.length === 0) return;
+
+    const componentSet = new Set(componentsToCopy);
+
+    const clipboardData = {
+      components: componentsToCopy.map(component => ({
+        id: component.id,
+        type: component.type,
+        state: component.getState(),
+      })),
+      wires: this.wires
+        .filter(wire => {
+          const fromComponent = wire.from?.component;
+          const toComponent = wire.to?.component;
+          return (
+            fromComponent &&
+            toComponent &&
+            componentSet.has(fromComponent) &&
+            componentSet.has(toComponent)
+          );
+        })
+        .map(wire => ({
+          id: Math.random().toString(36).substring(2, 15),
+          fromComponentId: wire.from?.component.id,
+          fromPortId: wire.from?.id,
+          toComponentId: wire.to ? wire.to.component.id : null,
+          toPortId: wire.to ? wire.to.id : null,
+          wireState: wire.getWireState(),
+        })),
+    };
+
+    this.clipboard = JSON.stringify(clipboardData);
+  }
+
+  public paste(): void {
+    if (!this.clipboard) return;
+
+    try {
+      const clipboardData = JSON.parse(this.clipboard);
+      if (!clipboardData.components || clipboardData.components.length === 0) return;
+
+      this.selectedComponents.forEach(c => (c.selected = false));
+      if (this.selectedComponent) this.selectedComponent.selected = false;
+      this.selectedComponents = [];
+      this.selectedComponent = null;
+
+      const componentMap = new Map<string, Component>();
+      const portMap = new Map<string, Port>();
+
+      const PASTING_OFFSET = GRID_SIZE * 2;
+
+      for (const compData of clipboardData.components) {
+        const originalPos = compData.state.position;
+        const newPos = { x: originalPos.x + PASTING_OFFSET, y: originalPos.y + PASTING_OFFSET };
+
+        const component = this.createComponentByType(compData.type, newPos);
+
+        if (component instanceof Text) {
+          component.setText(compData.state.text || "");
+          component.setRelativeOffset(compData.state.relativeOffset || { x: 0, y: 0 });
+        }
+
+        if (component) {
+          if (
+            compData.state.defaultBitWidth !== undefined &&
+            compData.state.defaultBitWidth !== 1
+          ) {
+            component.setBitWidth(compData.state.defaultBitWidth);
+          }
+
+          const newState = { ...compData.state, position: newPos, id: component.id };
+          component.setState(newState);
+          component.move(newPos);
+
+          if (compData.state.inputs && Array.isArray(compData.state.inputs)) {
+            compData.state.inputs.forEach((portState: any, index: number) => {
+              if (component.inputs[index] && portState.bitWidth !== undefined) {
+                component.inputs[index].bitWidth = portState.bitWidth;
+              }
+            });
+          }
+
+          if (compData.state.outputs && Array.isArray(compData.state.outputs)) {
+            compData.state.outputs.forEach((portState: any, index: number) => {
+              if (component.outputs[index] && portState.bitWidth !== undefined) {
+                component.outputs[index].bitWidth = portState.bitWidth;
+              }
+            });
+          }
+
+          componentMap.set(compData.id, component);
+          component.inputs.forEach(port =>
+            portMap.set(compData.state.inputs[component.inputs.indexOf(port)].id, port)
+          );
+          component.outputs.forEach(port =>
+            portMap.set(compData.state.outputs[component.outputs.indexOf(port)].id, port)
+          );
+
+          this.components.push(component);
+          component.selected = true;
+          this.selectedComponents.push(component);
+        }
+      }
+
+      if (clipboardData.wires) {
+        for (const wireData of clipboardData.wires) {
+          const fromPort = portMap.get(wireData.fromPortId);
+          const toPort = portMap.get(wireData.toPortId);
+
+          if (fromPort && toPort) {
+            const wire = new Wire(fromPort, true);
+            wire.connect(toPort);
+            fromPort.isConnected = true;
+            toPort.isConnected = true;
+
+            if (wireData.wireState) {
+              if (wireData.wireState.controlPoints) {
+                wireData.wireState.controlPoints = wireData.wireState.controlPoints.map(
+                  (cp: Point) => ({
+                    x: cp.x + PASTING_OFFSET,
+                    y: cp.y + PASTING_OFFSET,
+                  })
+                );
+              }
+              wire.setWireState(wireData.wireState);
+            }
+            this.wires.push(wire);
+          }
+        }
+      }
+
+      ActionHistory.saveState(this.exportCircuit());
+      this.simulate();
+      this.draw();
+    } catch (error) {
+      console.error("Failed to paste circuit elements from clipboard", error);
+    }
+  }
   public clearCircuit(): void {
     this.components = [];
     this.wires = [];
