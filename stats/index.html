@@ -39,158 +39,125 @@
 
     <style>
       .stats-hero {
-        min-height: 52vh;
+        min-height: 50vh;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 120px 24px 60px;
+        padding: 100px 24px 40px;
         position: relative;
       }
 
       .stats-hero .eyebrow {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
+        text-transform: uppercase;
+        border: 2px solid #427cb0;
+        background: var(--bg-color);
+        padding: 6px 14px;
+        color: #e0f2f1;
+        box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.4);
+        font-size: 14px;
+        letter-spacing: 1px;
+        border-radius: 8px;
       }
 
       .stats-hero h1 {
-        font-size: 80px;
-        line-height: 1.05;
-        margin: 0 0 16px;
-        letter-spacing: -1.2px;
-        font-weight: 500;
+        font-size: 64px;
+        line-height: 1.1;
+        margin: 0 0 24px;
+        font-weight: normal;
+        text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 16px;
       }
 
       .stats-hero h1 .accent {
-        color: var(--accent);
-        text-shadow: 0 0 28px rgba(102, 230, 213, 0.4);
+        color: #427cb0;
+        display: inline-block;
       }
 
       .stats-hero .subhead {
-        max-width: 560px;
-        margin: 0 auto 0;
-        font-size: 24px;
+        max-width: 600px;
+        margin: 0 auto;
+        font-size: 18px;
         color: var(--muted);
         line-height: 1.6;
+        text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8);
       }
 
       .stats-section {
-        padding: 0 24px 100px;
-        max-width: 1500px;
+        padding: 0 24px 80px;
+        max-width: 1600px;
         margin: 0 auto;
       }
 
       .primary-grid {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
         gap: 24px;
-        margin-bottom: 50px;
+        margin-bottom: 40px;
       }
 
       .stat-card {
-        background: var(--glass);
-        border: 1px solid var(--glass-stroke);
-        border-radius: 24px;
-        padding: 36px 32px;
+        background: var(--component-bg);
+        border: 2px solid var(--border-color);
+        padding: 32px 24px;
         position: relative;
-        overflow: hidden;
         transition:
-          transform 0.25s ease,
-          box-shadow 0.25s ease,
-          border-color 0.25s ease;
-        backdrop-filter: blur(12px);
-      }
-
-      .stat-card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 24px;
-        background: radial-gradient(ellipse at top left, rgba(63, 208, 191, 0.08), transparent 60%);
-        pointer-events: none;
+          transform 0.1s,
+          box-shadow 0.1s,
+          border-color 0.1s;
+        box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.4);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        aspect-ratio: 1 / 1;
+        width: 250px;
+        max-width: 100%;
+        flex-shrink: 0;
       }
 
       .stat-card:hover {
-        transform: translateY(-6px);
-        box-shadow:
-          0 24px 60px rgba(0, 0, 0, 0.4),
-          0 0 0 1px rgba(63, 208, 191, 0.2);
-        border-color: rgba(63, 208, 191, 0.35);
-      }
-
-      .stat-card.featured {
-        background: linear-gradient(135deg, rgba(63, 208, 191, 0.12), rgba(63, 208, 191, 0.04));
-        border-color: rgba(63, 208, 191, 0.3);
-      }
-
-      .stat-card.featured::before {
-        background: radial-gradient(ellipse at top left, rgba(63, 208, 191, 0.15), transparent 60%);
+        transform: translate(-3px, -3px);
+        box-shadow: 7px 7px 0px rgba(0, 0, 0, 0.4);
+        border-color: #427cb0;
+        background: var(--secondary-bg);
       }
 
       .card-icon {
-        width: 56px;
-        height: 56px;
-        border-radius: 16px;
+        width: 52px;
+        height: 52px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24px;
         margin-bottom: 24px;
-        position: relative;
-      }
-
-      .card-icon.teal {
-        background: rgba(63, 208, 191, 0.12);
-        color: var(--accent);
-        border: 1px solid rgba(63, 208, 191, 0.25);
-        box-shadow: 0 0 20px rgba(63, 208, 191, 0.15);
-      }
-
-      .card-icon.purple {
-        background: rgba(164, 108, 255, 0.12);
-        color: #a46cff;
-        border: 1px solid rgba(164, 108, 255, 0.25);
-        box-shadow: 0 0 20px rgba(164, 108, 255, 0.15);
-      }
-
-      .card-icon.blue {
-        background: rgba(96, 165, 250, 0.12);
-        color: #60a5fa;
-        border: 1px solid rgba(96, 165, 250, 0.25);
-        box-shadow: 0 0 20px rgba(96, 165, 250, 0.15);
-      }
-
-      .card-icon.orange {
-        background: rgba(251, 146, 60, 0.12);
-        color: #fb923c;
-        border: 1px solid rgba(251, 146, 60, 0.25);
-        box-shadow: 0 0 20px rgba(251, 146, 60, 0.15);
-      }
-
-      .card-icon.green {
-        background: rgba(74, 222, 128, 0.12);
-        color: #4ade80;
-        border: 1px solid rgba(74, 222, 128, 0.25);
-        box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+        background: var(--bg-color);
+        color: #427cb0;
+        border: 2px solid #427cb0;
+        box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.3);
+        border-radius: 10px;
       }
 
       .card-label {
-        font-size: 20px;
-        letter-spacing: 1.5px;
+        font-size: 16px;
         text-transform: uppercase;
-        color: var(--muted);
-        margin-bottom: 8px;
-        font-weight: 500;
+        color: #fff;
+        margin-bottom: 12px;
+        font-weight: bold;
+        letter-spacing: 1px;
       }
 
       .card-value {
-        font-size: 50px;
-        font-weight: 500;
+        font-size: 48px;
         color: #fff;
         line-height: 1;
-        margin-bottom: 8px;
-        letter-spacing: -1px;
-        font-variant-numeric: tabular-nums;
+        margin-bottom: 12px;
+        text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.4);
       }
 
       .card-value.loading {
@@ -198,132 +165,99 @@
       }
 
       .card-desc {
-        font-size: 16px;
+        font-size: 15px;
         color: var(--muted);
         line-height: 1.5;
       }
 
       .card-badge {
         position: absolute;
-        top: 20px;
-        right: 20px;
-        background: rgba(63, 208, 191, 0.15);
-        border: 1px solid rgba(63, 208, 191, 0.3);
-        color: var(--accent);
+        top: -12px;
+        right: -12px;
+        background: #427cb0;
+        border: 2px solid #000;
+        color: #fff;
         font-size: 11px;
-        letter-spacing: 1px;
         text-transform: uppercase;
         padding: 4px 10px;
-        border-radius: 999px;
-        font-weight: 600;
+        box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.4);
+        border-radius: 6px;
       }
 
       .live-dot {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        font-size: 19px;
+        gap: 10px;
+        font-size: 15px;
         color: var(--muted);
-        margin-top: 40px;
+        margin-top: 36px;
+        border: 2px solid var(--border-color);
+        padding: 8px 16px;
+        background: var(--component-bg);
+        box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.4);
+        border-radius: 8px;
       }
 
       .live-dot::before {
         content: "";
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #4ade80;
-        box-shadow: 0 0 8px #4ade80;
-        animation: pulse-dot 2s ease-in-out infinite;
+        width: 10px;
+        height: 10px;
+        background: #427cb0;
+        border: 2px solid #000;
+        border-radius: 2px;
+        animation: pulse-dot 1s steps(2, start) infinite;
       }
 
       @keyframes pulse-dot {
         0%,
         100% {
           opacity: 1;
-          transform: scale(1);
         }
         50% {
-          opacity: 0.5;
-          transform: scale(0.85);
+          opacity: 0;
         }
-      }
-
-      .stats-divider {
-        text-align: center;
-        margin-bottom: 40px;
-      }
-
-      .stats-divider h2 {
-        font-size: 28px;
-        letter-spacing: -0.5px;
-        margin: 0 0 8px;
-        color: #fff;
-      }
-
-      .stats-divider p {
-        color: var(--muted);
-        font-size: 15px;
-        margin: 0;
       }
 
       .last-updated {
         text-align: center;
         color: var(--muted);
-        font-size: 13px;
-        margin-top: 12px;
-        opacity: 0.7;
+        font-size: 14px;
+        margin-top: 24px;
       }
 
       .stats-cta {
         text-align: center;
-        padding: 60px 24px 100px;
-        border-top: 1px solid var(--border-color);
-        max-width: 1200px;
+        padding: 60px 24px;
+        border-top: 2px dashed var(--border-color);
+        max-width: 800px;
         margin: 0 auto;
       }
 
       .stats-cta h2 {
-        font-size: 36px;
-        margin: 0 0 12px;
-        letter-spacing: -0.8px;
+        font-size: 32px;
+        margin: 0 0 16px;
+        text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4);
       }
 
       .stats-cta p {
         color: var(--muted);
-        margin: 0 0 32px;
-        font-size: 17px;
+        margin: 0 0 36px;
+        font-size: 18px;
       }
 
-      @media (max-width: 900px) {
-        .primary-grid {
-          grid-template-columns: repeat(2, 1fr);
-        }
-      }
-
-      @media (max-width: 600px) {
+      @media (max-width: 768px) {
         .stats-hero h1 {
-          font-size: 38px;
+          font-size: 42px;
         }
-
-        .primary-grid,
-        .secondary-grid {
-          grid-template-columns: 1fr;
-        }
-
         .card-value {
           font-size: 40px;
-        }
-
-        .stat-card {
-          padding: 28px 24px;
         }
       }
 
       @keyframes count-in {
         from {
           opacity: 0;
-          transform: translateY(10px);
+          transform: translateY(4px);
         }
         to {
           opacity: 1;
@@ -332,16 +266,62 @@
       }
 
       .card-value.counted {
-        animation: count-in 0.4s ease forwards;
+        animation: count-in 0.2s steps(4, end) forwards;
       }
 
       .nav-links a.active {
-        color: var(--accent);
+        color: #427cb0;
+        text-decoration: underline;
+        text-underline-offset: 6px;
+      }
+
+      /* Override landing.css button and glow styles for pixel-art feel */
+      .page-glow {
+        display: none !important;
+      }
+
+      .btn {
+        text-transform: uppercase;
+        border-radius: 12px !important;
+        border: 2px solid #000 !important;
+        box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.6) !important;
+        transition:
+          transform 0.1s,
+          box-shadow 0.1s !important;
+        padding: 14px 24px !important;
+        font-size: 15px !important;
+      }
+
+      .btn:active {
+        transform: translate(3px, 3px) !important;
+        box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.6) !important;
+      }
+
+      .btn-primary {
+        background: #427cb0 !important;
+        color: #fff !important;
+        border: 2px solid #000 !important;
+        text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.4) !important;
+      }
+
+      .btn-primary:hover {
+        background: #3a6b99 !important;
+        box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.6) !important;
+      }
+
+      .btn-ghost {
+        background: var(--component-bg) !important;
+        color: #fff !important;
+        border: 2px solid #000 !important;
+      }
+
+      .btn-ghost:hover {
+        background: var(--secondary-bg) !important;
+        box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.6) !important;
       }
     </style>
   </head>
   <body>
-    <div class="page-glow"></div>
     <div class="bg-circuit" aria-hidden="true"></div>
 
     <header class="nav" id="nav">
@@ -399,13 +379,13 @@
       <div class="stats-section">
         <div class="primary-grid">
           <div class="stat-card featured will-fade" id="card-circuits">
-            <div class="card-icon teal"><i class="fa-solid fa-microchip"></i></div>
+            <div class="card-icon"><i class="fa-solid fa-microchip"></i></div>
             <div class="card-label">Circuits Created</div>
             <div class="card-value loading" id="val-circuits">—</div>
             <div class="card-desc">Total circuits saved to the platform by all users.</div>
           </div>
           <div class="stat-card will-fade" id="card-components">
-            <div class="card-icon purple"><i class="fa-solid fa-layer-group"></i></div>
+            <div class="card-icon"><i class="fa-solid fa-layer-group"></i></div>
             <div class="card-label">Components Placed</div>
             <div class="card-value loading" id="val-components">—</div>
             <div class="card-desc">
@@ -414,14 +394,14 @@
           </div>
 
           <div class="stat-card will-fade" id="card-users">
-            <div class="card-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div class="card-icon"><i class="fa-solid fa-users"></i></div>
             <div class="card-label">Registered Users</div>
             <div class="card-value loading" id="val-users">—</div>
             <div class="card-desc">Community members with a LogicDrawer account.</div>
           </div>
           <div class="stat-card will-fade" id="card-detected-circuits">
             <div class="card-badge">AI Powered</div>
-            <div class="card-icon orange"><i class="fa-solid fa-camera"></i></div>
+            <div class="card-icon"><i class="fa-solid fa-camera"></i></div>
             <div class="card-label">Circuits Detected</div>
             <div class="card-value loading" id="val-detected-circuits">—</div>
             <div class="card-desc">
@@ -431,7 +411,7 @@
 
           <div class="stat-card will-fade" id="card-detected-components">
             <div class="card-badge">AI Powered</div>
-            <div class="card-icon green"><i class="fa-solid fa-eye"></i></div>
+            <div class="card-icon"><i class="fa-solid fa-eye"></i></div>
             <div class="card-label">Components Detected</div>
             <div class="card-value loading" id="val-detected-components">—</div>
             <div class="card-desc">
