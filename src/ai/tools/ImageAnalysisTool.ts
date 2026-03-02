@@ -21,6 +21,7 @@ export class ImageAnalysisTool implements Tool {
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-vision`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           prompt: augmentedMessage,
           imageData: context.image,

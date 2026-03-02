@@ -113,6 +113,7 @@ export class AIAgent {
               const response = await fetch(`${apiBaseUrl}/api/agent/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+                credentials: "include",
                 body: JSON.stringify(payload),
               });
 
@@ -624,24 +625,20 @@ export class AIAgent {
     try {
       Logger.log("AIAgent processing user input via Gemini:", message.substring(0, 50) + "...");
 
-
       const allMessages = this.queue.messages.slice(-10);
       const sessionHistory: any[] = allMessages.map((msg: any) => ({
         role: msg.role,
         content: msg.content,
-        parts: msg.parts, 
+        parts: msg.parts,
       }));
-
 
       let currentMessage: string | null = null;
       let currentParts: any[] | null = null;
 
-
       const lastMsg = sessionHistory.pop();
       if (lastMsg && lastMsg.role === "user") {
-        currentMessage = lastMsg.content || message; 
+        currentMessage = lastMsg.content || message;
       } else {
-      
         if (lastMsg) sessionHistory.push(lastMsg);
         currentMessage = message;
       }
@@ -650,7 +647,7 @@ export class AIAgent {
 
       for (let step = 0; step < MAX_STEPS; step++) {
         Logger.log(`[ReAct Loop] Step ${step + 1}/${MAX_STEPS}`);
-  
+
         const payload: any = {
           message: currentMessage,
           parts: currentParts,
@@ -666,6 +663,7 @@ export class AIAgent {
         const response = await fetch(`${apiBaseUrl}/api/agent/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify(payload),
         });
 
@@ -682,24 +680,20 @@ export class AIAgent {
           const call = data.functionCalls[0];
           Logger.log("Gemini routed to tool:", call.name);
 
-         
           if (currentMessage) {
             sessionHistory.push({ role: "user", content: currentMessage });
           } else if (currentParts) {
             sessionHistory.push({ role: "user", parts: currentParts });
           }
 
-        
           sessionHistory.push({
             role: "model",
             parts: [{ functionCall: { name: call.name, args: call.args } }],
           });
 
-       
           if (call.name === "final_answer") {
             const finalText = call.args.text || "Task completed.";
 
-            
             sessionHistory.push({
               role: "function",
               parts: [

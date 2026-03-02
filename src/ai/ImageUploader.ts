@@ -145,7 +145,7 @@ export class ImageUploader {
         headers: {
           "Content-Type": "application/json",
         },
-
+        credentials: "include",
         body: JSON.stringify({ base64Image: base64ImageWithPrefix }),
       });
 

@@ -2324,7 +2324,12 @@ function applyTheme(themeName: string): void {
       document.documentElement.style.setProperty("--border-color", "#cccccc");
       document.documentElement.style.setProperty("--secondary-bg", "#e9ecef");
       document.documentElement.style.setProperty("--input-bg", "#2a2b2b");
-
+      document.documentElement.style.setProperty("--ide-editor-bg", "#f5f5f5");
+      document.documentElement.style.setProperty("--ide-gutter-bg", "#eaeaea");
+      document.documentElement.style.setProperty("--ide-line-number-color", "#999999");
+      document.documentElement.style.setProperty("--ide-caret-color", "#333333");
+      document.documentElement.style.setProperty("--ide-text-color", "#24292e");
+      document.documentElement.style.setProperty("--ide-selection-color", "rgba(0, 100, 200, 0.2)");
       break;
     case "dark":
       document.documentElement.style.setProperty("--bg-color", "#181818");
@@ -2333,7 +2338,15 @@ function applyTheme(themeName: string): void {
       document.documentElement.style.setProperty("--border-color", "#444444");
       document.documentElement.style.setProperty("--secondary-bg", "#2c2c2c");
       document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
-
+      document.documentElement.style.setProperty("--ide-editor-bg", "#1e1e1e");
+      document.documentElement.style.setProperty("--ide-gutter-bg", "#181818");
+      document.documentElement.style.setProperty("--ide-line-number-color", "#555555");
+      document.documentElement.style.setProperty("--ide-caret-color", "#e0e0e0");
+      document.documentElement.style.setProperty("--ide-text-color", "#f8f8f2");
+      document.documentElement.style.setProperty(
+        "--ide-selection-color",
+        "rgba(255, 255, 255, 0.15)"
+      );
       break;
     case "forest":
       document.documentElement.style.setProperty("--bg-color", "#021e14");
@@ -2342,7 +2355,12 @@ function applyTheme(themeName: string): void {
       document.documentElement.style.setProperty("--border-color", "#2a4e3e");
       document.documentElement.style.setProperty("--secondary-bg", "#0c2e1f");
       document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
-
+      document.documentElement.style.setProperty("--ide-editor-bg", "#0a1f14");
+      document.documentElement.style.setProperty("--ide-gutter-bg", "#071810");
+      document.documentElement.style.setProperty("--ide-line-number-color", "#2a6b4a");
+      document.documentElement.style.setProperty("--ide-caret-color", "#e0f2f1");
+      document.documentElement.style.setProperty("--ide-text-color", "#f8f8f2");
+      document.documentElement.style.setProperty("--ide-selection-color", "rgba(11, 110, 79, 0.3)");
       break;
     case "midnight":
       document.documentElement.style.setProperty("--bg-color", "#0f2027");
@@ -2351,7 +2369,15 @@ function applyTheme(themeName: string): void {
       document.documentElement.style.setProperty("--border-color", "#2c5364");
       document.documentElement.style.setProperty("--secondary-bg", "#192f38");
       document.documentElement.style.setProperty("--input-bg", "#D1F2EB");
-
+      document.documentElement.style.setProperty("--ide-editor-bg", "#0d1b22");
+      document.documentElement.style.setProperty("--ide-gutter-bg", "#0a161c");
+      document.documentElement.style.setProperty("--ide-line-number-color", "#3a5a6a");
+      document.documentElement.style.setProperty("--ide-caret-color", "#e0f2f1");
+      document.documentElement.style.setProperty("--ide-text-color", "#f8f8f2");
+      document.documentElement.style.setProperty(
+        "--ide-selection-color",
+        "rgba(66, 124, 176, 0.3)"
+      );
       break;
   }
 

@@ -21,6 +21,7 @@ export class VerilogImportTool implements Tool {
         const response = await fetch(`${apiBaseUrl}/api/generate/gemini-text`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             prompt: verilogPrompt,
             systemPrompt: context.promptAI,

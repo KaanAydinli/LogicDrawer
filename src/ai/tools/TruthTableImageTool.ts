@@ -19,6 +19,7 @@ export class TruthTableImageTool implements Tool {
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-vision`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           prompt:
             "Extract the truth table from this image. Return only a JSON object with format: {headers: [column names], rows: [[values in row 1], [values in row 2], ...]}. Only include the actual table data, no explanations.",

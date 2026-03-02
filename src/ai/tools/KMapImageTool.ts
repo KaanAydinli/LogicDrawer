@@ -17,6 +17,7 @@ export class KMapImageTool implements Tool {
       const response = await fetch(`${apiBaseUrl}/api/generate/gemini-vision`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           prompt:
             "Extract the Karnaugh map from this image. Identify the '1' values and their positions accurately. Return only a JSON object with format: {variables: [list of variable names], rows: number of rows, cols: number of columns, values: [[row 1 values], [row 2 values], ...]}. The values should be 0 or 1 as they appear in the K-map cells.",

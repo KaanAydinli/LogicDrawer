@@ -14,6 +14,13 @@
   --emerald: #50c878;
   --forest: #0b6e4f;
   --dark: #013220;
+
+  --ide-editor-bg: #0d1b22;
+  --ide-gutter-bg: #0a161c;
+  --ide-line-number-color: #3a5a6a;
+  --ide-caret-color: #e0f2f1;
+  --ide-text-color: #f8f8f2;
+  --ide-selection-color: rgba(66, 124, 176, 0.3);
 }
 
 * {
@@ -612,43 +619,40 @@ body.keyboard-active .ai-chat-container.open {
   height: 100%;
   display: none;
   z-index: 1000;
-  background-color: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
   justify-content: center;
   align-items: center;
 }
 
 .verilog-editor-panel {
-  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-  border-radius: 12px;
-  box-shadow:
-    0 25px 80px rgba(0, 0, 0, 0.6),
-    0 0 1px rgba(255, 255, 255, 0.1) inset,
-    0 0 40px rgba(102, 126, 234, 0.1);
+  background-color: var(--secondary-bg);
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   width: 85%;
   max-width: 1400px;
   height: 85%;
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.3s ease-in-out;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
 }
 
 .verilog-editor-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 20px;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px 12px 0 0;
+  padding: 12px 20px;
+  background-color: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 10px 10px 0 0;
 }
 
 .verilog-editor-header h3 {
   margin: 0;
-  color: #e0e0e0;
+  color: var(--text-color);
   font-family: "Segoe UI", sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -656,38 +660,39 @@ body.keyboard-active .ai-chat-container.open {
 }
 
 .verilog-editor-header h3 svg {
-  color: #667eea;
+  color: var(--highlight-color);
 }
 
 .close-verilog-button {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #999;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
   font-size: 20px;
   cursor: pointer;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  opacity: 0.7;
 }
 
 .close-verilog-button:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.3);
   color: #ef4444;
+  opacity: 1;
 }
 
-/* IDE Toolbar - Updated */
 .ide-toolbar {
-  padding: 10px 16px;
-  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 16px;
+  background-color: var(--bg-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .ide-toolbar-group {
@@ -699,51 +704,47 @@ body.keyboard-active .ai-chat-container.open {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ccc;
+  background-color: var(--component-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
   border-radius: 6px;
-  padding: 8px 14px;
+  padding: 7px 14px;
   cursor: pointer;
   font-size: 13px;
   font-family: "Segoe UI", sans-serif;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
 
 .ide-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #fff;
+  filter: brightness(1.15);
   transform: translateY(-1px);
 }
 
 .ide-btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: transparent;
+  background-color: var(--highlight-color);
+  border-color: var(--highlight-color);
   color: #fff;
   font-weight: 500;
 }
 
 .ide-btn-primary:hover {
-  background: linear-gradient(135deg, #7c8fec 0%, #8a5db8 100%);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  filter: brightness(1.2);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
 }
 
-/* Editor Content Area */
 .verilog-editor-content {
   flex: 1;
   display: flex;
   overflow: hidden;
-  background: #1e1e2e;
+  background-color: var(--ide-editor-bg);
   position: relative;
 }
 
-/* Line Numbers */
 .line-numbers {
   width: 55px;
   min-width: 55px;
-  background: rgba(0, 0, 0, 0.3);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--ide-gutter-bg);
+  border-right: 1px solid var(--border-color);
   padding: 12px 0;
   overflow: hidden;
   user-select: none;
@@ -755,18 +756,16 @@ body.keyboard-active .ai-chat-container.open {
 .line-number {
   text-align: right;
   padding-right: 12px;
-  color: #4a4a6a;
+  color: var(--ide-line-number-color);
   height: 25.6px;
 }
 
-/* Code Editor Wrapper */
 .code-editor-wrapper {
   flex: 1;
   position: relative;
   overflow: hidden;
 }
 
-/* Highlight Overlay (for syntax highlighting) */
 .highlight-overlay {
   position: absolute;
   top: 0;
@@ -778,7 +777,7 @@ body.keyboard-active .ai-chat-container.open {
   font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
   font-size: 16px;
   line-height: 1.6;
-  color: #f8f8f2;
+  color: var(--ide-text-color);
   background: transparent;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -786,7 +785,6 @@ body.keyboard-active .ai-chat-container.open {
   pointer-events: none;
 }
 
-/* Textarea (actual input) */
 .code-editor-textarea {
   position: absolute;
   top: 0;
@@ -799,7 +797,7 @@ body.keyboard-active .ai-chat-container.open {
   font-size: 16px;
   line-height: 1.6;
   color: transparent;
-  caret-color: #f8f8f2;
+  caret-color: var(--ide-caret-color);
   background: transparent;
   border: none;
   outline: none;
@@ -810,10 +808,9 @@ body.keyboard-active .ai-chat-container.open {
 }
 
 .code-editor-textarea::selection {
-  background: rgba(102, 126, 234, 0.3);
+  background: var(--ide-selection-color);
 }
 
-/* Syntax Highlighting Colors (Monokai-inspired) */
 .verilog-keyword {
   color: #ff79c6;
   font-weight: 500;
@@ -840,16 +837,16 @@ body.keyboard-active .ai-chat-container.open {
   color: #ff79c6;
 }
 
-/* Status Bar */
 .ide-statusbar {
   display: flex;
   justify-content: space-between;
   padding: 6px 16px;
-  background: rgba(0, 0, 0, 0.4);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0 0 12px 12px;
+  background-color: var(--bg-color);
+  border-top: 1px solid var(--border-color);
+  border-radius: 0 0 10px 10px;
   font-size: 12px;
-  color: #888;
+  color: var(--text-color);
+  opacity: 0.6;
   font-family: "Segoe UI", sans-serif;
 }
 
@@ -857,6 +854,25 @@ body.keyboard-active .ai-chat-container.open {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.theme-light .verilog-keyword {
+  color: #d63384;
+}
+.theme-light .verilog-comment {
+  color: #6c757d;
+}
+.theme-light .verilog-string {
+  color: #986801;
+}
+.theme-light .verilog-number {
+  color: #6f42c1;
+}
+.theme-light .verilog-preprocessor {
+  color: #0a7c42;
+}
+.theme-light .verilog-operator {
+  color: #d63384;
 }
 
 .share-modal {
