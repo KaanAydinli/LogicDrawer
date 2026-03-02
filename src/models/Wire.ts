@@ -78,6 +78,12 @@ export class Wire {
       const temp = this.from;
       this.from = toPort;
       this.to = temp;
+      if (this.from.bitWidth !== this.to!.bitWidth) {
+        this.from = temp;
+        this.to = null;
+        Logger.log(`Bit width mismatch: ${toPort.bitWidth} vs ${temp!.bitWidth}`);
+        return false;
+      }
       if (this.to && this.to.type === "input") {
         this.to.isConnected = true;
       }

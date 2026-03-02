@@ -55,7 +55,7 @@ export class DFlipFlop extends Component {
         x: this.position.x + this.size.width + 16,
         y: this.position.y + 50,
       },
-      bitWidth: 4,
+      bitWidth: 1,
       value: true,
       isConnected: false,
       component: this,
@@ -70,8 +70,12 @@ export class DFlipFlop extends Component {
     if (clockIn && !this.lastClk) {
       if (Array.isArray(dataIn)) {
         this.qValue = [...dataIn];
+        this.outputs[0].bitWidth = dataIn.length;
+        this.outputs[1].bitWidth = dataIn.length;
       } else {
         this.qValue = dataIn;
+        this.outputs[0].bitWidth = 1;
+        this.outputs[1].bitWidth = 1;
       }
     }
 

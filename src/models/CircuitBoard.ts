@@ -2146,9 +2146,8 @@ export class CircuitBoard {
     if (!wire.from || !wire.to) return;
 
     const fromBitWidth = wire.from.bitWidth || 1;
-    const toBitWidth = wire.to.bitWidth || 1;
 
-    wire.bitWidth = Math.max(fromBitWidth, toBitWidth);
+    wire.bitWidth = fromBitWidth;
   }
 
   private handleMouseDown(event: MouseEvent): void {
@@ -2340,7 +2339,12 @@ export class CircuitBoard {
   }
 
   public createWire(fromPort: any, toPort: any): void {
-    if (!fromPort || !toPort || fromPort.isConnected || toPort.isConnected) {
+    if (!fromPort || !toPort) {
+      return;
+    }
+
+    const inputPort = fromPort.type === "input" ? fromPort : toPort;
+    if (inputPort.type === "input" && inputPort.isConnected) {
       return;
     }
 
