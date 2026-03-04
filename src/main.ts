@@ -1551,12 +1551,11 @@ function setFile() {
         const circuitData = circuitBoard.exportCircuit();
         saveToMongoDB(text, circuitData);
       } else if (selectedFile === "saveas") {
-        const veri = circuitBoard.extractVerilog();
         var text = inputText.value;
         if (text === "") {
           text = "circuit";
         }
-        circuitBoard.saveVerilogToFile(veri, text + ".v");
+        circuitBoard.saveToFile(text + ".json");
       } else if (selectedFile === "new") {
         circuitBoard.clearCircuit();
       }
@@ -1660,12 +1659,11 @@ function setMobile() {
                 const circuitData = circuitBoard.exportCircuit();
                 saveToMongoDB(text, circuitData);
               } else if (selectedFile === "saveas") {
-                const veri = circuitBoard.extractVerilog();
                 var text = inputText.value;
                 if (text === "") {
                   text = "circuit";
                 }
-                circuitBoard.saveVerilogToFile(veri, text + ".v");
+                circuitBoard.saveToFile(text + ".json");
               } else if (selectedFile === "new") {
                 circuitBoard.clearCircuit();
               }
