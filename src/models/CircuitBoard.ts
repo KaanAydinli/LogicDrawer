@@ -2201,37 +2201,8 @@ export class CircuitBoard {
           (component as any).onMouseDown();
           this.simulate();
           this.draw();
+          return;
         }
-      }
-      if (component.containsPoint(mousePos)) {
-        const isPartOfSelection = this.selectedComponents.includes(component);
-
-        if (!isPartOfSelection) {
-          this.selectedComponents.forEach(c => (c.selected = false));
-          this.selectedComponents = [];
-
-          this.selectedComponent = component;
-          component.selected = true;
-          this.selectedComponents = [component];
-        }
-        if (this.selectedComponent) {
-          this.updatePropertiesPanel();
-        }
-
-        this.draggedComponent = component;
-
-        this.dragOffset = { ...mousePos };
-        this.dragStartPositions.clear();
-        if (this.selectedComponents.length > 0) {
-          this.selectedComponents.forEach(c => {
-            this.dragStartPositions.set(c.id, { ...c.position });
-          });
-        } else {
-          this.dragStartPositions.set(component.id, { ...component.position });
-        }
-
-        this.draw();
-        return;
       }
     }
 

@@ -432,6 +432,12 @@ export class Wire {
       return false;
     }
 
+    // Deadzone near connected ports to prioritize port selection over wire edit
+    const deadzoneRadius = 12; // slightly larger than the port selection radius (10)
+    if (this.distance(point, { x: startX, y: startY }) <= deadzoneRadius) return false;
+    if (this.to && this.to.position && this.distance(point, { x: endX, y: endY }) <= deadzoneRadius)
+      return false;
+
     if (this.controlPoints.length > 0) {
       const allPoints = this.getAllPoints();
       for (let i = 0; i < allPoints.length - 1; i++) {
