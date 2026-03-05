@@ -45,13 +45,16 @@ export class EditComponentStateTool implements Tool {
                 results.push(`Failed: Text component cannot attach (${edit.componentId})`);
                 continue;
               }
-              const attachTarget = context.circuitBoard.getComponentById(edit.state.attachedToId);
+              const attachTargetId = edit.state.attachedToId;
+              if (typeof attachTargetId !== "string") {
+                results.push(`Failed: Invalid text attachment target ID (${edit.componentId})`);
+                continue;
+              }
+              const attachTarget = context.circuitBoard.getComponentById(attachTargetId);
               if (attachTarget) {
                 component.attachToComponent(attachTarget);
               } else {
-                results.push(
-                  `Failed: Text attachment target not found (${edit.state.attachedToId})`
-                );
+                results.push(`Failed: Text attachment target not found (${attachTargetId})`);
                 continue;
               }
             }

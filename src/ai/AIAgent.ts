@@ -683,13 +683,14 @@ export class AIAgent {
           {
             name: "edit_component_state",
             description:
-              "Edit state values of existing components by ID (for example bit width, multibit mode, rotation, toggle state, text style/content, or text attachment).",
+              "Edit state values of existing components by ID. Partial updates are supported: send only the field(s) you want to change (for example only defaultBitWidth).",
             parameters: {
               type: "OBJECT",
               properties: {
                 edits: {
                   type: "ARRAY",
-                  description: "List of state edits to apply.",
+                  description:
+                    "List of state edits to apply. Each item targets one component and applies only provided state fields.",
                   items: {
                     type: "OBJECT",
                     properties: {
@@ -700,7 +701,67 @@ export class AIAgent {
                       state: {
                         type: "OBJECT",
                         description:
-                          "State payload to apply using the component's own setState handling.",
+                          "Partial state payload. All properties are optional: include only fields you want to change, and include at least one property.",
+                        properties: {
+                          position: {
+                            type: "OBJECT",
+                            properties: {
+                              x: { type: "INTEGER" },
+                              y: { type: "INTEGER" },
+                            },
+                          },
+                          selected: { type: "BOOLEAN" },
+                          defaultBitWidth: { type: "INTEGER" },
+                          isMultiBit: { type: "BOOLEAN" },
+                          rotation: { type: "INTEGER" },
+                          inputs: {
+                            type: "ARRAY",
+                            items: {
+                              type: "OBJECT",
+                              properties: {
+                                value: { type: "BOOLEAN" },
+                                bitWidth: { type: "INTEGER" },
+                              },
+                            },
+                          },
+                          outputs: {
+                            type: "ARRAY",
+                            items: {
+                              type: "OBJECT",
+                              properties: {
+                                value: { type: "BOOLEAN" },
+                                bitWidth: { type: "INTEGER" },
+                              },
+                            },
+                          },
+                          on: { type: "BOOLEAN" },
+                          interval: { type: "INTEGER" },
+                          bitWidth: { type: "INTEGER" },
+                          bits: { type: "ARRAY", items: { type: "BOOLEAN" } },
+                          displayMode: {
+                            type: "STRING",
+                            enum: ["auto", "binary", "decimal", "hex"],
+                          },
+                          value: { type: "INTEGER" },
+                          qValue: { type: "ARRAY", items: { type: "BOOLEAN" } },
+                          lastClk: { type: "BOOLEAN" },
+                          text: { type: "STRING" },
+                          fontSize: { type: "INTEGER" },
+                          fontFamily: { type: "STRING" },
+                          color: { type: "STRING" },
+                          relativeOffset: {
+                            type: "OBJECT",
+                            properties: {
+                              x: { type: "INTEGER" },
+                              y: { type: "INTEGER" },
+                            },
+                          },
+                          attachedToId: {
+                            type: "STRING",
+                            description:
+                              "For text components: component ID to attach to, or null to detach.",
+                          },
+                        },
                       },
                     },
                     required: ["componentId", "state"],

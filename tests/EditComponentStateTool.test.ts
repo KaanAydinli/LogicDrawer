@@ -65,6 +65,37 @@ describe("EditComponentStateTool", () => {
     expect(draw).toHaveBeenCalledTimes(1);
   });
 
+  it("supports single-field partial state updates", async () => {
+    let appliedState: Record<string, unknown> = {};
+    const setState = vi.fn((state: Record<string, unknown>) => {
+      appliedState = { ...appliedState, ...state };
+    });
+    const component = { id: "comp-2", type: "clock", setState };
+    const getComponentById = vi.fn().mockImplementation((id: string) => {
+      if (id === "comp-2") return component;
+      return null;
+    });
+
+    const tool = new EditComponentStateTool();
+    const result = await tool.execute({
+      message: "edit",
+      circuitBoard: {
+        getComponentById,
+        simulate: vi.fn(),
+        draw: vi.fn(),
+      } as any,
+      queue: {} as any,
+      promptAI: "",
+      imageUploader: {} as any,
+      edits: [{ componentId: "comp-2", state: { defaultBitWidth: 16 } }],
+    } as any);
+
+    const parsed = JSON.parse(result);
+    expect(setState).toHaveBeenCalledWith({ defaultBitWidth: 16 });
+    expect(appliedState).toEqual({ defaultBitWidth: 16 });
+    expect(parsed.message).toContain("Updated 1 component(s)");
+  });
+
   it("handles text attachment state with attachedToId", async () => {
     const setState = vi.fn();
     const attachToComponent = vi.fn();
