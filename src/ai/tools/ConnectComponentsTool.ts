@@ -22,14 +22,24 @@ export class ConnectComponentsTool implements Tool {
           continue;
         }
 
-        // Auto-connect logic: Find first available output and input
-        const output = sourceComp.outputs.find((p: any) => !p.isConnected) || sourceComp.outputs[0]; // Prefer unconnected, but reuse if needed (fan-out)
-        const input = targetComp.inputs.find((p: any) => !p.isConnected);
+        let output;
+        if (conn.sourcePortIndex !== undefined && sourceComp.outputs[conn.sourcePortIndex]) {
+          output = sourceComp.outputs[conn.sourcePortIndex];
+        } else {
+          output = sourceComp.outputs.find((p: any) => !p.isConnected) || sourceComp.outputs[0];
+        }
+
+        let input;
+        if (conn.targetPortIndex !== undefined && targetComp.inputs[conn.targetPortIndex]) {
+          input = targetComp.inputs[conn.targetPortIndex];
+        } else {
+          input = targetComp.inputs.find((p: any) => !p.isConnected);
+        }
 
         if (output && input) {
           context.circuitBoard.createWire(output, input);
           results.push(
-            `Connected: ${sourceComp.type}(${conn.sourceId}) -> ${targetComp.type}(${conn.targetId})`
+            `Connected: ${sourceComp.type}(${conn.sourceId})[port ${conn.sourcePortIndex !== undefined ? conn.sourcePortIndex : "auto"}] -> ${targetComp.type}(${conn.targetId})[port ${conn.targetPortIndex !== undefined ? conn.targetPortIndex : "auto"}]`
           );
         } else {
           let reason = "";

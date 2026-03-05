@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 .env
+react-traces/
+server/*.jsonl
+server/test.py
 
 # Editor directories and files
 .vscode/*

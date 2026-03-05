@@ -431,4 +431,37 @@ router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, re
   }
 });
 
+router.post("/dev/react-trace", async (req, res) => {
+  if (process.env.LOGICDRAWER_DEV !== "true") {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  try {
+    const trace = req.body;
+    if (!trace || typeof trace !== "object") {
+      return res.status(400).json({ error: "Invalid trace payload" });
+    }
+
+    // In prod (compiled): __dirname = server/dist/routes → ../../.. = project root
+    // In dev (ts-node-dev): __dirname = server/routes → ../.. = project root
+    const projectRoot = __dirname.includes("dist")
+      ? path.resolve(__dirname, "../../..")
+      : path.resolve(__dirname, "../..");
+    const tracesDir = path.join(projectRoot, "react-traces");
+    if (!fs.existsSync(tracesDir)) {
+      fs.mkdirSync(tracesDir, { recursive: true });
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `react-trace-${timestamp}.json`;
+    fs.writeFileSync(path.join(tracesDir, filename), JSON.stringify(trace, null, 2), "utf-8");
+
+    Logger.log(`[DevTrace] Saved ReAct trace: ${filename}`);
+    return res.json({ saved: filename });
+  } catch (error) {
+    Logger.error("[DevTrace] Failed to save trace:", error);
+    return res.status(500).json({ error: "Failed to save trace" });
+  }
+});
+
 export default router;

@@ -47,6 +47,18 @@ export class AIAgent {
     Logger.log("AIAgent initialized successfully");
   }
 
+  private async saveReactTrace(trace: object): Promise<void> {
+    try {
+      await fetch(`${apiBaseUrl}/api/dev/react-trace`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(trace),
+      });
+    } catch (e) {
+      Logger.error("Failed to save ReAct trace:", e);
+    }
+  }
+
   async processUserInputWithStreaming(message: string): Promise<ReadableStream<Uint8Array>> {
     try {
       this.queue.enqueue(message, "user");
@@ -80,6 +92,18 @@ export class AIAgent {
             }
 
             const MAX_STEPS = 5;
+            const isDev = import.meta.env.LOGICDRAWER_DEV === "true";
+            const reactTrace: {
+              timestamp: string;
+              request: string;
+              steps: object[];
+              finalResponse: string;
+            } = {
+              timestamp: new Date().toISOString(),
+              request: message,
+              steps: [],
+              finalResponse: "",
+            };
 
             for (let step = 0; step < MAX_STEPS; step++) {
               Logger.log(`[ReAct Loop] Step ${step + 1}/${MAX_STEPS}`);
@@ -193,6 +217,16 @@ export class AIAgent {
                   );
 
                   const finalText = call.args.text || "Task completed.";
+                  if (isDev) {
+                    reactTrace.steps.push({
+                      step: step + 1,
+                      toolCall: { name: call.name, args: call.args },
+                      toolResult: finalText,
+                      status: "success",
+                    });
+                    reactTrace.finalResponse = finalText;
+                    void this.saveReactTrace(reactTrace);
+                  }
                   controller.enqueue(
                     encoder.encode(`data: ${JSON.stringify({ chunk: finalText })}\n\n`)
                   );
@@ -258,6 +292,15 @@ export class AIAgent {
                         ...extraContext,
                       });
 
+                      if (isDev) {
+                        reactTrace.steps.push({
+                          step: step + 1,
+                          toolCall: { name: call.name, args: call.args },
+                          toolResult,
+                          status: "success",
+                        });
+                      }
+
                       controller.enqueue(
                         encoder.encode(
                           `data: ${JSON.stringify({
@@ -272,6 +315,14 @@ export class AIAgent {
                     } catch (toolError) {
                       Logger.error(`Tool ${toolKey} execution failed:`, toolError);
                       toolResult = `Error executing tool ${toolKey}: ${toolError}`;
+                      if (isDev) {
+                        reactTrace.steps.push({
+                          step: step + 1,
+                          toolCall: { name: call.name, args: call.args },
+                          toolResult,
+                          status: "failure",
+                        });
+                      }
                       controller.enqueue(
                         encoder.encode(
                           `data: ${JSON.stringify({
@@ -286,6 +337,14 @@ export class AIAgent {
                     }
                   } else {
                     toolResult = `Tool ${toolKey} not registered.`;
+                    if (isDev) {
+                      reactTrace.steps.push({
+                        step: step + 1,
+                        toolCall: { name: call.name, args: call.args },
+                        toolResult,
+                        status: "failure",
+                      });
+                    }
                     controller.enqueue(
                       encoder.encode(
                         `data: ${JSON.stringify({
@@ -329,6 +388,10 @@ export class AIAgent {
                   )
                 );
                 const result = data.text || "I didn't understand that.";
+                if (isDev) {
+                  reactTrace.finalResponse = result;
+                  void this.saveReactTrace(reactTrace);
+                }
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`)
                 );
@@ -336,6 +399,10 @@ export class AIAgent {
                 controller.close();
                 return;
               }
+            }
+            if (isDev) {
+              reactTrace.finalResponse = "Max steps reached without final answer.";
+              void this.saveReactTrace(reactTrace);
             }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
             controller.close();
@@ -571,7 +638,7 @@ export class AIAgent {
           {
             name: "connect_components",
             description:
-              "Connect multiple pairs of components. Finds available ports automatically.",
+              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -583,6 +650,16 @@ export class AIAgent {
                     properties: {
                       sourceId: { type: "STRING", description: "ID of the source component." },
                       targetId: { type: "STRING", description: "ID of the target component." },
+                      sourcePortIndex: {
+                        type: "INTEGER",
+                        description:
+                          "Optional. The index of the output port on the source component. If omitted, finds the first available port.",
+                      },
+                      targetPortIndex: {
+                        type: "INTEGER",
+                        description:
+                          "Optional. The index of the input port on the target component (e.g. 1 for CLK on a D Flip-Flop). If omitted, finds the first available port.",
+                      },
                     },
                     required: ["sourceId", "targetId"],
                   },

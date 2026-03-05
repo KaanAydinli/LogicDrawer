@@ -12,8 +12,8 @@ export class GetCircuitSummaryTool implements Tool {
         id: comp.id,
         type: comp.type,
         position: comp.position,
-        inputs: comp.inputs.map(p => ({ id: p.id, isConnected: p.isConnected })),
-        outputs: comp.outputs.map(p => ({ id: p.id, isConnected: p.isConnected })),
+        inputs: comp.inputs.map((p, index) => ({ index, id: p.id, isConnected: p.isConnected })),
+        outputs: comp.outputs.map((p, index) => ({ index, id: p.id, isConnected: p.isConnected })),
       }));
 
       return JSON.stringify({
