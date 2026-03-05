@@ -9,6 +9,7 @@ import {
   KMapImageTool,
   AddComponentsTool,
   ConnectComponentsTool,
+  EditComponentStateTool,
   GetCircuitSummaryTool,
 } from "./tools";
 import { ImageUploader } from "./ImageUploader";
@@ -268,6 +269,10 @@ export class AIAgent {
                     toolKey = "CONNECT_COMPONENTS";
                     extraContext.connections = call.args.connections;
                     break;
+                  case "edit_component_state":
+                    toolKey = "EDIT_COMPONENT_STATE";
+                    extraContext.edits = call.args.edits;
+                    break;
                   case "get_circuit_summary":
                     toolKey = "GET_CIRCUIT_SUMMARY";
                     break;
@@ -492,6 +497,7 @@ export class AIAgent {
     // this.tools.set("CIRCUIT_FIX", new CircuitFixTool()); // Deprecated
     this.tools.set("ADD_COMPONENTS", new AddComponentsTool());
     this.tools.set("CONNECT_COMPONENTS", new ConnectComponentsTool());
+    this.tools.set("EDIT_COMPONENT_STATE", new EditComponentStateTool());
     this.tools.set("GET_CIRCUIT_SUMMARY", new GetCircuitSummaryTool());
 
     Logger.log("Tools registered:", Array.from(this.tools.keys()));
@@ -674,6 +680,36 @@ export class AIAgent {
               "Get a summary of the current circuit board state, including component IDs, types, and positions. Useful for knowing what IDs to use for connections.",
             parameters: { type: "OBJECT", properties: {} },
           },
+          {
+            name: "edit_component_state",
+            description:
+              "Edit state values of existing components by ID (for example bit width, multibit mode, rotation, toggle state, text style/content, or text attachment).",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                edits: {
+                  type: "ARRAY",
+                  description: "List of state edits to apply.",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      componentId: {
+                        type: "STRING",
+                        description: "ID of the component to edit.",
+                      },
+                      state: {
+                        type: "OBJECT",
+                        description:
+                          "State payload to apply using the component's own setState handling.",
+                      },
+                    },
+                    required: ["componentId", "state"],
+                  },
+                },
+              },
+              required: ["edits"],
+            },
+          },
         ],
       },
     ];
@@ -818,6 +854,10 @@ export class AIAgent {
             case "connect_components":
               toolKey = "CONNECT_COMPONENTS";
               extraContext.connections = call.args.connections;
+              break;
+            case "edit_component_state":
+              toolKey = "EDIT_COMPONENT_STATE";
+              extraContext.edits = call.args.edits;
               break;
             case "get_circuit_summary":
               toolKey = "GET_CIRCUIT_SUMMARY";
