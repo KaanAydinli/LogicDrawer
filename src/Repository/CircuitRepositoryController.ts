@@ -22,7 +22,9 @@ export interface CircuitEntry {
   username: string;
   dateCreated: Date;
   dateModified: Date;
-  tags: string[];
+  createdAt?: Date;
+  updatedAt?: Date;
+  tags?: string[];
   verilogCode: string;
   likes: number;
   downloads: number;
@@ -61,62 +63,38 @@ export function createRepositoryUI(): HTMLElement {
   container.innerHTML = `
     <div class="repository-content">
       <div class="repository-header">
-        <div class="repository-title">Circuit Repository</div>
-        <button class="close-button" id="repo-close-btn">×</button>
-      </div>
-      
-      <div class="repository-tabs">
-        <div class="tab active" data-tab="browse">Browse Circuits</div>
-        <div class="tab" data-tab="my-circuits">My Circuits</div>
-        <div class="tab" data-tab="shared-me">Shared with Me</div>
-      </div>
-      
-      <div class="search-container">
-        <input type="text" id="circuit-search" placeholder="Search circuits...">
-        <button class="upload-button" id="upload-circuit-btn">Upload Circuit</button>
-      </div>
-      
-      <div class="circuit-grid" id="circuit-grid">
-        <div class="loading-indicator">Loading circuits...</div>
-      </div>
-      
-      <div class="circuit-detail" id="circuit-detail" style="display: none;">
-        <button class="back-button" id="back-to-grid-btn">← Back to List</button>
-        <div class="circuit-detail-container" id="detail-container">
-          <!-- Circuit details will be loaded here -->
+        <div class="header-left">
+          <div class="repository-title">Circuit Repository</div>
+          <div class="repository-tabs">
+            <div class="tab active" data-tab="browse">Browse Circuits</div>
+            <div class="tab" data-tab="my-circuits">My Circuits</div>
+            <div class="tab" data-tab="shared-me">Shared with Me</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="search-container">
+            <i class="fas fa-search search-icon" style="color: #888; margin-right: 8px;"></i>
+            <input type="text" id="circuit-search" placeholder="Search circuits...">
+          </div>
+          <button class="close-button" id="repo-close-btn">×</button>
         </div>
       </div>
-    </div>
-    
-    <div class="upload-form" id="upload-form" style="display: none;">
-      <div class="form-header">
-        <div class="form-title">Upload New Circuit</div>
-        <button class="close-button" id="close-upload-form">×</button>
-      </div>
       
-      <form id="circuit-upload-form">
-        <div class="form-field">
-          <label for="circuit-title">Title</label>
-          <input type="text" id="circuit-title" required>
+      <div class="repository-body">
+        <div class="circuit-grid" id="circuit-grid">
+          <div class="loading-indicator">
+            <div class="spinner" style="border-width: 3px; width: 30px; height: 30px; border-top-color: var(--highlight-color); margin: 0 auto 10px;"></div>
+            Loading circuits...
+          </div>
         </div>
         
-        <div class="form-field">
-          <label for="circuit-description">Description</label>
-          <textarea id="circuit-description" rows="4" required></textarea>
+        <div class="circuit-detail" id="circuit-detail" style="display: none;">
+          <button class="back-button" id="back-to-grid-btn">← Back to List</button>
+          <div class="circuit-detail-container" id="detail-container">
+            <!-- Circuit details will be loaded here -->
+          </div>
         </div>
-        
-        <div class="form-field">
-          <label for="circuit-tags">Tags (comma separated)</label>
-          <input type="text" id="circuit-tags" placeholder="e.g. adder, 4-bit, alu">
-        </div>
-        
-        <div class="form-field">
-          <label for="circuit-code">Verilog Code</label>
-          <textarea id="circuit-code" rows="10" required></textarea>
-        </div>
-        
-        <button type="submit">Upload Circuit</button>
-      </form>
+      </div>
     </div>
   `;
 
@@ -133,6 +111,7 @@ export function addRepositoryStyles(): void {
       right: 0;
       bottom: 0;
       background-color: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(5px);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -142,14 +121,15 @@ export function addRepositoryStyles(): void {
     
     .repository-content {
       background-color: var(--bg-color);
-      border: 3px solid #0b0b0b;
-      border-radius: 8px;
-      width: 90%;
-      height: 90%;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 95%;
+      max-width: 1400px;
+      height: 90vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 5px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
       color: var(--text-color);
     }
     
@@ -157,105 +137,127 @@ export function addRepositoryStyles(): void {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px 24px;
-      border-bottom: 3px solid #0b0b0b;
-      background-color: var(--bg-color);
+      padding: 0 24px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--secondary-bg);
+      min-height: 70px;
+    }
+    
+    .header-left, .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
     }
     
     .repository-title {
-      margin: 0;
       color: var(--text-color);
       font-family: "Minecraftia", sans-serif;
-      font-optical-sizing: auto;
-      font-weight: 900;
-      font-size: xx-large;
+      font-weight: 600;
+      font-size: 1.25rem;
+      margin-right: 16px;
     }
     
     .close-button {
       background: none;
       border: none;
-      font-size: 24px;
+      font-size: 28px;
+      line-height: 1;
       cursor: pointer;
-      color: var(--text-color);
+      color: #888;
       transition: color 0.2s;
+      padding: 4px;
+      border-radius: 4px;
     }
     
     .close-button:hover {
-      color: var(--highlight-color);
+      color: var(--text-color);
+      background: rgba(255, 255, 255, 0.1);
     }
     
     .repository-tabs {
       display: flex;
-      background-color: var(--secondary-bg);
-      border-bottom: 1px solid var(--border-color);
+      gap: 8px;
     }
     
     .tab {
-      padding: 12px 24px;
+      padding: 10px 16px;
       cursor: pointer;
-      border-bottom: 3px solid transparent;
       font-family: "Minecraftia", sans-serif;
       font-weight: 500;
-      transition: all 0.2s;
-      color: var(--text-color);
+      font-size: 14px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      color: #888;
+      background: transparent;
     }
     
     .tab:hover {
-      background-color: var(--component-bg);
+      background-color: rgba(255, 255, 255, 0.05);
+      color: var(--text-color);
     }
     
     .tab.active {
-      border-bottom-color: var(--highlight-color);
+      background-color: rgba(66, 133, 244, 0.1);
       color: var(--highlight-color);
-      font-weight: 600;
     }
     
     .search-container {
       display: flex;
-      padding: 16px 24px;
-      border-bottom: 1px solid var(--border-color);
-      background-color: var(--secondary-bg);
-    }
-    
-    .search-container input {
-      flex: 1;
-      padding: 10px 16px;
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      font-size: 14px;
+      align-items: center;
       background-color: var(--component-bg);
-      color: var(--text-color);
-      transition: border-color 0.2s;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 6px 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
     
-    .search-container input:focus {
+    .search-container:focus-within {
       border-color: var(--highlight-color);
-      outline: none;
       box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
     }
     
-    .upload-button {
-      margin-left: 12px;
-      padding: 10px 16px;
-      background-color: var(--component-bg);
+    .search-container input {
+      border: none;
+      background: transparent;
       color: var(--text-color);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
+      font-size: 14px;
+      outline: none;
+      width: 200px;
+    }
+    
+    .upload-button {
+      padding: 8px 16px;
+      background-color: var(--highlight-color);
+      color: #fff;
+      border: none;
+      border-radius: 20px;
       cursor: pointer;
       font-family: "Minecraftia", sans-serif;
       font-weight: 500;
-      transition: background-color 0.2s;
+      font-size: 13px;
+      transition: background-color 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     
     .upload-button:hover {
-      background-color: var(--highlight-color);
-      color: #fff;
+      background-color: #3367d6;
+      transform: translateY(-1px);
+    }
+    
+    .repository-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
     }
     
     .circuit-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-auto-rows: max-content;
+      gap: 20px;
       padding: 24px;
       overflow-y: auto;
       flex: 1;
@@ -264,84 +266,167 @@ export function addRepositoryStyles(): void {
     
     .circuit-card {
       border: 1px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       cursor: pointer;
       background-color: var(--secondary-bg);
-      box-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
     }
     
     .circuit-card:hover {
-      transform: translateY(-5px) scale(1.02);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-      background-color: var(--component-bg);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+      border-color: #555;
     }
     
     .circuit-thumbnail {
-      height: 160px;
-      background-color: var(--component-bg);
+      aspect-ratio: 16/9;
+      width: 100%;
+      background-color: #1a1a1a;
       background-size: cover;
       background-position: center;
       display: flex;
       justify-content: center;
       align-items: center;
-      color: var(--text-color);
+      color: #666;
       border-bottom: 1px solid var(--border-color);
+      font-size: 14px;
+      position: relative;
+    }
+    
+    .circuit-card:hover .circuit-actions {
+      opacity: 1;
+    }
+    
+    .circuit-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 4px;
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
+    }
+    
+    .circuit-actions button {
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    
+    .circuit-actions button:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
     
     .circuit-info {
       padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
     
     .circuit-info h3 {
-      margin: 0 0 12px 0;
+      margin: 0;
       color: var(--text-color);
       font-family: "Minecraftia", sans-serif;
       font-weight: 600;
+      font-size: 18px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     
     .circuit-info p {
-      margin: 0 0 12px 0;
-      color: var(--text-color);
+      margin: 0;
+      color: #aaa;
+      font-family: "Minecraftia", sans-serif;
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     
-    .circuit-meta {
+    .circuit-meta-footer {
       display: flex;
       justify-content: space-between;
-      color: var(--text-color);
-      opacity: 0.7;
-      font-size: 13px;
-      margin-bottom: 12px;
+      align-items: center;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .circuit-author {
+      font-family: "Minecraftia", sans-serif;
+      font-size: 14px;
+      color: #888;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .circuit-author-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--highlight-color);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    
+    .circuit-stats {
+      font-family: "Minecraftia", sans-serif;
+      display: flex;
+      gap: 12px;
+      font-size: 14px;
+      color: #888;
+    }
+    
+    .circuit-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
     
     .circuit-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
+      margin-top: 4px;
     }
     
     .tag {
-      background-color: var(--component-bg);
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-      color: var(--text-color);
-      transition: background-color 0.2s;
-    }
-    
-    .tag:hover {
-      background-color: var(--highlight-color);
-      color: #fff;
+      background-color: rgba(255, 255, 255, 0.08);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #ccc;
     }
     
     .circuit-detail {
-      flex: 1;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
       padding: 24px;
       overflow-y: auto;
       background-color: var(--bg-color);
+      z-index: 10;
     }
     
     .back-button {
@@ -441,6 +526,9 @@ export function addRepositoryStyles(): void {
       margin-bottom: 24px;
       line-height: 1.6;
       color: var(--text-color);
+      font-family: "Minecraftia", sans-serif;
+      font-weight: 500;
+      font-size: 18px;
     }
     
     .detail-info strong {
@@ -455,6 +543,8 @@ export function addRepositoryStyles(): void {
       border-radius: 8px;
       line-height: 1.6;
       border: 1px solid var(--border-color);
+      font-family: "Minecraftia", sans-serif;
+      font-weight: 500;
     }
     
     .detail-description h3 {
@@ -535,6 +625,9 @@ export function addRepositoryStyles(): void {
     .comment {
       border-bottom: 1px solid var(--border-color);
       padding: 16px 0;
+      font-family: "Minecraftia", sans-serif;
+      font-weight: 500;
+      font-size: 24px;
     }
     
     .comment:last-child {
@@ -545,6 +638,8 @@ export function addRepositoryStyles(): void {
       display: flex;
       justify-content: space-between;
       margin-bottom: 12px;
+      font-family: "Minecraftia", sans-serif;
+      font-weight: 500;
     }
     
     .comment-author {
@@ -746,7 +841,6 @@ export class CircuitRepositoryController {
   private modalElement: HTMLElement | null = null;
   private circuitGridElement: HTMLElement | null = null;
   private detailViewElement: HTMLElement | null = null;
-  private uploadFormElement: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
   private currentUserId = "unknown-user";
 
@@ -811,7 +905,6 @@ export class CircuitRepositoryController {
 
     this.circuitGridElement = document.getElementById("circuit-grid");
     this.detailViewElement = document.getElementById("circuit-detail");
-    this.uploadFormElement = document.getElementById("upload-form");
     this.searchInput = document.getElementById("circuit-search") as HTMLInputElement;
 
     this.setupEventListeners();
@@ -853,21 +946,6 @@ export class CircuitRepositoryController {
           this.searchCircuits(query);
         }, 200) as unknown as number;
       });
-    }
-
-    const uploadBtn = document.getElementById("upload-circuit-btn");
-    if (uploadBtn) {
-      uploadBtn.addEventListener("click", () => this.showUploadForm());
-    }
-
-    const closeUploadBtn = document.getElementById("close-upload-form");
-    if (closeUploadBtn) {
-      closeUploadBtn.addEventListener("click", () => this.hideUploadForm());
-    }
-
-    const uploadForm = document.getElementById("circuit-upload-form");
-    if (uploadForm) {
-      uploadForm.addEventListener("submit", e => this.handleUploadSubmit(e));
     }
 
     const backBtn = document.getElementById("back-to-grid-btn");
@@ -1038,24 +1116,29 @@ export class CircuitRepositoryController {
 
     card.dataset.circuitId = circuit.id;
 
+    const username = circuit.username || "Unknown User";
+    const initial = username.charAt(0).toUpperCase();
+
     card.innerHTML = `
       <div class="circuit-thumbnail" ${circuit.thumbnailUrl ? `style="background-image: url('${circuit.thumbnailUrl}')"` : ""}>
         ${!circuit.thumbnailUrl ? "No Preview" : ""}
         <div class="circuit-actions">
-          <button class="view-circuit" title="View details">📄</button>
-          <button class="delete-circuit" title="Delete circuit">🗑️</button>
+          <button class="view-circuit" title="View details"><i class="fas fa-file-alt"></i></button>
+          <button class="delete-circuit" title="Delete circuit"><i class="fas fa-trash"></i></button>
         </div>
       </div>
       <div class="circuit-info">
         <h3>${circuit.name || circuit.title || "Untitled Circuit"}</h3>
-        <p>${this.truncateText(circuit.description || "", 100)}</p>
-        <div class="circuit-meta">
-          <span>by ${circuit.username || "Unknown"}</span>
-          <span>❤️ ${circuit.likes || 0}</span>
-          <span>⬇️ ${circuit.downloads || 0}</span>
-        </div>
-        <div class="circuit-tags">
-          ${(circuit.tags || []).map(tag => `<span class="tag">${tag}</span>`).join("")}
+        <p>${circuit.description || "No description provided."}</p>
+        <div class="circuit-meta-footer">
+          <div class="circuit-author">
+            <div class="circuit-author-avatar">${initial}</div>
+            <span>${username}</span>
+          </div>
+          <div class="circuit-stats">
+            <div class="circuit-stat" title="Likes"><i class="fas fa-heart" ${circuit.likes > 0 ? 'style="color: #e53935;"' : ""}></i> ${circuit.likes || 0}</div>
+            <div class="circuit-stat" title="Downloads"><i class="fas fa-download"></i> ${circuit.downloads || 0}</div>
+          </div>
         </div>
       </div>
     `;
@@ -1163,13 +1246,8 @@ export class CircuitRepositoryController {
       
       <div class="detail-info">
         <p><strong>Author:</strong> ${circuit.username || "Unknown"}</p>
-        <p><strong>Created:</strong> ${new Date(circuit.dateCreated).toLocaleDateString()} | <strong>Updated:</strong> ${new Date(circuit.dateModified).toLocaleDateString()}</p>
+        <p><strong>Created:</strong> ${new Date(circuit.createdAt || circuit.dateCreated).toLocaleDateString()} | <strong>Updated:</strong> ${new Date(circuit.updatedAt || circuit.dateModified).toLocaleDateString()}</p>
         <p><strong>Downloads:</strong> ${circuit.downloads || 0} | <strong>Likes:</strong> ${circuit.likes || 0}</p>
-        
-        <div class="detail-tags">
-          <strong>Tags:</strong>
-          ${(circuit.tags || []).map(tag => `<span class="tag">${tag}</span>`).join("")}
-        </div>
       </div>
       
       <div class="detail-description">
@@ -1177,18 +1255,14 @@ export class CircuitRepositoryController {
         <p>${circuit.description || "No description available"}</p>
       </div>
       
-      <div class="circuit-preview">
-        <h3>Circuit Preview</h3>
-        ${
-          circuit.thumbnailUrl
-            ? `<img src="${circuit.thumbnailUrl}" alt="${circuit.name || circuit.title || "Untitled Circuit"}">`
-            : "<p>No preview available</p>"
-        }
       </div>
       
-      <div class="circuit-code">
-        <h3>Verilog Code</h3>
-        <pre>${circuit.verilogCode || "No Verilog code available"}</pre>
+      <div class="circuit-preview">
+        ${
+          circuit.thumbnailUrl
+            ? `<img src="${circuit.thumbnailUrl}" style="width: 100%; max-height: 450px; object-fit: contain;" alt="${circuit.name || circuit.title || "Untitled Circuit"}">`
+            : `<div style="text-align: center; color: #666; padding: 40px; background: #1a1a1a; border-radius: 8px;">No preview available</div>`
+        }
       </div>
       
       <div class="circuit-comments">
@@ -1371,56 +1445,6 @@ export class CircuitRepositoryController {
     }
   }
 
-  private showUploadForm(): void {
-    if (this.uploadFormElement) {
-      this.uploadFormElement.style.display = "block";
-    }
-  }
-
-  private hideUploadForm(): void {
-    if (this.uploadFormElement) {
-      this.uploadFormElement.style.display = "none";
-
-      const form = document.getElementById("circuit-upload-form") as HTMLFormElement;
-      if (form) form.reset();
-    }
-  }
-  private async handleUploadSubmit(e: Event): Promise<void> {
-    e.preventDefault();
-    if (!this.uploadFormElement) return;
-
-    const formData = new FormData(this.uploadFormElement as HTMLFormElement);
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const verilogCode = formData.get("verilogCode") as string;
-    const tags = (formData.get("tags") as string).split(",").map(tag => tag.trim());
-
-    const isPublic = formData.get("isPublic") === "on" || true;
-
-    try {
-      const newCircuit = await this.circuitService.uploadCircuit({
-        name: title,
-        description,
-        userId: this.currentUserId,
-        username: "Current User",
-        tags,
-        verilogCode,
-        thumbnailUrl: undefined,
-        components: [],
-        wires: [],
-        sharedWith: [],
-        isPublic: isPublic,
-      });
-
-      this.loadCircuits();
-      this.currentCircuits.unshift(newCircuit);
-      this.hideUploadForm();
-    } catch (error) {
-      Logger.error("Upload failed:", error);
-      alert("Failed to upload circuit. Please try again.");
-    }
-  }
-
   private async useCircuit(circuit: CircuitEntry): Promise<void> {
     try {
       const docNameInputs = document.querySelectorAll(".docName") as NodeListOf<HTMLInputElement>;
@@ -1510,17 +1534,6 @@ export class CircuitRepositoryController {
         this.close();
         alert(`Circuit "${circuit.name || circuit.title || "Untitled"}" loaded successfully!`);
       } else {
-        if (circuit.verilogCode) {
-          const success = this.verilogConverter.importVerilogCode(circuit.verilogCode);
-          if (success) {
-            this.close();
-            alert(
-              `Circuit "${circuit.name || circuit.title || "Untitled"}" loaded from Verilog code!`
-            );
-            return;
-          }
-        }
-
         alert("The circuit appears to be empty. No components to load.");
       }
     } catch (error) {
@@ -1573,10 +1586,5 @@ export class CircuitRepositoryController {
       Logger.error("Comment failed:", error);
       alert("Failed to add comment. Please try again.");
     }
-  }
-
-  private truncateText(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
   }
 }

@@ -2113,6 +2113,87 @@ export class CircuitBoard {
     document.body.removeChild(link);
   }
 
+  public generatePreviewDataUrl(): string {
+    if (this.components.length === 0 && this.wires.length === 0) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 320;
+      canvas.height = 180;
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#151515";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#666";
+      ctx.font = "14px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("Empty Circuit", canvas.width / 2, canvas.height / 2);
+      return canvas.toDataURL("image/png");
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    this.components.forEach(component => {
+      const box = component.getBoundingBox();
+      minX = Math.min(minX, box.x);
+      minY = Math.min(minY, box.y);
+      maxX = Math.max(maxX, box.x + box.width);
+      maxY = Math.max(maxY, box.y + box.height);
+    });
+
+    this.wires.forEach(wire => {
+      const points = wire.getAllPoints();
+      points.forEach(point => {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      });
+    });
+
+    const padding = 20;
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
+
+    const contentWidth = maxX - minX;
+    const contentHeight = maxY - minY;
+
+    // Use a fixed aspect ratio common for thumbnails (16:9)
+    // Scale down the circuit so it fits into max 640x360 depending on Aspect Ratio.
+    const targetWidth = 640;
+    const targetHeight = 360;
+
+    const scale = Math.min(targetWidth / contentWidth, targetHeight / contentHeight);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext("2d")!;
+
+    ctx.fillStyle = "#151515";
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+    ctx.save();
+    // Center the circuit within the thumbnail
+    ctx.translate(targetWidth / 2, targetHeight / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-(minX + contentWidth / 2), -(minY + contentHeight / 2));
+
+    this.wires.forEach(wire => {
+      wire.draw(ctx);
+    });
+
+    this.components.forEach(component => {
+      component.draw(ctx);
+    });
+
+    ctx.restore();
+
+    return canvas.toDataURL("image/jpeg", 0.7); // 70% quality JPEG saves memory
+  }
+
   private drawGridForScreenshot(
     ctx: CanvasRenderingContext2D,
     offsetX: number,

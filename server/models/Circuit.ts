@@ -13,6 +13,10 @@ const circuitSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  thumbnailUrl: {
+    type: String,
+    required: false,
+  },
   components: {
     type: Array,
     required: true,

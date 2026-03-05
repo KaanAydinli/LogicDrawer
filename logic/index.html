@@ -315,6 +315,157 @@
               </div>
             </div>
 
+            <div id="save-circuit-modal" class="modal">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2 style="font-family: &quot;Minecraftia&quot;, sans-serif">Save Circuit</h2>
+                  <span class="close-save-modal">&times;</span>
+                </div>
+                <div class="modal-body">
+                  <div class="save-modal-layout" style="display: flex; gap: 20px">
+                    <div class="save-modal-left" style="flex: 1">
+                      <div class="input-group">
+                        <label
+                          for="save-circuit-name"
+                          style="font-family: &quot;Minecraftia&quot;, sans-serif"
+                          >Circuit Name</label
+                        >
+                        <input
+                          type="text"
+                          id="save-circuit-name"
+                          placeholder="Enter circuit name"
+                          required
+                          style="
+                            width: 100%;
+                            padding: 8px;
+                            margin-bottom: 15px;
+                            border-radius: 4px;
+                            border: 1px solid #444;
+                            background: #222;
+                            color: #fff;
+                            font-family: &quot;Minecraftia&quot;, sans-serif;
+                          "
+                        />
+                      </div>
+                      <div class="input-group">
+                        <label
+                          for="save-circuit-desc"
+                          style="font-family: &quot;Minecraftia&quot;, sans-serif"
+                          >Description</label
+                        >
+                        <textarea
+                          id="save-circuit-desc"
+                          placeholder="Enter circuit description"
+                          rows="4"
+                          style="
+                            width: 100%;
+                            padding: 8px;
+                            border-radius: 4px;
+                            border: 1px solid #444;
+                            background: #222;
+                            color: #fff;
+                            resize: vertical;
+                            font-family: &quot;Minecraftia&quot;, sans-serif;
+                          "
+                        ></textarea>
+                      </div>
+                      <div class="input-group" style="margin-top: 15px">
+                        <label
+                          for="save-circuit-visibility"
+                          style="
+                            display: block;
+                            margin-bottom: 5px;
+                            color: #fff;
+                            font-family: &quot;Minecraftia&quot;, sans-serif;
+                          "
+                          >Visibility</label
+                        >
+                        <select
+                          id="save-circuit-visibility"
+                          style="
+                            width: 100%;
+                            padding: 8px;
+                            border-radius: 4px;
+                            border: 1px solid #444;
+                            background: #222;
+                            color: #fff;
+                            font-family: &quot;Minecraftia&quot;, sans-serif;
+                            cursor: pointer;
+                          "
+                        >
+                          <option value="public" selected>Public</option>
+                          <option value="private">Private</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="save-modal-right" style="flex: 1">
+                      <label style="font-family: &quot;Minecraftia&quot;, sans-serif"
+                        >Preview</label
+                      >
+                      <div
+                        id="save-circuit-preview-container"
+                        style="
+                          width: 100%;
+                          aspect-ratio: 16/9;
+                          background: #151515;
+                          border: 1px solid #444;
+                          border-radius: 4px;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          overflow: hidden;
+                          margin-top: 5px;
+                        "
+                      >
+                        <img
+                          id="save-circuit-preview"
+                          src="#"
+                          alt="Circuit Preview"
+                          style="max-width: 100%; max-height: 100%; display: none"
+                        />
+                        <span
+                          id="save-circuit-preview-placeholder"
+                          style="color: #666; font-size: 14px"
+                          >Generating preview...</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button
+                    id="cancel-save-button"
+                    style="
+                      background: transparent;
+                      color: #ccc;
+                      border: 1px solid #555;
+                      padding: 8px 16px;
+                      border-radius: 4px;
+                      cursor: pointer;
+                      margin-right: 10px;
+                      font-family: &quot;Minecraftia&quot;, sans-serif;
+                    "
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    id="confirm-save-button"
+                    style="
+                      background: #4caf50;
+                      color: white;
+                      border: none;
+                      padding: 8px 16px;
+                      border-radius: 4px;
+                      cursor: pointer;
+                      font-family: &quot;Minecraftia&quot;, sans-serif;
+                    "
+                  >
+                    Save Circuit
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div class="toolsContainer">
               <span class="tools">Tools</span>
               <div class="tools-dropdown">

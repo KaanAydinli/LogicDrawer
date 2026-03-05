@@ -16,7 +16,7 @@ export class Wire {
 
   // Cache the generated Path2D geometric path for fast hit-testing
   private cachedPath: Path2D | null = null;
-  private pathCacheKey: string = "";
+  private pathCacheKey = "";
 
   // Bezier routing geometry constants (only used for backward routing when no CPs)
   readonly EDGE_BORDER_RADIUS = 16;

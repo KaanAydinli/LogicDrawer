@@ -613,14 +613,25 @@ function addComponentByType(type: string, position: Point) {
 
 function setupKeyboardShortcuts() {
   document.addEventListener("keydown", event => {
-    if (event.ctrlKey && event.key === "s") {
-      event.preventDefault();
-      let text = inputText.value;
-      if (text === "") {
-        text = "circuit";
-      }
-      const circuitData = circuitBoard.exportCircuit();
-      saveToMongoDB(text, circuitData);
+    switch (event.key) {
+      case "s":
+      case "S":
+        if (event.ctrlKey) {
+          event.preventDefault();
+
+          if (!authService.isAuthenticated) {
+            alert("You must be logged in to save circuits. Please sign in.");
+            return;
+          }
+
+          let text = inputText.value;
+          if (text === "") {
+            text = "circuit";
+          }
+
+          showSaveModal(text);
+        }
+        break;
     }
   });
 }
@@ -1544,12 +1555,15 @@ function setFile() {
       if (selectedFile === "load") {
         fileInput?.click();
       } else if (selectedFile === "save") {
+        if (!authService.isAuthenticated) {
+          alert("You must be logged in to save circuits. Please sign in.");
+          return;
+        }
         var text = inputText.value;
         if (text === "") {
           text = "circuit";
         }
-        const circuitData = circuitBoard.exportCircuit();
-        saveToMongoDB(text, circuitData);
+        showSaveModal(text);
       } else if (selectedFile === "saveas") {
         var text = inputText.value;
         if (text === "") {
@@ -1652,12 +1666,15 @@ function setMobile() {
               if (selectedFile === "load") {
                 fileInput?.click();
               } else if (selectedFile === "save") {
+                if (!authService.isAuthenticated) {
+                  alert("You must be logged in to save circuits. Please sign in.");
+                  return;
+                }
                 var text = inputText.value;
                 if (text === "") {
                   text = "circuit";
                 }
-                const circuitData = circuitBoard.exportCircuit();
-                saveToMongoDB(text, circuitData);
+                showSaveModal(text);
               } else if (selectedFile === "saveas") {
                 var text = inputText.value;
                 if (text === "") {
@@ -1971,7 +1988,13 @@ function setUpLoginAndSignup() {
 
   setupAuthListeners();
 }
-async function saveToMongoDB(name: string, circuitData: any) {
+async function saveToMongoDB(
+  name: string,
+  description: string,
+  previewUrl: string,
+  circuitData: any,
+  isPublic: boolean = true
+) {
   try {
     if (!authService.isAuthenticated) {
       alert("You must be logged in to save circuits. Please sign in.");
@@ -1984,6 +2007,8 @@ async function saveToMongoDB(name: string, circuitData: any) {
     const data = {
       name: name,
       username: user?.name || "Unknown",
+      description: description,
+      thumbnailUrl: previewUrl,
       components: parsedData.components.map((comp: any) => {
         if (
           !comp.position ||
@@ -2021,7 +2046,7 @@ async function saveToMongoDB(name: string, circuitData: any) {
           portId: wire.toPortId || "",
         },
       })),
-      isPublic: false,
+      isPublic: isPublic,
     };
 
     Logger.log("Sending circuit data:", data);
@@ -2401,6 +2426,126 @@ function saveToLocalStorage(key = "history"): void {
   }
 }
 
+// Global variable to hold temporary circuit data for saving
+let pendingCircuitDataToSave: string | null = null;
+let currentPreviewDataUrl = "";
+
+function setupSaveModal() {
+  const saveModal = document.getElementById("save-circuit-modal");
+  const closeBtn = saveModal?.querySelector(".close-save-modal");
+  const cancelBtn = document.getElementById("cancel-save-button");
+  const confirmBtn = document.getElementById("confirm-save-button");
+
+  if (!saveModal) return;
+
+  const closeModal = () => {
+    saveModal.classList.remove("active");
+    saveModal.style.display = "none";
+  };
+
+  closeBtn?.addEventListener("click", closeModal);
+  cancelBtn?.addEventListener("click", closeModal);
+
+  saveModal.addEventListener("click", e => {
+    if (e.target === saveModal) {
+      closeModal();
+    }
+  });
+
+  confirmBtn?.addEventListener("click", async () => {
+    const nameInput = document.getElementById("save-circuit-name") as HTMLInputElement;
+    const descInput = document.getElementById("save-circuit-desc") as HTMLTextAreaElement;
+    const visibilitySelect = document.getElementById(
+      "save-circuit-visibility"
+    ) as HTMLSelectElement;
+
+    const name = nameInput.value.trim();
+    const description = descInput.value.trim();
+    const isPublic = visibilitySelect ? visibilitySelect.value === "public" : true;
+
+    if (!name) {
+      alert("Please enter a circuit name");
+      return;
+    }
+
+    if (pendingCircuitDataToSave) {
+      confirmBtn.textContent = "Saving...";
+      confirmBtn.setAttribute("disabled", "true");
+
+      await saveToMongoDB(
+        name,
+        description,
+        currentPreviewDataUrl,
+        pendingCircuitDataToSave,
+        isPublic
+      );
+
+      confirmBtn.textContent = "Save Circuit";
+      confirmBtn.removeAttribute("disabled");
+      closeModal();
+    }
+  });
+}
+
+async function showSaveModal(defaultName = "circuit") {
+  const saveModal = document.getElementById("save-circuit-modal");
+  if (!saveModal) return;
+
+  const nameInput = document.getElementById("save-circuit-name") as HTMLInputElement;
+  const descInput = document.getElementById("save-circuit-desc") as HTMLTextAreaElement;
+  const visibilitySelect = document.getElementById("save-circuit-visibility") as HTMLSelectElement;
+  const previewImg = document.getElementById("save-circuit-preview") as HTMLImageElement;
+  const previewPlaceholder = document.getElementById("save-circuit-preview-placeholder");
+
+  nameInput.value = defaultName;
+  descInput.value = "";
+  if (visibilitySelect) visibilitySelect.value = "public";
+
+  if (previewImg) previewImg.style.display = "none";
+  if (previewPlaceholder) previewPlaceholder.style.display = "block";
+
+  saveModal.classList.add("active");
+  saveModal.style.display = "flex";
+
+  // Check if we have an existing circuit loaded to fetch its description
+  const currentCircuitId = localStorage.getItem("currentCircuitId");
+  const currentCircuitName = localStorage.getItem("currentCircuitName");
+
+  if (currentCircuitId && defaultName === currentCircuitName) {
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/circuits/${currentCircuitId}`, {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const circuit = await response.json();
+        if (circuit.description) {
+          descInput.value = circuit.description;
+        }
+        if (circuit.isPublic !== undefined && visibilitySelect) {
+          visibilitySelect.value = circuit.isPublic ? "public" : "private";
+        }
+      }
+    } catch (e) {
+      Logger.warn("Failed to fetch existing circuit description", e);
+    }
+  }
+
+  // Generate preview image and save the state data
+  setTimeout(() => {
+    try {
+      currentPreviewDataUrl = circuitBoard.generatePreviewDataUrl();
+      if (previewImg && previewPlaceholder) {
+        previewImg.src = currentPreviewDataUrl;
+        previewImg.style.display = "block";
+        previewPlaceholder.style.display = "none";
+      }
+      pendingCircuitDataToSave = circuitBoard.exportCircuit();
+    } catch (e) {
+      Logger.error("Failed to generate preview screenshot", e);
+    }
+  }, 50); // Small delay to allow modal layout to render
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   initApp().then(() => {
     if (authService.isAuthenticated && authService.currentUser) {
@@ -2418,6 +2563,8 @@ window.addEventListener("DOMContentLoaded", () => {
       }
     }
   });
+
+  setupSaveModal();
   loadSavedCircuits();
   setupMobileChatBehavior();
 });

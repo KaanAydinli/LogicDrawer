@@ -445,12 +445,22 @@ router.put("/:id", validateCircuitData, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "Circuit not found or you don't have permission" });
     }
 
-    const updates = {
+    const updates: any = {
       name: updateData.name,
       components: updateData.components,
       wires: updateData.wires,
-      dateModified: new Date(),
     };
+
+    if (!updateData.preserveDate) {
+      updates.updatedAt = new Date();
+    }
+
+    if (updateData.description !== undefined) {
+      updates.description = updateData.description;
+    }
+    if (updateData.thumbnailUrl !== undefined) {
+      updates.thumbnailUrl = updateData.thumbnailUrl;
+    }
 
     const updatedCircuit = await Circuit.findByIdAndUpdate(circuitId, updates, { new: true });
 
