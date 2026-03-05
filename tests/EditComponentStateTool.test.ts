@@ -3,7 +3,10 @@ import { EditComponentStateTool } from "../src/ai/tools/EditComponentStateTool";
 
 describe("EditComponentStateTool", () => {
   it("updates component state and triggers simulation", async () => {
-    const setState = vi.fn();
+    let appliedState: Record<string, unknown> = {};
+    const setState = vi.fn((state: Record<string, unknown>) => {
+      appliedState = { ...appliedState, ...state };
+    });
     const component = { id: "comp-1", type: "multibit", setState };
     const getComponentById = vi.fn().mockImplementation((id: string) => {
       if (id === "comp-1") return component;
@@ -29,6 +32,8 @@ describe("EditComponentStateTool", () => {
     const parsed = JSON.parse(result);
 
     expect(setState).toHaveBeenCalledWith({ defaultBitWidth: 8, isMultiBit: true });
+    expect(appliedState.defaultBitWidth).toBe(8);
+    expect(appliedState.isMultiBit).toBe(true);
     expect(simulate).toHaveBeenCalledTimes(1);
     expect(draw).not.toHaveBeenCalled();
     expect(parsed.message).toContain("Updated 1 component(s)");

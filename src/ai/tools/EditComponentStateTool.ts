@@ -1,10 +1,15 @@
 import { Tool, ToolContext } from "./Tool";
 import { Logger } from "../../utils/logger";
 
+type ComponentStateEdit = {
+  componentId: string;
+  state: Record<string, unknown>;
+};
+
 export class EditComponentStateTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
     try {
-      const edits = (context as any).edits;
+      const edits = (context as ToolContext & { edits?: ComponentStateEdit[] }).edits;
       if (!edits || !Array.isArray(edits)) {
         return "No component state edits provided or invalid format.";
       }
@@ -31,10 +36,17 @@ export class EditComponentStateTool implements Tool {
             if (edit.state.attachedToId === null) {
               if (typeof component.detachFromComponent === "function") {
                 component.detachFromComponent();
+              } else {
+                results.push(`Failed: Text component cannot detach (${edit.componentId})`);
+                continue;
               }
             } else {
+              if (typeof component.attachToComponent !== "function") {
+                results.push(`Failed: Text component cannot attach (${edit.componentId})`);
+                continue;
+              }
               const attachTarget = context.circuitBoard.getComponentById(edit.state.attachedToId);
-              if (attachTarget && typeof component.attachToComponent === "function") {
+              if (attachTarget) {
                 component.attachToComponent(attachTarget);
               } else {
                 results.push(
@@ -48,7 +60,8 @@ export class EditComponentStateTool implements Tool {
           updatedCount++;
           results.push(`Updated: ${component.type}(${edit.componentId})`);
         } catch (error) {
-          results.push(`Failed: Could not update ${edit.componentId}`);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          results.push(`Failed: Could not update ${edit.componentId}: ${errorMessage}`);
           Logger.error(`Failed to update component state for ${edit.componentId}:`, error);
         }
       }
