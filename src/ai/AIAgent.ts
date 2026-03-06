@@ -644,7 +644,7 @@ export class AIAgent {
           {
             name: "connect_components",
             description:
-              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK.",
+              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK. If bit widths may differ, call edit_component_state first to set widths before connecting.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -736,7 +736,6 @@ export class AIAgent {
                           },
                           on: { type: "BOOLEAN" },
                           interval: { type: "INTEGER" },
-                          bitWidth: { type: "INTEGER" },
                           bits: { type: "ARRAY", items: { type: "BOOLEAN" } },
                           displayMode: {
                             type: "STRING",
