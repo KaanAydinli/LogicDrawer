@@ -1,10 +1,10 @@
 import { Tool, ToolContext } from "./Tool";
 import { Logger } from "../../utils/logger";
 
-type ComponentStateEdit = {
+interface ComponentStateEdit {
   componentId: string;
   state: Record<string, unknown>;
-};
+}
 
 // Use hasOwnProperty for TS/lib compatibility (current target is pre-ES2022, so Object.hasOwn is unavailable).
 const hasOwn = (obj: Record<string, unknown>, key: string): boolean =>

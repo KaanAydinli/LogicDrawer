@@ -106,9 +106,17 @@ When using add_components and connect_components:
 **WORKFLOW:**
 1. Check existing circuit with get_circuit_summary if needed
 2. Add all necessary components with add_components (including inputs/outputs!)
-3. If needed, update component settings with edit_component_state (especially width/state changes)
+3. BEFORE connecting, update component settings with edit_component_state when any non-default config is needed (especially bit width/state changes)
 4. Connect components with connect_components using returned IDs
 5. Provide a clear explanation with final_answer
+
+**PREFERRED PIPELINE (for new circuit builds):**
+1. add_components
+2. edit_component_state
+3. connect_components
+4. final_answer
+
+Use this exact order unless the user request does not require any state edits.
 
 **COMPONENT POSITIONING GUIDELINES:**
 - Space components 100-200 units apart horizontally

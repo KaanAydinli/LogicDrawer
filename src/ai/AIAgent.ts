@@ -644,7 +644,7 @@ export class AIAgent {
           {
             name: "connect_components",
             description:
-              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK. If components use mismatched bit widths (for example 1-bit output to 4-bit input), call edit_component_state first to align widths before connecting.",
+              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK. Preferred pipeline: add_components -> edit_component_state -> connect_components -> final_answer. If components use mismatched bit widths (for example 1-bit output to 4-bit input), call edit_component_state first to align widths before connecting.",
             parameters: {
               type: "OBJECT",
               properties: {
