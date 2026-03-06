@@ -1,12 +1,13 @@
 import { Tool, ToolContext } from "./Tool";
 import { Logger } from "../../utils/logger";
 
-interface ComponentStateEdit {
+type ComponentStateEdit = {
   componentId: string;
   state: Record<string, unknown>;
-}
+};
 
-const hasOwnKey = (obj: Record<string, unknown>, key: string): boolean =>
+// Use hasOwnProperty for TS/lib compatibility (current target is pre-ES2022, so Object.hasOwn is unavailable).
+const hasOwn = (obj: Record<string, unknown>, key: string): boolean =>
   Object.prototype.hasOwnProperty.call(obj, key);
 
 export class EditComponentStateTool implements Tool {
@@ -41,14 +42,14 @@ export class EditComponentStateTool implements Tool {
         try {
           const normalizedState = { ...state };
           if (
-            hasOwnKey(normalizedState, "bitWidth") &&
-            !hasOwnKey(normalizedState, "defaultBitWidth")
+            hasOwn(normalizedState, "bitWidth") &&
+            !hasOwn(normalizedState, "defaultBitWidth")
           ) {
             normalizedState.defaultBitWidth = normalizedState.bitWidth;
           }
           if (
-            hasOwnKey(normalizedState, "defaultBitWidth") &&
-            !hasOwnKey(normalizedState, "bitWidth")
+            hasOwn(normalizedState, "defaultBitWidth") &&
+            !hasOwn(normalizedState, "bitWidth")
           ) {
             normalizedState.bitWidth = normalizedState.defaultBitWidth;
           }

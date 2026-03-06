@@ -32,6 +32,7 @@ describe("EditComponentStateTool", () => {
     const parsed = JSON.parse(result);
 
     expect(setState).toHaveBeenCalledWith({ bitWidth: 8, defaultBitWidth: 8, isMultiBit: true });
+    expect(appliedState.bitWidth).toBe(8);
     expect(appliedState.defaultBitWidth).toBe(8);
     expect(appliedState.isMultiBit).toBe(true);
     expect(simulate).toHaveBeenCalledTimes(1);
@@ -119,6 +120,56 @@ describe("EditComponentStateTool", () => {
     } as any);
 
     expect(setState).toHaveBeenCalledWith({ bitWidth: 4, defaultBitWidth: 4 });
+  });
+
+  it("maps defaultBitWidth edits to bitWidth for compatibility", async () => {
+    const setState = vi.fn();
+    const component = { id: "comp-3b", type: "multibit", setState };
+    const getComponentById = vi.fn().mockImplementation((id: string) => {
+      if (id === "comp-3b") return component;
+      return null;
+    });
+
+    const tool = new EditComponentStateTool();
+    await tool.execute({
+      message: "edit",
+      circuitBoard: {
+        getComponentById,
+        simulate: vi.fn(),
+        draw: vi.fn(),
+      } as any,
+      queue: {} as any,
+      promptAI: "",
+      imageUploader: {} as any,
+      edits: [{ componentId: "comp-3b", state: { defaultBitWidth: 12 } }],
+    } as any);
+
+    expect(setState).toHaveBeenCalledWith({ bitWidth: 12, defaultBitWidth: 12 });
+  });
+
+  it("keeps explicit bitWidth and defaultBitWidth values when both are provided", async () => {
+    const setState = vi.fn();
+    const component = { id: "comp-6", type: "multibit", setState };
+    const getComponentById = vi.fn().mockImplementation((id: string) => {
+      if (id === "comp-6") return component;
+      return null;
+    });
+
+    const tool = new EditComponentStateTool();
+    await tool.execute({
+      message: "edit",
+      circuitBoard: {
+        getComponentById,
+        simulate: vi.fn(),
+        draw: vi.fn(),
+      } as any,
+      queue: {} as any,
+      promptAI: "",
+      imageUploader: {} as any,
+      edits: [{ componentId: "comp-6", state: { bitWidth: 4, defaultBitWidth: 8 } }],
+    } as any);
+
+    expect(setState).toHaveBeenCalledWith({ bitWidth: 4, defaultBitWidth: 8 });
   });
 
   it("rejects empty state payloads", async () => {

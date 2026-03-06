@@ -70,7 +70,7 @@ You have access to the following tools:
     - Automatically finds available ports
     - Provide sourceId and targetId from the IDs returned by add_components
     - Can connect multiple pairs in one call
-    - If connection may fail due to bit width mismatch, call edit_component_state before connecting
+    - If source/target components should operate at a non-default width or have mismatched widths (e.g., 1-bit to 4-bit), call edit_component_state first, then connect_components
 
 4. **import_verilog_circuit**: Generate and import a circuit from Verilog code
    - Provide a description of the circuit
