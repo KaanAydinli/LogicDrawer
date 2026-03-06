@@ -644,7 +644,7 @@ export class AIAgent {
           {
             name: "connect_components",
             description:
-              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK.",
+              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK. If components use mismatched bit widths (for example 1-bit output to 4-bit input), call edit_component_state first to align widths before connecting.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -701,7 +701,7 @@ export class AIAgent {
                       state: {
                         type: "OBJECT",
                         description:
-                          "Partial state payload. All properties are optional: include only fields you want to change, and include at least one property.",
+                          "Partial state payload. All properties are optional: include only fields you want to change, and include at least one property. Use defaultBitWidth for width updates. For backward compatibility, legacy calls that send bitWidth are automatically normalized at runtime, even though bitWidth is not listed in this schema.",
                         properties: {
                           position: {
                             type: "OBJECT",
@@ -736,7 +736,6 @@ export class AIAgent {
                           },
                           on: { type: "BOOLEAN" },
                           interval: { type: "INTEGER" },
-                          bitWidth: { type: "INTEGER" },
                           bits: { type: "ARRAY", items: { type: "BOOLEAN" } },
                           displayMode: {
                             type: "STRING",

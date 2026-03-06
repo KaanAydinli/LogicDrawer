@@ -6,6 +6,10 @@ type ComponentStateEdit = {
   state: Record<string, unknown>;
 };
 
+// Use hasOwnProperty for TS/lib compatibility (current target is pre-ES2022, so Object.hasOwn is unavailable).
+const hasOwn = (obj: Record<string, unknown>, key: string): boolean =>
+  Object.prototype.hasOwnProperty.call(obj, key);
+
 export class EditComponentStateTool implements Tool {
   async execute(context: ToolContext): Promise<string> {
     try {
@@ -23,6 +27,12 @@ export class EditComponentStateTool implements Tool {
           continue;
         }
 
+        const state = edit.state as Record<string, unknown>;
+        if (Object.keys(state).length === 0) {
+          results.push(`Failed: Empty state payload (${edit.componentId})`);
+          continue;
+        }
+
         const component = context.circuitBoard.getComponentById(edit.componentId);
         if (!component) {
           results.push(`Failed: Component not found (${edit.componentId})`);
@@ -30,10 +40,24 @@ export class EditComponentStateTool implements Tool {
         }
 
         try {
-          component.setState(edit.state);
+          const normalizedState = { ...state };
+          if (
+            hasOwn(normalizedState, "bitWidth") &&
+            !hasOwn(normalizedState, "defaultBitWidth")
+          ) {
+            normalizedState.defaultBitWidth = normalizedState.bitWidth;
+          }
+          if (
+            hasOwn(normalizedState, "defaultBitWidth") &&
+            !hasOwn(normalizedState, "bitWidth")
+          ) {
+            normalizedState.bitWidth = normalizedState.defaultBitWidth;
+          }
 
-          if (component.type === "text" && edit.state.attachedToId !== undefined) {
-            if (edit.state.attachedToId === null) {
+          component.setState(normalizedState);
+
+          if (component.type === "text" && normalizedState.attachedToId !== undefined) {
+            if (normalizedState.attachedToId === null) {
               if (typeof component.detachFromComponent === "function") {
                 component.detachFromComponent();
               } else {
@@ -45,7 +69,7 @@ export class EditComponentStateTool implements Tool {
                 results.push(`Failed: Text component cannot attach (${edit.componentId})`);
                 continue;
               }
-              const attachTargetId = edit.state.attachedToId;
+              const attachTargetId = normalizedState.attachedToId;
               if (typeof attachTargetId !== "string") {
                 results.push(`Failed: Invalid text attachment target ID (${edit.componentId})`);
                 continue;
