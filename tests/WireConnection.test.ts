@@ -197,6 +197,19 @@ describe("DFlipFlop evaluate behavior", () => {
     expect(dff.outputs[1].bitWidth).toBe(1);
   });
 
+  it("should preserve configured multibit width on clock edge with scalar data input", () => {
+    const dff = new DFlipFlop({ x: 0, y: 0 });
+    dff.setBitWidth(4);
+    dff.inputs[0].value = false;
+    dff.inputs[1].value = true;
+    dff.evaluate();
+
+    expect(dff.outputs[0].bitWidth).toBe(4);
+    expect(dff.outputs[1].bitWidth).toBe(4);
+    expect(dff.outputs[0].value).toEqual([false, false, false, false]);
+    expect(dff.outputs[1].value).toEqual([true, true, true, true]);
+  });
+
   it("Q' should be bitwise inverse of Q for multibit", () => {
     const dff = new DFlipFlop({ x: 0, y: 0 });
     dff.setBitWidth(4);
@@ -209,11 +222,12 @@ describe("DFlipFlop evaluate behavior", () => {
     expect(dff.outputs[1].value).toEqual([false, true, false, true]);
   });
 
-  it("setBitWidth should update all ports", () => {
+  it("should maintain 1-bit CLK input while updating data bitWidth to 8", () => {
     const dff = new DFlipFlop({ x: 0, y: 0 });
     dff.setBitWidth(8);
 
     expect(dff.inputs[0].bitWidth).toBe(8);
+    expect(dff.inputs[1].bitWidth).toBe(1);
     expect(dff.outputs[0].bitWidth).toBe(8);
     expect(dff.outputs[1].bitWidth).toBe(8);
   });
@@ -1022,6 +1036,25 @@ describe("State save/restore preserves bitWidth", () => {
 
     expect(dff2.outputs[0].bitWidth).toBe(4);
     expect(dff2.outputs[1].bitWidth).toBe(4);
+    expect(dff2.inputs[1].bitWidth).toBe(1);
+  });
+
+  it("DFlipFlop should keep CLK input 1-bit after edited state payloads", () => {
+    const dff = new DFlipFlop({ x: 0, y: 0 });
+    dff.setState({
+      defaultBitWidth: 4,
+      inputs: [
+        { bitWidth: 4, value: [true, false, true, false] },
+        { bitWidth: 4, value: true },
+      ],
+      value: [true, false, true, false],
+      lastClk: true,
+    });
+
+    expect(dff.inputs[0].bitWidth).toBe(4);
+    expect(dff.inputs[1].bitWidth).toBe(1);
+    expect(dff.outputs[0].bitWidth).toBe(4);
+    expect(dff.outputs[1].bitWidth).toBe(4);
   });
 
   it("DLatch should restore bitWidth after setState", () => {
