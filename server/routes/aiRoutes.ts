@@ -26,21 +26,44 @@ type OpenRouterTool = {
 };
 
 function getOpenRouterConfig() {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || "stepfun/step-3.5-flash:free";
-  if (!apiKey) {
-    throw new Error("OpenRouter API key not configured");
-  }
-  return { apiKey, model };
+  const baseUrl = process.env.COPILOT_LOCAL_API_BASE_URL || "http://localhost:4141";
+  const model = process.env.COPILOT_MODEL || "gpt-4o-2024-11-20";
+  const apiKey = process.env.COPILOT_LOCAL_API_KEY;
+  return { baseUrl, model, apiKey };
 }
 
 function getOpenRouterMaxTokens() {
-  const raw = process.env.OPENROUTER_MAX_TOKENS;
+  const raw = process.env.COPILOT_MAX_TOKENS || process.env.OPENROUTER_MAX_TOKENS;
   const parsed = raw ? Number(raw) : NaN;
   if (Number.isFinite(parsed) && parsed > 0) {
     return Math.floor(parsed);
   }
   return 1024;
+}
+
+function getProviderHeaders(apiKey?: string) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (apiKey && apiKey.trim().length > 0) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+  return headers;
+}
+
+function getChatCompletionsUrl(baseUrl: string) {
+  return `${baseUrl.replace(/\/$/, "")}/v1/chat/completions`;
+}
+
+function makeShortToolCallId(toolName: string): string {
+  const clean = (toolName || "tool")
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 14);
+  const ts = Date.now().toString(36);
+  const rnd = Math.random().toString(36).slice(2, 8);
+  // Keep strict length <= 40 for providers that validate tool_call_id length.
+  return `c_${clean}_${ts}_${rnd}`.slice(0, 40);
 }
 
 function normalizeSchemaType(typeValue: any): string | undefined {
@@ -151,6 +174,7 @@ function toOpenRouterMessages(
   systemPrompt?: string
 ) {
   const messages: any[] = [];
+  const toolCallIdByName = new Map<string, string>();
 
   if (systemPrompt) {
     messages.push({ role: "system", content: systemPrompt });
@@ -162,7 +186,11 @@ function toOpenRouterMessages(
         const functionCallPart = msg.parts.find((p: any) => p.functionCall);
         if (functionCallPart?.functionCall) {
           const call = functionCallPart.functionCall;
-          const callId = `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          if (!call?.name || typeof call.name !== "string") {
+            continue;
+          }
+          const callId = makeShortToolCallId(call.name);
+          toolCallIdByName.set(call.name, callId);
           messages.push({
             role: "assistant",
             content: "",
@@ -183,9 +211,12 @@ function toOpenRouterMessages(
         const functionRespPart = msg.parts.find((p: any) => p.functionResponse);
         if (functionRespPart?.functionResponse) {
           const fr = functionRespPart.functionResponse;
+          const toolName =
+            typeof fr?.name === "string" && fr.name.length > 0 ? fr.name : "tool";
           messages.push({
             role: "tool",
-            tool_call_id: fr.name || "tool_call",
+            name: toolName,
+            tool_call_id: toolCallIdByName.get(toolName) || makeShortToolCallId(toolName),
             content:
               typeof fr.response === "string"
                 ? fr.response
@@ -222,9 +253,11 @@ function toOpenRouterMessages(
       if (p?.text) userContent.push({ type: "text", text: p.text });
       if (p?.functionResponse) {
         const fr = p.functionResponse;
+        const toolName = typeof fr?.name === "string" && fr.name.length > 0 ? fr.name : "tool";
         messages.push({
           role: "tool",
-          tool_call_id: fr.name || "tool_call",
+          name: toolName,
+          tool_call_id: toolCallIdByName.get(toolName) || makeShortToolCallId(toolName),
           content:
             typeof fr.response === "string"
               ? fr.response
@@ -355,7 +388,7 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
     }
 
     try {
-      const { apiKey, model } = getOpenRouterConfig();
+      const { baseUrl, model, apiKey } = getOpenRouterConfig();
       const mappedTools = mapGeminiToolsToOpenRouterTools(tools);
       const messages = toOpenRouterMessages(message, history, parts, image, systemPrompt);
 
@@ -369,18 +402,15 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
         payload.tool_choice = "auto";
       }
 
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetch(getChatCompletionsUrl(baseUrl), {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: getProviderHeaders(apiKey),
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`OpenRouter error ${response.status}: ${errText}`);
+        throw new Error(`Copilot local endpoint error ${response.status}: ${errText}`);
       }
 
       const data = await response.json();
@@ -397,7 +427,7 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
       const text = typeof choice?.content === "string" ? choice.content : "";
       return res.json({ text });
     } catch (error) {
-      Logger.error("OpenRouter Agent Error:", error);
+      Logger.error("Copilot Local Agent Error:", error);
       return res.status(500).json({
         error: "Agent processing failed",
         details: error instanceof Error ? error.message : String(error),
@@ -412,7 +442,7 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
 });
 
 /**
- * Generate text with OpenRouter.
+ * Generate text with local Copilot-compatible endpoint.
  */
 router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res) => {
   try {
@@ -423,7 +453,7 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
     }
 
     try {
-      const { apiKey, model } = getOpenRouterConfig();
+      const { baseUrl, model, apiKey } = getOpenRouterConfig();
 
       let fullPrompt = prompt;
       if (systemPrompt) {
@@ -452,13 +482,10 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
 
         try {
           const streamingResponse = await fetch(
-            "https://openrouter.ai/api/v1/chat/completions",
+            getChatCompletionsUrl(baseUrl),
             {
               method: "POST",
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
-              },
+              headers: getProviderHeaders(apiKey),
               body: JSON.stringify({
                 model,
                 messages,
@@ -470,7 +497,7 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
 
           if (!streamingResponse.ok || !streamingResponse.body) {
             const errText = await streamingResponse.text();
-            throw new Error(`OpenRouter streaming error ${streamingResponse.status}: ${errText}`);
+            throw new Error(`Copilot local streaming error ${streamingResponse.status}: ${errText}`);
           }
 
           const reader = streamingResponse.body.getReader();
@@ -524,12 +551,9 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
         }
       } else {
         // Use non-streaming API for regular requests
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const response = await fetch(getChatCompletionsUrl(baseUrl), {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
+          headers: getProviderHeaders(apiKey),
           body: JSON.stringify({
             model,
             messages,
@@ -539,7 +563,7 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
 
         if (!response.ok) {
           const errText = await response.text();
-          throw new Error(`OpenRouter error ${response.status}: ${errText}`);
+          throw new Error(`Copilot local endpoint error ${response.status}: ${errText}`);
         }
 
         const data = await response.json();
@@ -548,7 +572,7 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
       }
     } catch (error) {
       return res.status(500).json({
-        error: "Failed to generate text with OpenRouter",
+        error: "Failed to generate text with Copilot local endpoint",
         details: error instanceof Error ? error.message : String(error),
       });
     }
@@ -560,7 +584,7 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
   }
 });
 
-// OpenRouter Vision ile görüntü analizi
+// Local Copilot-compatible endpoint ile görüntü analizi
 router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, res) => {
   try {
     const { prompt, imageData } = req.body;
@@ -574,7 +598,7 @@ router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, re
     }
 
     try {
-      const { apiKey, model } = getOpenRouterConfig();
+      const { baseUrl, model, apiKey } = getOpenRouterConfig();
       let base64Data: string;
       let mimeType: string;
 
@@ -586,12 +610,9 @@ router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, re
         return res.status(400).json({ error: "Invalid image data format" });
       }
 
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      const response = await fetch(getChatCompletionsUrl(baseUrl), {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: getProviderHeaders(apiKey),
         body: JSON.stringify({
           model,
           max_tokens: getOpenRouterMaxTokens(),
@@ -614,7 +635,7 @@ router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, re
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`OpenRouter vision error ${response.status}: ${errText}`);
+        throw new Error(`Copilot local vision error ${response.status}: ${errText}`);
       }
 
       const data = await response.json();
@@ -623,7 +644,7 @@ router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, re
       return res.json({ text });
     } catch (error) {
       return res.status(500).json({
-        error: "Failed to analyze image with OpenRouter",
+        error: "Failed to analyze image with Copilot local endpoint",
         details: error instanceof Error ? error.message : String(error),
       });
     }
