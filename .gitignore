@@ -14,8 +14,9 @@ dist-ssr
 .env
 react-traces/
 server/*.jsonl
-server/test.py
-
+server/merge.py
+server/synthesizer.py
+/*.jsonl
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
