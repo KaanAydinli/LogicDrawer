@@ -15,6 +15,14 @@ export class AddComponentsTool implements Tool {
         if (comp.type && comp.position) {
           const id = context.circuitBoard.addComponentByType(comp.type, comp.position);
           if (id) {
+            if (comp.type === "text" && typeof comp.text === "string") {
+              const createdComponent = context.circuitBoard.getComponentById(id);
+              if (createdComponent && typeof createdComponent.setText === "function") {
+                createdComponent.setText(comp.text);
+                context.circuitBoard.draw();
+              }
+            }
+
             addedComponents.push({ type: comp.type, id: id });
           }
         }

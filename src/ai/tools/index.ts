@@ -5,6 +5,8 @@ export * from "./ImageAnalysisTool";
 export * from "./TruthTableImageTool";
 export * from "./KMapImageTool";
 export * from "./AddComponentsTool";
+export * from "./RemoveComponentsTool";
+export * from "./ClearCircuitTool";
 export * from "./ConnectComponentsTool";
 export * from "./GetCircuitSummaryTool";
 export * from "./FinalAnswerTool";

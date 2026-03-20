@@ -8,6 +8,8 @@ import {
   TruthTableImageTool,
   KMapImageTool,
   AddComponentsTool,
+  RemoveComponentsTool,
+  ClearCircuitTool,
   ConnectComponentsTool,
   GetCircuitSummaryTool,
 } from "./tools";
@@ -264,6 +266,13 @@ export class AIAgent {
                     toolKey = "ADD_COMPONENTS";
                     extraContext.components = call.args.components;
                     break;
+                  case "remove_components":
+                    toolKey = "REMOVE_COMPONENTS";
+                    extraContext.componentIds = call.args.componentIds;
+                    break;
+                  case "clear_circuit":
+                    toolKey = "CLEAR_CIRCUIT";
+                    break;
                   case "connect_components":
                     toolKey = "CONNECT_COMPONENTS";
                     extraContext.connections = call.args.connections;
@@ -491,6 +500,8 @@ export class AIAgent {
     this.tools.set("KMAP_IMAGE", new KMapImageTool());
     // this.tools.set("CIRCUIT_FIX", new CircuitFixTool()); // Deprecated
     this.tools.set("ADD_COMPONENTS", new AddComponentsTool());
+    this.tools.set("REMOVE_COMPONENTS", new RemoveComponentsTool());
+    this.tools.set("CLEAR_CIRCUIT", new ClearCircuitTool());
     this.tools.set("CONNECT_COMPONENTS", new ConnectComponentsTool());
     this.tools.set("GET_CIRCUIT_SUMMARY", new GetCircuitSummaryTool());
 
@@ -627,6 +638,11 @@ export class AIAgent {
                         },
                         required: ["x", "y"],
                       },
+                      text: {
+                        type: "STRING",
+                        description:
+                          "Optional text value for text components (type='text'). Example: 'A', 'CLK', 'SUM'.",
+                      },
                     },
                     required: ["type", "position"],
                   },
@@ -634,6 +650,29 @@ export class AIAgent {
               },
               required: ["components"],
             },
+          },
+          {
+            name: "remove_components",
+            description:
+              "Remove one or more components by their IDs. Use get_circuit_summary first to get valid IDs.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                componentIds: {
+                  type: "ARRAY",
+                  description: "List of component IDs to remove.",
+                  items: {
+                    type: "STRING",
+                  },
+                },
+              },
+              required: ["componentIds"],
+            },
+          },
+          {
+            name: "clear_circuit",
+            description: "Clear all components and wires from the current circuit board.",
+            parameters: { type: "OBJECT", properties: {} },
           },
           {
             name: "connect_components",
@@ -814,6 +853,13 @@ export class AIAgent {
             case "add_components":
               toolKey = "ADD_COMPONENTS";
               extraContext.components = call.args.components;
+              break;
+            case "remove_components":
+              toolKey = "REMOVE_COMPONENTS";
+              extraContext.componentIds = call.args.componentIds;
+              break;
+            case "clear_circuit":
+              toolKey = "CLEAR_CIRCUIT";
               break;
             case "connect_components":
               toolKey = "CONNECT_COMPONENTS";

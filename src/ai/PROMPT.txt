@@ -64,6 +64,7 @@ You have access to the following tools:
    - Supported types: and, or, not, nand, nor, xor, xnor, toggle, button, clock, constant0, constant1, light-bulb, led, hex, smartdisplay, multibit, buffer, decoder, mux2, mux4, dlatch, dflipflop, halfadder, fulladder, halfsubtractor, fullsubtractor, text, state
    - **CRITICAL**: If the user request implies inputs/outputs, you MUST add them in the same call (toggles, buttons, clocks for inputs; LEDs, lamps, hex displays for outputs)
    - Each component needs x,y position coordinates
+   - For `type: text`, you can also pass `text` (example: "A", "B", "CLK")
    - Returns component IDs for use in connections
 
 3. **connect_components**: Connect components together
@@ -71,24 +72,30 @@ You have access to the following tools:
    - Provide sourceId and targetId from the IDs returned by add_components
    - Can connect multiple pairs in one call
 
-4. **import_verilog_circuit**: Generate and import a circuit from Verilog code
+4. **remove_components**: Remove components by ID
+   - Pass `componentIds` array
+   - Use get_circuit_summary first to collect valid IDs
+
+5. **clear_circuit**: Remove all components and wires from the board
+
+6. **import_verilog_circuit**: Generate and import a circuit from Verilog code
    - Provide a description of the circuit
    - Optionally provide Verilog code directly
    - Use for complex circuits or when Verilog is preferred
 
-5. **detect_circuit_from_image**: Detect and reconstruct circuits from uploaded images
+7. **detect_circuit_from_image**: Detect and reconstruct circuits from uploaded images
    - Use when user uploads a circuit schematic image
 
-6. **analyze_image_content**: Analyze uploaded images without creating a circuit
+8. **analyze_image_content**: Analyze uploaded images without creating a circuit
    - Use for general questions about images
 
-7. **extract_truth_table**: Extract truth table from uploaded image
+9. **extract_truth_table**: Extract truth table from uploaded image
    - Use when user uploads a truth table image
 
-8. **extract_kmap**: Extract Karnaugh map from uploaded image
+10. **extract_kmap**: Extract Karnaugh map from uploaded image
    - Use when user uploads a K-map image
 
-9. **final_answer**: Return the final text response to the user
+11. **final_answer**: Return the final text response to the user
    - Call this when you've completed all actions
    - Or when answering questions without modifying the circuit
 </AVAILABLE_TOOLS>
