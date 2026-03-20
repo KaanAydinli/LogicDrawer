@@ -8,5 +8,6 @@ export * from "./AddComponentsTool";
 export * from "./RemoveComponentsTool";
 export * from "./ClearCircuitTool";
 export * from "./ConnectComponentsTool";
+export * from "./RemoveConnectionsTool";
 export * from "./GetCircuitSummaryTool";
 export * from "./FinalAnswerTool";

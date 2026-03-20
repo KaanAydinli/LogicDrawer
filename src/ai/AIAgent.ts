@@ -11,6 +11,7 @@ import {
   RemoveComponentsTool,
   ClearCircuitTool,
   ConnectComponentsTool,
+  RemoveConnectionsTool,
   GetCircuitSummaryTool,
 } from "./tools";
 import { ImageUploader } from "./ImageUploader";
@@ -277,6 +278,10 @@ export class AIAgent {
                     toolKey = "CONNECT_COMPONENTS";
                     extraContext.connections = call.args.connections;
                     break;
+                  case "remove_connections":
+                    toolKey = "REMOVE_CONNECTIONS";
+                    extraContext.connections = call.args.connections;
+                    break;
                   case "get_circuit_summary":
                     toolKey = "GET_CIRCUIT_SUMMARY";
                     break;
@@ -503,6 +508,7 @@ export class AIAgent {
     this.tools.set("REMOVE_COMPONENTS", new RemoveComponentsTool());
     this.tools.set("CLEAR_CIRCUIT", new ClearCircuitTool());
     this.tools.set("CONNECT_COMPONENTS", new ConnectComponentsTool());
+    this.tools.set("REMOVE_CONNECTIONS", new RemoveConnectionsTool());
     this.tools.set("GET_CIRCUIT_SUMMARY", new GetCircuitSummaryTool());
 
     Logger.log("Tools registered:", Array.from(this.tools.keys()));
@@ -708,6 +714,39 @@ export class AIAgent {
             },
           },
           {
+            name: "remove_connections",
+            description:
+              "Remove existing wire connections between component pairs. Use sourceId and targetId, and optionally sourcePortIndex/targetPortIndex for precise removal.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                connections: {
+                  type: "ARRAY",
+                  description: "List of connections to remove.",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      sourceId: { type: "STRING", description: "ID of the source component." },
+                      targetId: { type: "STRING", description: "ID of the target component." },
+                      sourcePortIndex: {
+                        type: "INTEGER",
+                        description:
+                          "Optional. Output port index on source to remove a specific wire.",
+                      },
+                      targetPortIndex: {
+                        type: "INTEGER",
+                        description:
+                          "Optional. Input port index on target to remove a specific wire.",
+                      },
+                    },
+                    required: ["sourceId", "targetId"],
+                  },
+                },
+              },
+              required: ["connections"],
+            },
+          },
+          {
             name: "get_circuit_summary",
             description:
               "Get a summary of the current circuit board state, including component IDs, types, and positions. Useful for knowing what IDs to use for connections.",
@@ -863,6 +902,10 @@ export class AIAgent {
               break;
             case "connect_components":
               toolKey = "CONNECT_COMPONENTS";
+              extraContext.connections = call.args.connections;
+              break;
+            case "remove_connections":
+              toolKey = "REMOVE_CONNECTIONS";
               extraContext.connections = call.args.connections;
               break;
             case "get_circuit_summary":

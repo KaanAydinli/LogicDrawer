@@ -72,30 +72,34 @@ You have access to the following tools:
    - Provide sourceId and targetId from the IDs returned by add_components
    - Can connect multiple pairs in one call
 
-4. **remove_components**: Remove components by ID
+4. **remove_connections**: Remove one or more existing wire connections
+   - Pass `connections` array with `sourceId` and `targetId`
+   - Optionally pass `sourcePortIndex` and `targetPortIndex` for precise wire removal
+
+5. **remove_components**: Remove components by ID
    - Pass `componentIds` array
    - Use get_circuit_summary first to collect valid IDs
 
-5. **clear_circuit**: Remove all components and wires from the board
+6. **clear_circuit**: Remove all components and wires from the board
 
-6. **import_verilog_circuit**: Generate and import a circuit from Verilog code
+7. **import_verilog_circuit**: Generate and import a circuit from Verilog code
    - Provide a description of the circuit
    - Optionally provide Verilog code directly
    - Use for complex circuits or when Verilog is preferred
 
-7. **detect_circuit_from_image**: Detect and reconstruct circuits from uploaded images
+8. **detect_circuit_from_image**: Detect and reconstruct circuits from uploaded images
    - Use when user uploads a circuit schematic image
 
-8. **analyze_image_content**: Analyze uploaded images without creating a circuit
+9. **analyze_image_content**: Analyze uploaded images without creating a circuit
    - Use for general questions about images
 
-9. **extract_truth_table**: Extract truth table from uploaded image
+10. **extract_truth_table**: Extract truth table from uploaded image
    - Use when user uploads a truth table image
 
-10. **extract_kmap**: Extract Karnaugh map from uploaded image
+11. **extract_kmap**: Extract Karnaugh map from uploaded image
    - Use when user uploads a K-map image
 
-11. **final_answer**: Return the final text response to the user
+12. **final_answer**: Return the final text response to the user
    - Call this when you've completed all actions
    - Or when answering questions without modifying the circuit
 </AVAILABLE_TOOLS>
