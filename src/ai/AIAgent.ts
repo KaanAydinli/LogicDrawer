@@ -94,7 +94,7 @@ export class AIAgent {
               currentMessage = message;
             }
 
-            const MAX_STEPS = 5;
+            const MAX_STEPS = 10;
             const isDev = import.meta.env.LOGICDRAWER_DEV === "true";
             const reactTrace: {
               timestamp: string;
