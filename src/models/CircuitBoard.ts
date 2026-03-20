@@ -167,10 +167,26 @@ export class CircuitBoard {
       return;
     }
 
-    if (event.ctrlKey && event.key === "d") {
+    const selectedText = window.getSelection()?.toString().trim();
+    if (selectedText) {
+      return;
+    }
+
+    const keyboardEventTarget = event.target as HTMLElement | null;
+    const activeElement = document.activeElement as HTMLElement | null;
+    const isInAIChat =
+      keyboardEventTarget?.closest("#ai-chat-container") ||
+      activeElement?.closest("#ai-chat-container");
+    if (isInAIChat) {
+      return;
+    }
+
+    const modifierPressed = event.ctrlKey || event.metaKey;
+
+    if (modifierPressed && event.key === "d") {
       event.preventDefault();
       this.saveToFile();
-    } else if (event.ctrlKey && event.key === "o") {
+    } else if (modifierPressed && event.key === "o") {
       event.preventDefault();
 
       const input = document.createElement("input");
@@ -181,7 +197,7 @@ export class CircuitBoard {
         if (file) this.loadFromFile(file);
       };
       input.click();
-    } else if (event.ctrlKey && event.key === "e") {
+    } else if (modifierPressed && event.key === "e") {
       event.preventDefault();
       const verilogCode = this.extractVerilog();
       this.saveVerilogToFile(verilogCode);
@@ -208,25 +224,25 @@ export class CircuitBoard {
         this.selectedWire = null;
         this.draw();
       }
-    } else if (event.ctrlKey && event.key === "a") {
+    } else if (modifierPressed && event.key === "a") {
       event.preventDefault();
       this.selectAllComponents();
-    } else if (event.ctrlKey && event.key === "g") {
+    } else if (modifierPressed && event.key === "g") {
       event.preventDefault();
       this.toggleGrid();
-    } else if (event.ctrlKey && event.key === "c") {
+    } else if (modifierPressed && event.key === "c") {
       event.preventDefault();
       this.copySelected();
-    } else if (event.ctrlKey && event.key === "v") {
+    } else if (modifierPressed && event.key === "v") {
       event.preventDefault();
       this.paste();
-    } else if (event.ctrlKey && event.key === "z" && !event.shiftKey) {
+    } else if (modifierPressed && event.key === "z" && !event.shiftKey) {
       event.preventDefault();
       const json = ActionHistory.undo();
       if (json != null) this.importCircuit(json);
     } else if (
-      (event.ctrlKey && event.key === "y") ||
-      (event.ctrlKey && event.shiftKey && event.key === "Z")
+      (modifierPressed && event.key === "y") ||
+      (modifierPressed && event.shiftKey && event.key === "Z")
     ) {
       event.preventDefault();
       const json = ActionHistory.redo();

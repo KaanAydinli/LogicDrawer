@@ -543,10 +543,54 @@ body.keyboard-active .ai-chat-container.open {
   padding: 10px 14px;
   border-radius: 8px;
   font-size: clamp(11px, 1.1vw, 20px);
+  line-height: 1.35;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
   max-width: 100%;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.ai-formatted {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-formatted p {
+  margin: 0;
+}
+
+.ai-formatted ul,
+.ai-formatted ol {
+  margin: 2px 0 0 18px;
+  padding: 0;
+}
+
+.ai-formatted li {
+  margin: 1px 0;
+}
+
+.ai-inline-math {
+  color: #bde6ff;
+  font-style: italic;
+}
+
+.copy-ai-answer-btn {
+  margin-top: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  padding: 4px 8px;
+  font-size: 0.75em;
+  cursor: pointer;
+  font-family: "Minecraftia", sans-serif;
+}
+
+.copy-ai-answer-btn:hover {
+  background-color: var(--border-color);
 }
 
 .steps-container {

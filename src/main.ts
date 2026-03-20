@@ -807,7 +807,9 @@ async function setUpAI() {
     `;
       messagesContainer.appendChild(messageDiv);
 
-      const streamingMessageElement = messageDiv.querySelector("#streaming-message")!;
+      const streamingMessageElement = messageDiv.querySelector(
+        "#streaming-message"
+      ) as HTMLElement;
       let fullResponse = "";
       let displayedResponse = "";
       streamingMessageElement.innerHTML = "<strong>Thinking...<strong>";
@@ -848,6 +850,11 @@ async function setUpAI() {
                   if (typeQueue.length === 0) {
                     clearInterval(checkComplete);
                     clearInterval(typeInterval);
+
+                    if (fullResponse.trim().length > 0) {
+                      streamingMessageElement.innerHTML = formatAIResponse(fullResponse);
+                      appendCopyButton(streamingMessageElement, fullResponse);
+                    }
 
                     queue.enqueue(fullResponse, "AI");
                     saveToLocalStorage();
@@ -968,7 +975,7 @@ async function setUpAI() {
     const messageDiv = document.createElement("div");
 
     const code = extractVerilogFromPrompt(text);
-    const aiText = escapeHTML(text);
+    const aiText = text;
 
     if (code) {
       Logger.log("Verilog code detected:", code);
@@ -993,8 +1000,13 @@ async function setUpAI() {
             
           </svg>
     </div>
-    <div class="message-content">${aiText}</div>
+    <div class="message-content">${formatAIResponse(aiText)}</div>
   `;
+
+    const messageContent = messageDiv.querySelector(".message-content") as HTMLElement | null;
+    if (messageContent) {
+      appendCopyButton(messageContent, aiText);
+    }
 
     messagesContainer.appendChild(messageDiv);
     scrollToBottom();
@@ -1014,6 +1026,138 @@ async function setUpAI() {
       .replace(/\n/g, "<br>")
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.*?)\*/g, "<em>$1</em>");
+  }
+
+  function formatMathExpression(expression: string): string {
+    return expression
+      .replace(/\\text\{([^}]*)\}/g, "$1")
+      .replace(/\\,/g, " ")
+      .replace(/\\([A-Za-z]+)/g, " $1 ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function formatInlineText(text: string): string {
+    const mathPattern = /\\\((.*?)\\\)/g;
+    let output = "";
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = mathPattern.exec(text)) !== null) {
+      output += escapeHTML(text.slice(lastIndex, match.index));
+      const cleanedMath = formatMathExpression(match[1]);
+      output += `<span class="ai-inline-math">${escapeHTML(cleanedMath)}</span>`;
+      lastIndex = mathPattern.lastIndex;
+    }
+
+    output += escapeHTML(text.slice(lastIndex));
+
+    return output
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>");
+  }
+
+  function formatAIResponse(text: string): string {
+    const normalized = text.replace(/\r\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    if (!normalized) return "";
+
+    const lines = normalized.split("\n");
+    const html: string[] = ['<div class="ai-formatted">'];
+
+    let inUl = false;
+    let inOl = false;
+
+    const closeLists = () => {
+      if (inUl) {
+        html.push("</ul>");
+        inUl = false;
+      }
+      if (inOl) {
+        html.push("</ol>");
+        inOl = false;
+      }
+    };
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+
+      if (!line) {
+        closeLists();
+        continue;
+      }
+
+      const bulletMatch = line.match(/^[-*]\s+(.+)/);
+      if (bulletMatch) {
+        if (inOl) {
+          html.push("</ol>");
+          inOl = false;
+        }
+        if (!inUl) {
+          html.push("<ul>");
+          inUl = true;
+        }
+        html.push(`<li>${formatInlineText(bulletMatch[1])}</li>`);
+        continue;
+      }
+
+      const orderedMatch = line.match(/^\d+\.\s+(.+)/);
+      if (orderedMatch) {
+        if (inUl) {
+          html.push("</ul>");
+          inUl = false;
+        }
+        if (!inOl) {
+          html.push("<ol>");
+          inOl = true;
+        }
+        html.push(`<li>${formatInlineText(orderedMatch[1])}</li>`);
+        continue;
+      }
+
+      closeLists();
+      html.push(`<p>${formatInlineText(line)}</p>`);
+    }
+
+    closeLists();
+    html.push("</div>");
+
+    return html.join("");
+  }
+
+  async function copyTextToClipboard(text: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const tempTextarea = document.createElement("textarea");
+      tempTextarea.value = text;
+      tempTextarea.style.position = "fixed";
+      tempTextarea.style.opacity = "0";
+      document.body.appendChild(tempTextarea);
+      tempTextarea.focus();
+      tempTextarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(tempTextarea);
+    }
+  }
+
+  function appendCopyButton(container: HTMLElement, text: string): void {
+    const existingButton = container.querySelector(".copy-ai-answer-btn");
+    if (existingButton) return;
+
+    const button = document.createElement("button");
+    button.className = "copy-ai-answer-btn";
+    button.type = "button";
+    button.textContent = "Copy";
+    button.addEventListener("click", async event => {
+      event.stopPropagation();
+      await copyTextToClipboard(text);
+      button.textContent = "Copied";
+      window.setTimeout(() => {
+        button.textContent = "Copy";
+      }, 1200);
+    });
+
+    container.appendChild(button);
   }
 
   function renderStep(step: { id: string; name: string; status: string }, container: HTMLElement) {
@@ -1088,11 +1232,29 @@ async function createExampleCircuit() {
   //   circuitBoard.addComponent(lightBulb);
   // }
 
-  const response = await fetch("../Counter.json");
-  const jsonString = await response.text();
-  circuitBoard.importCircuit(jsonString);
-  circuitBoard.draw();
+  const starterCircuitStateKey = "starterCircuitState";
+  const starterCircuitState = localStorage.getItem(starterCircuitStateKey);
+
+  if (starterCircuitState === "loaded" || starterCircuitState === "dismissed") {
+    return;
+  }
+
+  try {
+    const response = await fetch("../Counter.json");
+    const jsonString = await response.text();
+    circuitBoard.importCircuit(jsonString);
+    circuitBoard.draw();
+    localStorage.setItem(starterCircuitStateKey, "loaded");
+  } catch (error) {
+    Logger.error("Failed to load starter circuit:", error);
+  }
 }
+
+function clearCircuitAndDismissStarterCircuit() {
+  localStorage.setItem("starterCircuitState", "dismissed");
+  circuitBoard.clearCircuit();
+}
+
 const fileInput = document.getElementById("loadFile") as HTMLInputElement;
 fileInput?.addEventListener("change", handleFileSelect);
 function handleFileSelect(event: Event) {
@@ -1571,7 +1733,7 @@ function setFile() {
         }
         circuitBoard.saveToFile(text + ".json");
       } else if (selectedFile === "new") {
-        circuitBoard.clearCircuit();
+        clearCircuitAndDismissStarterCircuit();
       }
       fileDropdown.classList.remove("show");
     });
@@ -1682,7 +1844,7 @@ function setMobile() {
                 }
                 circuitBoard.saveToFile(text + ".json");
               } else if (selectedFile === "new") {
-                circuitBoard.clearCircuit();
+                clearCircuitAndDismissStarterCircuit();
               }
             });
           });
