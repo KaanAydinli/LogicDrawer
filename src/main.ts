@@ -295,6 +295,13 @@ function setupZoomControls() {
   canvas.addEventListener("mousedown", event => {
     if (event.button === 1) {
       event.preventDefault();
+      event.stopPropagation();
+
+      const chatInput = document.getElementById("ai-chat-input") as HTMLTextAreaElement | null;
+      if (chatInput && document.activeElement === chatInput) {
+        chatInput.blur();
+      }
+
       circuitBoard.isDraggingCanvas = true;
       circuitBoard.lastMouseX = event.clientX;
       circuitBoard.lastMouseY = event.clientY;
@@ -303,6 +310,13 @@ function setupZoomControls() {
       circuitBoard.isDraggingCanvas = true;
       circuitBoard.lastMouseX = event.clientX;
       circuitBoard.lastMouseY = event.clientY;
+    }
+  });
+
+  canvas.addEventListener("auxclick", event => {
+    if (event.button === 1) {
+      event.preventDefault();
+      event.stopPropagation();
     }
   });
 
