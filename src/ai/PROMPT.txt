@@ -76,30 +76,34 @@ You have access to the following tools:
    - Pass `connections` array with `sourceId` and `targetId`
    - Optionally pass `sourcePortIndex` and `targetPortIndex` for precise wire removal
 
-5. **remove_components**: Remove components by ID
+5. **move_components**: Move one or more existing components by ID
+   - Pass `moves` array with `{ componentId, position: { x, y } }`
+   - Use get_circuit_summary first to collect valid IDs and current positions
+
+6. **remove_components**: Remove components by ID
    - Pass `componentIds` array
    - Use get_circuit_summary first to collect valid IDs
 
-6. **clear_circuit**: Remove all components and wires from the board
+7. **clear_circuit**: Remove all components and wires from the board
 
-7. **import_verilog_circuit**: Generate and import a circuit from Verilog code
+8. **import_verilog_circuit**: Generate and import a circuit from Verilog code
    - Provide a description of the circuit
    - Optionally provide Verilog code directly
    - Use for complex circuits or when Verilog is preferred
 
-8. **detect_circuit_from_image**: Detect and reconstruct circuits from uploaded images
+9. **detect_circuit_from_image**: Detect and reconstruct circuits from uploaded images
    - Use when user uploads a circuit schematic image
 
-9. **analyze_image_content**: Analyze uploaded images without creating a circuit
+10. **analyze_image_content**: Analyze uploaded images without creating a circuit
    - Use for general questions about images
 
-10. **extract_truth_table**: Extract truth table from uploaded image
+11. **extract_truth_table**: Extract truth table from uploaded image
    - Use when user uploads a truth table image
 
-11. **extract_kmap**: Extract Karnaugh map from uploaded image
+12. **extract_kmap**: Extract Karnaugh map from uploaded image
    - Use when user uploads a K-map image
 
-12. **final_answer**: Return the final text response to the user
+13. **final_answer**: Return the final text response to the user
    - Call this when you've completed all actions
    - Or when answering questions without modifying the circuit
 </AVAILABLE_TOOLS>

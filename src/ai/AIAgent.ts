@@ -8,6 +8,7 @@ import {
   TruthTableImageTool,
   KMapImageTool,
   AddComponentsTool,
+  MoveComponentsTool,
   RemoveComponentsTool,
   ClearCircuitTool,
   ConnectComponentsTool,
@@ -267,6 +268,10 @@ export class AIAgent {
                     toolKey = "ADD_COMPONENTS";
                     extraContext.components = call.args.components;
                     break;
+                  case "move_components":
+                    toolKey = "MOVE_COMPONENTS";
+                    extraContext.moves = call.args.moves;
+                    break;
                   case "remove_components":
                     toolKey = "REMOVE_COMPONENTS";
                     extraContext.componentIds = call.args.componentIds;
@@ -505,6 +510,7 @@ export class AIAgent {
     this.tools.set("KMAP_IMAGE", new KMapImageTool());
     // this.tools.set("CIRCUIT_FIX", new CircuitFixTool()); // Deprecated
     this.tools.set("ADD_COMPONENTS", new AddComponentsTool());
+    this.tools.set("MOVE_COMPONENTS", new MoveComponentsTool());
     this.tools.set("REMOVE_COMPONENTS", new RemoveComponentsTool());
     this.tools.set("CLEAR_CIRCUIT", new ClearCircuitTool());
     this.tools.set("CONNECT_COMPONENTS", new ConnectComponentsTool());
@@ -673,6 +679,39 @@ export class AIAgent {
                 },
               },
               required: ["componentIds"],
+            },
+          },
+          {
+            name: "move_components",
+            description:
+              "Move one or more components to new positions by ID. Use get_circuit_summary first to get valid IDs and current positions.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                moves: {
+                  type: "ARRAY",
+                  description: "List of move operations.",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      componentId: {
+                        type: "STRING",
+                        description: "ID of the component to move.",
+                      },
+                      position: {
+                        type: "OBJECT",
+                        properties: {
+                          x: { type: "INTEGER" },
+                          y: { type: "INTEGER" },
+                        },
+                        required: ["x", "y"],
+                      },
+                    },
+                    required: ["componentId", "position"],
+                  },
+                },
+              },
+              required: ["moves"],
             },
           },
           {
@@ -892,6 +931,10 @@ export class AIAgent {
             case "add_components":
               toolKey = "ADD_COMPONENTS";
               extraContext.components = call.args.components;
+              break;
+            case "move_components":
+              toolKey = "MOVE_COMPONENTS";
+              extraContext.moves = call.args.moves;
               break;
             case "remove_components":
               toolKey = "REMOVE_COMPONENTS";
