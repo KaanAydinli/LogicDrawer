@@ -51,7 +51,21 @@ You have access to multiple tools for circuit creation. Choose the appropriate a
 - **DO NOT** hallucinate tool names or arguments. 
 - Use ONLY the tools listed in `<AVAILABLE_TOOLS>`.
 - If you cannot perform an action with the available tools, inform the user.
+- Do not assume a tool call succeeded unless the tool result explicitly confirms success.
 </TOOL_SELECTION_STRATEGY>
+
+<TOOL_RESULT_INTERPRETATION>
+Interpret tool outputs strictly and deterministically:
+
+1. For `connect_components`, only treat connections as successful if listed as `Connected:`.
+2. Any `Failed:` detail means the task is incomplete and requires a repair step.
+3. If any requested action fails, DO NOT call `final_answer` yet.
+4. Instead run a repair loop:
+   - get_circuit_summary
+   - edit_component_state / remove_connections / connect_components as needed
+   - re-check with get_circuit_summary
+5. In final_answer, clearly separate what succeeded vs what could not be completed.
+</TOOL_RESULT_INTERPRETATION>
 
 <AVAILABLE_TOOLS>
 You have access to the following tools:
@@ -127,6 +141,12 @@ When using add_components and connect_components:
 4. Connect components with connect_components using returned IDs
 5. If any connect step fails, use get_circuit_summary, fix the cause, and retry failed links
 6. Provide a clear explanation with final_answer
+
+**PREFLIGHT CHECKLIST (before connect_components):**
+- Verify source component has output ports and target component has input ports.
+- Verify intended source/target bit widths are equal on the selected ports.
+- Prefer explicit `sourcePortIndex` and `targetPortIndex` for sequential and multibit circuits.
+- Use clock outputs only for clock/control inputs, not arithmetic data inputs.
 
 **PREFERRED PIPELINE (for new circuit builds):**
 1. add_components
