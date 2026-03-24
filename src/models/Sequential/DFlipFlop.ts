@@ -5,6 +5,17 @@ export class DFlipFlop extends Component {
   private qValue: BitArray | boolean = false;
   private lastClk = false;
 
+  /**
+   * Normalizes scalar or array input data to a fixed bit width.
+   * Arrays are truncated/padded; scalar values are expanded across all bits.
+   */
+  private normalizeDataToWidth(dataIn: BitArray | boolean, width: number): BitArray {
+    if (Array.isArray(dataIn)) {
+      return [...dataIn.slice(0, width), ...Array(Math.max(0, width - dataIn.length)).fill(false)];
+    }
+    return Array(width).fill(!!dataIn);
+  }
+
   constructor(position: Point) {
     super("dflipflop", position);
     this.size = { width: 80, height: 64 };
@@ -68,12 +79,15 @@ export class DFlipFlop extends Component {
     const clockIn = this.inputs[1].value as boolean;
 
     if (clockIn && !this.lastClk) {
-      if (Array.isArray(dataIn)) {
-        this.qValue = [...dataIn];
-        this.outputs[0].bitWidth = dataIn.length;
-        this.outputs[1].bitWidth = dataIn.length;
+      const dataBitWidth = Math.max(1, this.inputs[0].bitWidth ?? this.defaultBitWidth);
+
+      if (dataBitWidth > 1) {
+        const normalizedData = this.normalizeDataToWidth(dataIn, dataBitWidth);
+        this.qValue = normalizedData;
+        this.outputs[0].bitWidth = dataBitWidth;
+        this.outputs[1].bitWidth = dataBitWidth;
       } else {
-        this.qValue = dataIn;
+        this.qValue = !!dataIn;
         this.outputs[0].bitWidth = 1;
         this.outputs[1].bitWidth = 1;
       }
@@ -95,8 +109,9 @@ export class DFlipFlop extends Component {
   setState(state: any): void {
     super.setState(state);
 
-    if (state.qValue !== undefined) {
-      this.qValue = Array.isArray(state.qValue) ? [...state.qValue] : !!state.qValue;
+    const qValueState = state.qValue !== undefined ? state.qValue : state.value;
+    if (qValueState !== undefined) {
+      this.qValue = Array.isArray(qValueState) ? [...qValueState] : !!qValueState;
 
       if (Array.isArray(this.qValue)) {
         this.outputs[0].value = [...this.qValue];
@@ -113,6 +128,11 @@ export class DFlipFlop extends Component {
 
     if (state.lastClk !== undefined) {
       this.lastClk = !!state.lastClk;
+    }
+
+    if (this.inputs[1]) {
+      this.inputs[1].bitWidth = 1;
+      this.inputs[1].value = !!this.inputs[1].value;
     }
   }
 
@@ -243,6 +263,7 @@ export class DFlipFlop extends Component {
     }
 
     this.inputs[0].bitWidth = width;
+    this.inputs[1].bitWidth = 1;
 
     this.outputs.forEach(output => {
       output.bitWidth = width;

@@ -265,6 +265,10 @@ export abstract class Component {
       this.setBitWidth(state.defaultBitWidth);
     }
 
+    if (state.bitWidth !== undefined) {
+      this.setBitWidth(state.bitWidth);
+    }
+
     if (state.isMultiBit !== undefined) {
       this.isMultiBit = state.isMultiBit;
     }

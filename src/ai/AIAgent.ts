@@ -13,6 +13,7 @@ import {
   ClearCircuitTool,
   ConnectComponentsTool,
   RemoveConnectionsTool,
+  EditComponentStateTool,
   GetCircuitSummaryTool,
 } from "./tools";
 import { ImageUploader } from "./ImageUploader";
@@ -287,6 +288,10 @@ export class AIAgent {
                     toolKey = "REMOVE_CONNECTIONS";
                     extraContext.connections = call.args.connections;
                     break;
+                  case "edit_component_state":
+                    toolKey = "EDIT_COMPONENT_STATE";
+                    extraContext.edits = call.args.edits;
+                    break;
                   case "get_circuit_summary":
                     toolKey = "GET_CIRCUIT_SUMMARY";
                     break;
@@ -515,6 +520,7 @@ export class AIAgent {
     this.tools.set("CLEAR_CIRCUIT", new ClearCircuitTool());
     this.tools.set("CONNECT_COMPONENTS", new ConnectComponentsTool());
     this.tools.set("REMOVE_CONNECTIONS", new RemoveConnectionsTool());
+    this.tools.set("EDIT_COMPONENT_STATE", new EditComponentStateTool());
     this.tools.set("GET_CIRCUIT_SUMMARY", new GetCircuitSummaryTool());
 
     Logger.log("Tools registered:", Array.from(this.tools.keys()));
@@ -722,7 +728,7 @@ export class AIAgent {
           {
             name: "connect_components",
             description:
-              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK.",
+              "Connect multiple pairs of components. Finds available ports automatically if indices are not provided. You can check the available ports and their indices using the get_circuit_summary tool. For example, for a D Flip-Flop, index 0 is typically D and index 1 is CLK. Preferred pipeline: add_components -> edit_component_state -> connect_components -> final_answer. If components use mismatched bit widths (for example 1-bit output to 4-bit input), call edit_component_state first to align widths before connecting.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -790,6 +796,96 @@ export class AIAgent {
             description:
               "Get a summary of the current circuit board state, including component IDs, types, and positions. Useful for knowing what IDs to use for connections.",
             parameters: { type: "OBJECT", properties: {} },
+          },
+          {
+            name: "edit_component_state",
+            description:
+              "Edit state values of existing components by ID. Partial updates are supported: send only the field(s) you want to change (for example only defaultBitWidth).",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                edits: {
+                  type: "ARRAY",
+                  description:
+                    "List of state edits to apply. Each item targets one component and applies only provided state fields.",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      componentId: {
+                        type: "STRING",
+                        description: "ID of the component to edit.",
+                      },
+                      state: {
+                        type: "OBJECT",
+                        description:
+                          "Partial state payload. All properties are optional: include only fields you want to change, and include at least one property. Use defaultBitWidth for width updates. For backward compatibility, legacy calls that send bitWidth are automatically normalized at runtime, even though bitWidth is not listed in this schema.",
+                        properties: {
+                          position: {
+                            type: "OBJECT",
+                            properties: {
+                              x: { type: "INTEGER" },
+                              y: { type: "INTEGER" },
+                            },
+                          },
+                          selected: { type: "BOOLEAN" },
+                          defaultBitWidth: { type: "INTEGER" },
+                          isMultiBit: { type: "BOOLEAN" },
+                          rotation: { type: "INTEGER" },
+                          inputs: {
+                            type: "ARRAY",
+                            items: {
+                              type: "OBJECT",
+                              properties: {
+                                value: { type: "BOOLEAN" },
+                                bitWidth: { type: "INTEGER" },
+                              },
+                            },
+                          },
+                          outputs: {
+                            type: "ARRAY",
+                            items: {
+                              type: "OBJECT",
+                              properties: {
+                                value: { type: "BOOLEAN" },
+                                bitWidth: { type: "INTEGER" },
+                              },
+                            },
+                          },
+                          on: { type: "BOOLEAN" },
+                          interval: { type: "INTEGER" },
+                          bits: { type: "ARRAY", items: { type: "BOOLEAN" } },
+                          displayMode: {
+                            type: "STRING",
+                            enum: ["auto", "binary", "decimal", "hex"],
+                          },
+                          value: { type: "INTEGER" },
+                          qValue: { type: "ARRAY", items: { type: "BOOLEAN" } },
+                          lastClk: { type: "BOOLEAN" },
+                          text: { type: "STRING" },
+                          fontSize: { type: "INTEGER" },
+                          fontFamily: { type: "STRING" },
+                          color: { type: "STRING" },
+                          relativeOffset: {
+                            type: "OBJECT",
+                            properties: {
+                              x: { type: "INTEGER" },
+                              y: { type: "INTEGER" },
+                            },
+                          },
+                          attachedToId: {
+                            type: "STRING",
+                            description:
+                              "For text components: component ID to attach to, or null to detach.",
+                          },
+                        },
+                      },
+                    },
+                    required: ["componentId", "state"],
+                  },
+                },
+              },
+              required: ["edits"],
+            },
           },
         ],
       },
@@ -950,6 +1046,10 @@ export class AIAgent {
             case "remove_connections":
               toolKey = "REMOVE_CONNECTIONS";
               extraContext.connections = call.args.connections;
+              break;
+            case "edit_component_state":
+              toolKey = "EDIT_COMPONENT_STATE";
+              extraContext.edits = call.args.edits;
               break;
             case "get_circuit_summary":
               toolKey = "GET_CIRCUIT_SUMMARY";

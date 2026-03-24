@@ -2169,7 +2169,7 @@ async function saveToMongoDB(
   description: string,
   previewUrl: string,
   circuitData: any,
-  isPublic: boolean = true
+  isPublic = true
 ) {
   try {
     if (!authService.isAuthenticated) {

@@ -10,5 +10,6 @@ export * from "./RemoveComponentsTool";
 export * from "./ClearCircuitTool";
 export * from "./ConnectComponentsTool";
 export * from "./RemoveConnectionsTool";
+export * from "./EditComponentStateTool";
 export * from "./GetCircuitSummaryTool";
 export * from "./FinalAnswerTool";

@@ -15,6 +15,8 @@ export class HexDigit extends Component {
       y: this.position.y + Math.round(this.size.height / 2 / 16) * 16,
     };
 
+    this.defaultBitWidth = 4;
+
     this.inputs.push({
       id: `${this.id}-input-0`,
       type: "input",
