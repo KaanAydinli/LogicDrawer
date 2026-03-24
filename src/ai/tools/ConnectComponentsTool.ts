@@ -37,10 +37,23 @@ export class ConnectComponentsTool implements Tool {
         }
 
         if (output && input) {
-          context.circuitBoard.createWire(output, input);
-          results.push(
-            `Connected: ${sourceComp.type}(${conn.sourceId})[port ${conn.sourcePortIndex !== undefined ? conn.sourcePortIndex : "auto"}] -> ${targetComp.type}(${conn.targetId})[port ${conn.targetPortIndex !== undefined ? conn.targetPortIndex : "auto"}]`
-          );
+          if (output.bitWidth !== input.bitWidth) {
+            results.push(
+              `Failed: Bit width mismatch ${output.bitWidth} vs ${input.bitWidth}. (${conn.sourceId} -> ${conn.targetId})`
+            );
+            continue;
+          }
+
+          const connected = context.circuitBoard.createWire(output, input);
+          if (connected) {
+            results.push(
+              `Connected: ${sourceComp.type}(${conn.sourceId})[port ${conn.sourcePortIndex !== undefined ? conn.sourcePortIndex : "auto"}] -> ${targetComp.type}(${conn.targetId})[port ${conn.targetPortIndex !== undefined ? conn.targetPortIndex : "auto"}]`
+            );
+          } else {
+            results.push(
+              `Failed: Connection rejected. (${conn.sourceId} -> ${conn.targetId})`
+            );
+          }
         } else {
           let reason = "";
           if (!output) reason += "No output port. ";

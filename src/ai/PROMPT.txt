@@ -72,6 +72,8 @@ You have access to the following tools:
     - Provide sourceId and targetId from the IDs returned by add_components
     - Can connect multiple pairs in one call
     - If source/target components should operate at a non-default width or have mismatched widths (e.g., 1-bit to 4-bit), call edit_component_state first, then connect_components
+   - IMPORTANT: Only connect output -> input. Never connect into components that have no inputs (for example `multibit` is a source/output component)
+   - If any connection fails, immediately inspect and repair using get_circuit_summary + edit_component_state + connect_components
 
 4. **remove_connections**: Remove one or more existing wire connections
    - Pass `connections` array with `sourceId` and `targetId`
@@ -104,13 +106,13 @@ You have access to the following tools:
 12. **extract_kmap**: Extract Karnaugh map from uploaded image
    - Use when user uploads a K-map image
 
-9. **edit_component_state**: Edit existing component state values by ID
+13. **edit_component_state**: Edit existing component state values by ID
    - Use this to update configuration after adding components (bit width, rotation, text content, etc.)
    - State updates are partial; provide only fields you want to change
    - For bit-width edits, use `defaultBitWidth` (the system also accepts `bitWidth` as compatibility alias)
    - Use this before connect_components when width mismatch is possible
 
-10. **final_answer**: Return the final text response to the user
+14. **final_answer**: Return the final text response to the user
     - Call this when you've completed all actions
     - Or when answering questions without modifying the circuit
 </AVAILABLE_TOOLS>
@@ -123,15 +125,22 @@ When using add_components and connect_components:
 2. Add all necessary components with add_components (including inputs/outputs!)
 3. BEFORE connecting, update component settings with edit_component_state when any non-default config is needed (especially bit width/state changes)
 4. Connect components with connect_components using returned IDs
-5. Provide a clear explanation with final_answer
+5. If any connect step fails, use get_circuit_summary, fix the cause, and retry failed links
+6. Provide a clear explanation with final_answer
 
 **PREFERRED PIPELINE (for new circuit builds):**
 1. add_components
 2. edit_component_state
 3. connect_components
-4. final_answer
+4. get_circuit_summary (verification pass)
+5. final_answer
 
 Use this exact order unless the user request does not require any state edits.
+
+**COUNTER / MULTIBIT SAFETY RULES:**
+- Clock signals are typically 1-bit and should go to clock/control inputs only.
+- Data paths must have matching bit widths end-to-end (for example 4-bit -> 4-bit).
+- Do NOT connect half adder output into `multibit`; `multibit` is an output source, not an input sink.
 
 **COMPONENT POSITIONING GUIDELINES:**
 - Space components 100-200 units apart horizontally

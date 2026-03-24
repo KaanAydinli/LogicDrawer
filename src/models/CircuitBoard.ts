@@ -2406,23 +2406,27 @@ export class CircuitBoard {
     return this.components.find(component => component.id === id) || null;
   }
 
-  public createWire(fromPort: any, toPort: any): void {
+  public createWire(fromPort: any, toPort: any): boolean {
     if (!fromPort || !toPort) {
-      return;
+      return false;
     }
 
     const inputPort = fromPort.type === "input" ? fromPort : toPort;
     if (inputPort.type === "input" && inputPort.isConnected) {
-      return;
+      return false;
     }
 
     const wire = new Wire(fromPort, true);
-    wire.connect(toPort);
+    const connected = wire.connect(toPort);
+    if (!connected) {
+      return false;
+    }
 
     fromPort.isConnected = true;
     toPort.isConnected = true;
 
     this.wires.push(wire);
+    return true;
   }
 
   public addComponentByType(type: string, position: Point): string {
