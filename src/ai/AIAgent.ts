@@ -52,9 +52,9 @@ export class AIAgent {
     Logger.log("AIAgent initialized successfully");
   }
 
-  private async saveReactTrace(trace: object): Promise<void> {
+  private async saveAgentTrace(trace: object): Promise<void> {
     try {
-      await fetch(`${apiBaseUrl}/api/dev/react-trace`, {
+      await fetch(`${apiBaseUrl}/api/dev/agent-trace`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(trace),
@@ -230,7 +230,7 @@ export class AIAgent {
                       status: "success",
                     });
                     reactTrace.finalResponse = finalText;
-                    void this.saveReactTrace(reactTrace);
+                    void this.saveAgentTrace(reactTrace);
                   }
                   controller.enqueue(
                     encoder.encode(`data: ${JSON.stringify({ chunk: finalText })}\n\n`)
@@ -414,7 +414,7 @@ export class AIAgent {
                 const result = data.text || "I didn't understand that.";
                 if (isDev) {
                   reactTrace.finalResponse = result;
-                  void this.saveReactTrace(reactTrace);
+                  void this.saveAgentTrace(reactTrace);
                 }
                 controller.enqueue(
                   encoder.encode(`data: ${JSON.stringify({ chunk: result })}\n\n`)
@@ -426,7 +426,7 @@ export class AIAgent {
             }
             if (isDev) {
               reactTrace.finalResponse = "Max steps reached without final answer.";
-              void this.saveReactTrace(reactTrace);
+              void this.saveAgentTrace(reactTrace);
             }
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
             controller.close();

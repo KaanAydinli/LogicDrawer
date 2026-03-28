@@ -656,7 +656,7 @@ router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, re
   }
 });
 
-router.post("/dev/react-trace", async (req, res) => {
+router.post("/dev/agent-trace", async (req, res) => {
   if (process.env.LOGICDRAWER_DEV !== "true") {
     return res.status(404).json({ error: "Not found" });
   }
@@ -672,16 +672,16 @@ router.post("/dev/react-trace", async (req, res) => {
     const projectRoot = __dirname.includes("dist")
       ? path.resolve(__dirname, "../../..")
       : path.resolve(__dirname, "../..");
-    const tracesDir = path.join(projectRoot, "react-traces");
+    const tracesDir = path.join(projectRoot, "agent-traces");
     if (!fs.existsSync(tracesDir)) {
       fs.mkdirSync(tracesDir, { recursive: true });
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const filename = `react-trace-${timestamp}.json`;
+    const filename = `agent-trace-${timestamp}.json`;
     fs.writeFileSync(path.join(tracesDir, filename), JSON.stringify(trace, null, 2), "utf-8");
 
-    Logger.log(`[DevTrace] Saved ReAct trace: ${filename}`);
+    Logger.log(`[DevTrace] Saved Agent trace: ${filename}`);
     return res.json({ saved: filename });
   } catch (error) {
     Logger.error("[DevTrace] Failed to save trace:", error);
