@@ -45,7 +45,7 @@
     "@google/genai": "^0.7.0",
     "@google/generative-ai": "^0.24.0",
     "@mistralai/mistralai": "^1.5.2",
-    "axios": "^1.8.4",
+    "axios": "1.8.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
@@ -60,5 +60,8 @@
     "vite": "^5.0.10",
     "vitest": "^3.1.1",
     "@vitejs/plugin-react": "^4.3.4"
+  },
+  "overrides": {
+    "axios": "1.8.4"
   }
 }
