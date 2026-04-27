@@ -713,6 +713,27 @@ function setupMobileChatBehavior(): void {
   });
 }
 
+function showAIDevNotice() {
+  const existing = document.getElementById("ai-dev-notice");
+  if (existing) {
+    existing.classList.remove("ai-dev-notice--hide");
+    return;
+  }
+  const notice = document.createElement("div");
+  notice.id = "ai-dev-notice";
+  notice.className = "ai-dev-notice";
+  notice.innerHTML = `
+    <strong>AI is under development</strong>
+    <span>Thank you for your patience!</span>
+  `;
+  document.body.appendChild(notice);
+  requestAnimationFrame(() => notice.classList.add("ai-dev-notice--show"));
+  window.setTimeout(() => {
+    notice.classList.add("ai-dev-notice--hide");
+    window.setTimeout(() => notice.remove(), 300);
+  }, 3500);
+}
+
 async function setUpAI() {
   const aiLogo = document.querySelector(".aiLogo") as HTMLElement;
   const chatContainer = document.getElementById("ai-chat-container") as HTMLElement;
@@ -772,6 +793,11 @@ async function setUpAI() {
   let lastUploadedImage: string | null = null;
 
   aiLogo.addEventListener("click", function () {
+    if (import.meta.env.LOGICDRAWER_DEV !== "true") {
+      showAIDevNotice();
+      return;
+    }
+
     chatContainer.classList.toggle("open");
 
     if (aiLogo.classList.contains("active")) {
