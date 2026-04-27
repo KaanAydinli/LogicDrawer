@@ -1,11 +1,21 @@
 /**
  * @file Defines the routes for AI-related functionalities.
+ *
+ * Powered by Anthropic Claude (Sonnet 4.5).
+ *
+ * The frontend (AIAgent + tools) was originally written against the Gemini
+ * function-calling shape: it sends `{message, parts, history, tools}` in the
+ * Gemini format and expects `{functionCalls: [{name, args}]} | {text}` back.
+ * To avoid touching every tool, this module accepts that Gemini-shaped
+ * payload, translates it to Anthropic's `messages` + `tool_use`/`tool_result`
+ * format, calls Claude with prompt caching enabled, and translates the
+ * response back into the legacy shape.
  */
 
 import express from "express";
-import { spawn } from "child_process";
 import path from "path";
 import fs from "fs";
+import Anthropic from "@anthropic-ai/sdk";
 
 import { optionalAuth, AuthRequest } from "../middlewares/auth";
 import { aiRateLimit, getRateLimitStatus } from "../middlewares/aiRateLimit";
@@ -13,281 +23,234 @@ import { aiRateLimit, getRateLimitStatus } from "../middlewares/aiRateLimit";
 import { Logger } from "../utils/logger";
 import { circuitDetectionService } from "../services/circuitDetectionService";
 import { updateDetectionStats } from "../models/DetectionStats";
+import { updateAgentStats } from "../models/AgentStats";
 
 const router = express.Router();
 
-type OpenRouterTool = {
-  type: "function";
-  function: {
-    name: string;
-    description?: string;
-    parameters?: any;
-  };
+const CLAUDE_MODEL = "claude-sonnet-4-5";
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || "" });
+
+type ImageMediaType = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
+type AnthropicContentBlock =
+  | { type: "text"; text: string; cache_control?: { type: "ephemeral" } }
+  | { type: "image"; source: { type: "base64"; media_type: ImageMediaType; data: string } }
+  | { type: "tool_use"; id: string; name: string; input: any }
+  | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
+
+function normalizeImageMediaType(raw: string): ImageMediaType {
+  const lower = (raw || "").toLowerCase();
+  if (lower === "image/png") return "image/png";
+  if (lower === "image/gif") return "image/gif";
+  if (lower === "image/webp") return "image/webp";
+  return "image/jpeg";
+}
+
+type AnthropicMessage = {
+  role: "user" | "assistant";
+  content: AnthropicContentBlock[];
 };
 
-function getOpenRouterConfig() {
-  const baseUrl = process.env.COPILOT_LOCAL_API_BASE_URL || "http://localhost:4141";
-  const model = process.env.COPILOT_MODEL || "gpt-4o-2024-11-20";
-  const apiKey = process.env.COPILOT_LOCAL_API_KEY;
-  return { baseUrl, model, apiKey };
-}
-
-function getOpenRouterMaxTokens() {
-  const raw = process.env.COPILOT_MAX_TOKENS || process.env.OPENROUTER_MAX_TOKENS;
-  const parsed = raw ? Number(raw) : NaN;
-  if (Number.isFinite(parsed) && parsed > 0) {
-    return Math.floor(parsed);
-  }
-  return 1024;
-}
-
-function getProviderHeaders(apiKey?: string) {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (apiKey && apiKey.trim().length > 0) {
-    headers.Authorization = `Bearer ${apiKey}`;
-  }
-  return headers;
-}
-
-function getChatCompletionsUrl(baseUrl: string) {
-  return `${baseUrl.replace(/\/$/, "")}/v1/chat/completions`;
-}
-
-function makeShortToolCallId(toolName: string): string {
-  const clean = (toolName || "tool")
-    .toLowerCase()
-    .replace(/[^a-z0-9_]/g, "")
-    .slice(0, 14);
-  const ts = Date.now().toString(36);
-  const rnd = Math.random().toString(36).slice(2, 8);
-  // Keep strict length <= 40 for providers that validate tool_call_id length.
-  return `c_${clean}_${ts}_${rnd}`.slice(0, 40);
-}
-
-function normalizeSchemaType(typeValue: any): string | undefined {
-  if (typeof typeValue !== "string") return undefined;
-  const t = typeValue.toLowerCase();
-  switch (t) {
-    case "object":
-    case "array":
-    case "string":
-    case "number":
-    case "integer":
-    case "boolean":
-    case "null":
-      return t;
-    default:
-      return undefined;
-  }
-}
-
-function geminiSchemaToJsonSchema(schema: any): any {
-  if (!schema || typeof schema !== "object") {
-    return { type: "object", properties: {} };
-  }
-
-  const normalizedType = normalizeSchemaType(schema.type);
-  const out: any = {};
-
-  if (normalizedType) {
-    out.type = normalizedType;
-  }
-
-  if (schema.description) out.description = schema.description;
-  if (Array.isArray(schema.enum)) out.enum = schema.enum;
-
-  const effectiveType = out.type || (schema.properties ? "object" : undefined);
-
-  if (effectiveType === "object") {
-    out.type = "object";
-    const props = schema.properties && typeof schema.properties === "object" ? schema.properties : {};
-    out.properties = Object.fromEntries(
-      Object.entries(props).map(([key, val]) => [key, geminiSchemaToJsonSchema(val)])
-    );
-    if (Array.isArray(schema.required)) {
-      out.required = schema.required.filter((r: any) => typeof r === "string");
+function decodeBase64Image(image: string): { mediaType: ImageMediaType; data: string } {
+  let rawMediaType = "image/jpeg";
+  let data = image;
+  if (image.includes("base64,")) {
+    const matches = image.match(/^data:([A-Za-z\-+/]+);base64,(.+)$/);
+    if (matches && matches.length === 3) {
+      rawMediaType = matches[1];
+      data = matches[2];
+    } else {
+      data = image.split("base64,")[1];
     }
-  } else if (effectiveType === "array") {
-    out.type = "array";
-    out.items = geminiSchemaToJsonSchema(schema.items || { type: "object", properties: {} });
   }
+  return { mediaType: normalizeImageMediaType(rawMediaType), data };
+}
 
+/**
+ * Recursively normalize a Gemini-shaped JSON Schema for Anthropic.
+ * Gemini uses uppercase type strings ("OBJECT"/"STRING"); Anthropic requires
+ * the standard lowercase JSON Schema vocabulary.
+ */
+function normalizeSchema(schema: any): any {
+  if (Array.isArray(schema)) return schema.map(normalizeSchema);
+  if (!schema || typeof schema !== "object") return schema;
+
+  const out: any = {};
+  for (const [key, value] of Object.entries(schema)) {
+    if (key === "type" && typeof value === "string") {
+      out.type = value.toLowerCase();
+    } else if (
+      key === "properties" &&
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    ) {
+      const props: any = {};
+      for (const [propName, propSchema] of Object.entries(value as Record<string, any>)) {
+        props[propName] = normalizeSchema(propSchema);
+      }
+      out.properties = props;
+    } else if (key === "items") {
+      out.items = normalizeSchema(value);
+    } else {
+      out[key] = value;
+    }
+  }
   return out;
 }
 
-function mapGeminiToolsToOpenRouterTools(tools: any): OpenRouterTool[] | undefined {
-  if (!Array.isArray(tools)) return undefined;
-
-  const declarations = tools.flatMap((t: any) =>
-    Array.isArray(t?.functionDeclarations) ? t.functionDeclarations : []
-  );
-
-  if (declarations.length === 0) return undefined;
-
-  return declarations.map((fn: any) => ({
-    type: "function",
-    function: {
-      name: fn.name,
-      description: fn.description,
-      parameters: geminiSchemaToJsonSchema(fn.parameters || { type: "OBJECT", properties: {} }),
-    },
-  }));
-}
-
-function tryParseJson(value: string | undefined): any {
-  if (!value) return {};
-  try {
-    return JSON.parse(value);
-  } catch {
-    return {};
-  }
-}
-
-function extractImageData(imageData: string): { mimeType: string; base64Data: string } {
-  let base64Data = imageData;
-  let mimeType = "image/jpeg";
-
-  if (imageData.includes("base64,")) {
-    const matches = imageData.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-    if (matches && matches.length === 3) {
-      mimeType = matches[1];
-      base64Data = matches[2];
-    } else {
-      base64Data = imageData.split("base64,")[1];
+/**
+ * Convert frontend Gemini-shaped tools into Anthropic's tool format.
+ *
+ * Frontend sends:
+ *   [{ functionDeclarations: [{ name, description, parameters }] }]
+ * Anthropic expects:
+ *   [{ name, description, input_schema }]
+ *
+ * Marks the LAST tool with `cache_control: ephemeral` so the entire tool
+ * block (rendered before the system prompt) becomes part of the cached
+ * prefix on subsequent requests.
+ */
+function convertTools(geminiTools: any): any[] {
+  if (!Array.isArray(geminiTools)) return [];
+  const out: any[] = [];
+  for (const t of geminiTools) {
+    const decls = Array.isArray(t?.functionDeclarations) ? t.functionDeclarations : [];
+    for (const fd of decls) {
+      const normalized = fd.parameters
+        ? normalizeSchema(fd.parameters)
+        : { type: "object", properties: {} };
+      // Anthropic requires the top-level schema to be `type: "object"`.
+      if (normalized.type !== "object") {
+        normalized.type = "object";
+      }
+      if (!normalized.properties || typeof normalized.properties !== "object") {
+        normalized.properties = {};
+      }
+      out.push({
+        name: fd.name,
+        description: fd.description || "",
+        input_schema: normalized,
+      });
     }
   }
-
-  if (!base64Data) {
-    throw new Error("Could not extract base64 data from image");
+  if (out.length > 0) {
+    out[out.length - 1].cache_control = { type: "ephemeral" };
   }
-
-  return { mimeType, base64Data };
+  return out;
 }
 
-function toOpenRouterMessages(
-  message: string | undefined,
-  history: any[] | undefined,
-  parts: any[] | undefined,
-  image: string | undefined,
-  systemPrompt?: string
-) {
-  const messages: any[] = [];
-  const toolCallIdByName = new Map<string, string>();
+/**
+ * Walk the Gemini-shaped history + current turn and emit Anthropic messages.
+ *
+ * Tool-call/tool-result pairing: Gemini history doesn't carry IDs, so we
+ * assign sequential `toolu_<n>` IDs in order. The Nth functionCall pairs
+ * with the Nth functionResponse — a safe assumption because the agent loop
+ * pushes them in lockstep.
+ */
+function buildAnthropicMessages(
+  history: any[],
+  current: { message?: string | null; parts?: any[]; image?: string }
+): AnthropicMessage[] {
+  let toolUseCounter = 0;
+  let toolResultCounter = 0;
+  const messages: AnthropicMessage[] = [];
 
-  if (systemPrompt) {
-    messages.push({ role: "system", content: systemPrompt });
-  }
+  const convertParts = (parts: any[]): AnthropicContentBlock[] => {
+    const blocks: AnthropicContentBlock[] = [];
+    for (const part of parts) {
+      if (part.text) {
+        blocks.push({ type: "text", text: part.text });
+      } else if (part.functionCall) {
+        blocks.push({
+          type: "tool_use",
+          id: `toolu_${toolUseCounter++}`,
+          name: part.functionCall.name,
+          input: part.functionCall.args || {},
+        });
+      } else if (part.functionResponse) {
+        const resp = part.functionResponse.response;
+        const inner = resp && typeof resp === "object" && "content" in resp ? resp.content : resp;
+        const text = typeof inner === "string" ? inner : JSON.stringify(inner ?? "");
+        blocks.push({
+          type: "tool_result",
+          tool_use_id: `toolu_${toolResultCounter++}`,
+          content: text,
+        });
+      } else if (part.inlineData) {
+        blocks.push({
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: normalizeImageMediaType(part.inlineData.mimeType),
+            data: part.inlineData.data,
+          },
+        });
+      }
+    }
+    return blocks;
+  };
 
-  if (history && Array.isArray(history)) {
+  if (Array.isArray(history)) {
     for (const msg of history) {
-      if (msg.parts && Array.isArray(msg.parts)) {
-        const functionCallPart = msg.parts.find((p: any) => p.functionCall);
-        if (functionCallPart?.functionCall) {
-          const call = functionCallPart.functionCall;
-          if (!call?.name || typeof call.name !== "string") {
-            continue;
-          }
-          const callId = makeShortToolCallId(call.name);
-          toolCallIdByName.set(call.name, callId);
-          messages.push({
-            role: "assistant",
-            content: "",
-            tool_calls: [
-              {
-                id: callId,
-                type: "function",
-                function: {
-                  name: call.name,
-                  arguments: JSON.stringify(call.args || {}),
-                },
-              },
-            ],
-          });
-          continue;
-        }
-
-        const functionRespPart = msg.parts.find((p: any) => p.functionResponse);
-        if (functionRespPart?.functionResponse) {
-          const fr = functionRespPart.functionResponse;
-          const toolName =
-            typeof fr?.name === "string" && fr.name.length > 0 ? fr.name : "tool";
-          messages.push({
-            role: "tool",
-            name: toolName,
-            tool_call_id: toolCallIdByName.get(toolName) || makeShortToolCallId(toolName),
-            content:
-              typeof fr.response === "string"
-                ? fr.response
-                : JSON.stringify(fr.response || {}, null, 0),
-          });
-          continue;
-        }
-
-        const textParts = msg.parts
-          .map((p: any) => p.text)
-          .filter((t: string | undefined) => typeof t === "string" && t.length > 0);
-        if (textParts.length > 0) {
-          messages.push({
-            role: msg.role === "user" ? "user" : "assistant",
-            content: textParts.join("\n\n"),
-          });
-        }
-      } else {
-        messages.push({
-          role: msg.role === "user" ? "user" : "assistant",
-          content: msg.content || "",
-        });
+      const role: "user" | "assistant" =
+        msg.role === "model" || msg.role === "assistant" ? "assistant" : "user";
+      let content: AnthropicContentBlock[] = [];
+      if (Array.isArray(msg.parts)) {
+        content = convertParts(msg.parts);
+      } else if (msg.content) {
+        content = [{ type: "text", text: String(msg.content) }];
       }
+      if (content.length > 0) messages.push({ role, content });
     }
   }
 
-  const userContent: any[] = [];
-  if (message) {
-    userContent.push({ type: "text", text: message });
-  }
-
-  if (parts && Array.isArray(parts)) {
-    for (const p of parts) {
-      if (p?.text) userContent.push({ type: "text", text: p.text });
-      if (p?.functionResponse) {
-        const fr = p.functionResponse;
-        const toolName = typeof fr?.name === "string" && fr.name.length > 0 ? fr.name : "tool";
-        messages.push({
-          role: "tool",
-          name: toolName,
-          tool_call_id: toolCallIdByName.get(toolName) || makeShortToolCallId(toolName),
-          content:
-            typeof fr.response === "string"
-              ? fr.response
-              : JSON.stringify(fr.response || {}, null, 0),
-        });
-      }
+  // Sanitize: first message must be user; merge consecutive same-role turns.
+  while (messages.length > 0 && messages[0].role !== "user") messages.shift();
+  const merged: AnthropicMessage[] = [];
+  for (const m of messages) {
+    const last = merged[merged.length - 1];
+    if (last && last.role === m.role) {
+      last.content = last.content.concat(m.content);
+    } else {
+      merged.push(m);
     }
   }
 
-  if (image) {
-    const { mimeType, base64Data } = extractImageData(image);
-    userContent.push({
-      type: "image_url",
-      image_url: { url: `data:${mimeType};base64,${base64Data}` },
+  // Build the current turn.
+  const currentBlocks: AnthropicContentBlock[] = [];
+  if (Array.isArray(current.parts)) {
+    currentBlocks.push(...convertParts(current.parts));
+  }
+  if (current.image) {
+    const { mediaType, data } = decodeBase64Image(current.image);
+    currentBlocks.push({
+      type: "image",
+      source: { type: "base64", media_type: mediaType, data },
     });
   }
-
-  if (userContent.length > 0) {
-    messages.push({ role: "user", content: userContent });
+  if (current.message) {
+    currentBlocks.push({ type: "text", text: current.message });
   }
 
-  return messages;
+  if (currentBlocks.length > 0) {
+    const lastRole = merged[merged.length - 1]?.role;
+    if (lastRole === "user") {
+      merged[merged.length - 1].content =
+        merged[merged.length - 1].content.concat(currentBlocks);
+    } else {
+      merged.push({ role: "user", content: currentBlocks });
+    }
+  }
+
+  return merged;
 }
 
 /**
  * Get current rate limit status for the client
  */
-router.get("/rate-limit-status", optionalAuth, (req: AuthRequest, res, next) => {
+router.get("/rate-limit-status", optionalAuth, (req: AuthRequest, res, _next) => {
   try {
-    // If user is authenticated, they have unlimited access
     if (req.user) {
       return res.json({
         authenticated: true,
@@ -296,8 +259,7 @@ router.get("/rate-limit-status", optionalAuth, (req: AuthRequest, res, next) => 
       });
     }
 
-    // For unauthenticated users, return their current rate limit status
-    const clientIp = req.ip || req.connection.remoteAddress || "unknown";
+    const clientIp = req.ip || req.socket.remoteAddress || "unknown";
     const status = getRateLimitStatus(clientIp);
 
     res.json({
@@ -324,14 +286,12 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
       return res.status(400).json({ error: "No image provided" });
     }
 
-    // Track if client disconnects
     let clientAborted = false;
     req.on("aborted", () => {
       clientAborted = true;
       Logger.log("Client aborted YOLO detection request");
     });
 
-    // Use the persistent service with timeout protection
     const detectionPromise = circuitDetectionService.detect(base64Image);
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error("Detection timeout after 90s")), 90000)
@@ -339,22 +299,18 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
 
     const result = await Promise.race([detectionPromise, timeoutPromise]);
 
-    // Don't send response if client already disconnected
     if (clientAborted) {
       Logger.log("Client disconnected before detection completed");
       return;
     }
 
-    // Check if the service returned an error object
     if (result.error) {
       Logger.error("Detection service returned error:", result.error);
       return res.status(500).json({ error: result.error });
     }
 
-    // Update statistics after successful detection
     if (result.gates && Array.isArray(result.gates)) {
       const componentsCount = result.gates.length;
-      // Update stats asynchronously (fire and forget)
       updateDetectionStats(1, componentsCount).catch(err => {
         Logger.error("Failed to update detection stats:", err);
       });
@@ -362,7 +318,6 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    // Check if request was already aborted
     if (req.socket.destroyed) {
       Logger.log("Cannot send error response - client already disconnected");
       return;
@@ -377,7 +332,12 @@ router.post("/analyze/yolo", optionalAuth, aiRateLimit, async (req, res) => {
 });
 
 /**
- * Main Agent Chat Endpoint with Tool Support
+ * Main Agent Chat Endpoint with Tool Support — Claude Sonnet 4.5.
+ *
+ * Accepts the legacy Gemini-shaped payload from the frontend, calls Claude
+ * with prompt caching, and returns the legacy shape: either
+ * `{functionCalls: [{name, args}]}` (when Claude calls a tool) or
+ * `{text: ...}` (when Claude returns plain text).
  */
 router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
   try {
@@ -387,62 +347,90 @@ router.post("/agent/chat", optionalAuth, aiRateLimit, async (req, res) => {
       return res.status(400).json({ error: "No message, image, or parts provided" });
     }
 
-    try {
-      const { baseUrl, model, apiKey } = getOpenRouterConfig();
-      const mappedTools = mapGeminiToolsToOpenRouterTools(tools);
-      const messages = toOpenRouterMessages(message, history, parts, image, systemPrompt);
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: "Anthropic API key not configured" });
+    }
 
-      const payload: any = {
-        model,
-        messages,
-        max_tokens: getOpenRouterMaxTokens(),
-      };
-      if (mappedTools && mappedTools.length > 0) {
-        payload.tools = mappedTools;
-        payload.tool_choice = "auto";
-      }
+    const anthropicTools = convertTools(tools);
+    const anthropicMessages = buildAnthropicMessages(history || [], { message, parts, image });
 
-      const response = await fetch(getChatCompletionsUrl(baseUrl), {
-        method: "POST",
-        headers: getProviderHeaders(apiKey),
-        body: JSON.stringify(payload),
-      });
+    if (anthropicMessages.length === 0) {
+      return res.status(400).json({ error: "No valid message content" });
+    }
 
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Copilot local endpoint error ${response.status}: ${errText}`);
-      }
+    const system = systemPrompt
+      ? [{ type: "text" as const, text: String(systemPrompt), cache_control: { type: "ephemeral" as const } }]
+      : undefined;
 
-      const data = await response.json();
-      const choice = data?.choices?.[0]?.message;
+    const response = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 4096,
+      system,
+      tools: anthropicTools.length > 0 ? anthropicTools : undefined,
+      tool_choice:
+        anthropicTools.length > 0
+          ? { type: "auto", disable_parallel_tool_use: true }
+          : undefined,
+      messages: anthropicMessages,
+    });
 
-      if (choice?.tool_calls && Array.isArray(choice.tool_calls) && choice.tool_calls.length > 0) {
-        const functionCalls = choice.tool_calls.map((c: any) => ({
-          name: c?.function?.name,
-          args: tryParseJson(c?.function?.arguments),
-        }));
-        return res.json({ functionCalls });
-      }
+    if (response.usage) {
+      Logger.log(
+        `[Claude] in=${response.usage.input_tokens} out=${response.usage.output_tokens} ` +
+          `cache_read=${response.usage.cache_read_input_tokens ?? 0} ` +
+          `cache_write=${response.usage.cache_creation_input_tokens ?? 0}`
+      );
+    }
 
-      const text = typeof choice?.content === "string" ? choice.content : "";
-      return res.json({ text });
-    } catch (error) {
-      Logger.error("Copilot Local Agent Error:", error);
-      return res.status(500).json({
-        error: "Agent processing failed",
-        details: error instanceof Error ? error.message : String(error),
+    const toolUses = response.content.filter((b: any) => b.type === "tool_use");
+
+    // Telemetry: a "user message" is the first turn of an agent loop —
+    // frontend sends it with `message` set and no `parts`. Subsequent turns
+    // ship `parts: [{functionResponse}]` and shouldn't bump that counter.
+    const isUserKickoff = !!message && !parts;
+    void updateAgentStats({
+      agentCalls: 1,
+      userMessages: isUserKickoff ? 1 : 0,
+      toolCalls: toolUses.length,
+      inputTokens: response.usage?.input_tokens ?? 0,
+      outputTokens: response.usage?.output_tokens ?? 0,
+      cacheReadTokens: response.usage?.cache_read_input_tokens ?? 0,
+      cacheWriteTokens: response.usage?.cache_creation_input_tokens ?? 0,
+    });
+
+    if (toolUses.length > 0) {
+      const functionCalls = toolUses.map((b: any) => ({
+        name: b.name,
+        args: b.input ?? {},
+      }));
+      return res.json({ functionCalls });
+    }
+
+    const textBlock = response.content.find((b: any) => b.type === "text") as any;
+    return res.json({ text: textBlock ? textBlock.text : "" });
+  } catch (error) {
+    Logger.error("Claude Agent Error:", error);
+    if (error instanceof Anthropic.RateLimitError) {
+      return res.status(429).json({
+        error: "Rate limited by upstream provider",
+        details: error.message,
       });
     }
-  } catch (error) {
+    if (error instanceof Anthropic.APIError) {
+      return res.status(error.status ?? 500).json({
+        error: "Agent processing failed",
+        details: error.message,
+      });
+    }
     return res.status(500).json({
-      error: "Internal server error",
+      error: "Agent processing failed",
       details: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
 /**
- * Generate text with local Copilot-compatible endpoint.
+ * Generate text — Claude Sonnet 4.5. Endpoint name kept for frontend compat.
  */
 router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res) => {
   try {
@@ -452,139 +440,101 @@ router.post("/generate/gemini-text", optionalAuth, aiRateLimit, async (req, res)
       return res.status(400).json({ error: "No prompt provided" });
     }
 
-    try {
-      const { baseUrl, model, apiKey } = getOpenRouterConfig();
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: "Anthropic API key not configured" });
+    }
 
-      let fullPrompt = prompt;
-      if (systemPrompt) {
-        // Format history if it's an array
-        if (history && Array.isArray(history)) {
-          const historyText = history
-            .map(msg => `${msg.role === "user" ? "User" : "AI"}: ${msg.content}`)
-            .join("\n");
-
-          fullPrompt = `"The following is your System Prompt: "${systemPrompt}\n "Here is the conversation history with you and the user" \n${historyText}\n\nThis is the User Last Message: ${prompt}`;
-        } else {
-          fullPrompt = `${systemPrompt}\n\n${prompt}`;
-        }
+    const messages: AnthropicMessage[] = [];
+    if (history && Array.isArray(history)) {
+      for (const msg of history) {
+        messages.push({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: [{ type: "text", text: String(msg.content || "") }],
+        });
       }
+    }
+    messages.push({ role: "user", content: [{ type: "text", text: prompt }] });
 
-      // Check if client requested streaming
-      const useStreaming = req.query.stream === "true" || req.body.stream === true;
-
-      const messages = [{ role: "user", content: fullPrompt }];
-
-      if (useStreaming) {
-        // Set up headers for SSE
-        res.setHeader("Content-Type", "text/event-stream");
-        res.setHeader("Cache-Control", "no-cache");
-        res.setHeader("Connection", "keep-alive");
-
-        try {
-          const streamingResponse = await fetch(
-            getChatCompletionsUrl(baseUrl),
-            {
-              method: "POST",
-              headers: getProviderHeaders(apiKey),
-              body: JSON.stringify({
-                model,
-                messages,
-                stream: true,
-                max_tokens: getOpenRouterMaxTokens(),
-              }),
-            }
-          );
-
-          if (!streamingResponse.ok || !streamingResponse.body) {
-            const errText = await streamingResponse.text();
-            throw new Error(`Copilot local streaming error ${streamingResponse.status}: ${errText}`);
-          }
-
-          const reader = streamingResponse.body.getReader();
-          const decoder = new TextDecoder();
-          let buffer = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (!trimmed.startsWith("data:")) continue;
-              const dataStr = trimmed.replace(/^data:\s*/, "");
-              if (dataStr === "[DONE]") continue;
-
-              try {
-                const evt = JSON.parse(dataStr);
-                const delta = evt?.choices?.[0]?.delta?.content;
-                if (delta) {
-                  res.write(`data: ${JSON.stringify({ chunk: delta })}\n\n`);
-                }
-              } catch {
-                // ignore malformed partial lines
-              }
-            }
-          }
-
-          // Send end of stream signal
-          res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-          res.end();
-        } catch (streamError) {
-          if (!res.headersSent) {
-            return res.status(500).json({
-              error: "Streaming error",
-              details: streamError instanceof Error ? streamError.message : String(streamError),
-            });
-          } else {
-            res.write(
-              `data: ${JSON.stringify({
-                error: "Streaming error",
-                details: streamError instanceof Error ? streamError.message : String(streamError),
-              })}\n\n`
-            );
-            res.end();
-          }
-        }
+    // Sanitize: first must be user, alternating.
+    while (messages.length > 0 && messages[0].role !== "user") messages.shift();
+    const merged: AnthropicMessage[] = [];
+    for (const m of messages) {
+      const last = merged[merged.length - 1];
+      if (last && last.role === m.role) {
+        last.content = last.content.concat(m.content);
       } else {
-        // Use non-streaming API for regular requests
-        const response = await fetch(getChatCompletionsUrl(baseUrl), {
-          method: "POST",
-          headers: getProviderHeaders(apiKey),
-          body: JSON.stringify({
-            model,
-            messages,
-            max_tokens: getOpenRouterMaxTokens(),
-          }),
+        merged.push(m);
+      }
+    }
+
+    const system = systemPrompt
+      ? [{ type: "text" as const, text: String(systemPrompt), cache_control: { type: "ephemeral" as const } }]
+      : undefined;
+
+    const useStreaming = req.query.stream === "true" || req.body.stream === true;
+
+    if (useStreaming) {
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+
+      try {
+        const stream = anthropic.messages.stream({
+          model: CLAUDE_MODEL,
+          max_tokens: 4096,
+          system,
+          messages: merged,
         });
 
-        if (!response.ok) {
-          const errText = await response.text();
-          throw new Error(`Copilot local endpoint error ${response.status}: ${errText}`);
+        for await (const event of stream) {
+          if (
+            event.type === "content_block_delta" &&
+            event.delta.type === "text_delta"
+          ) {
+            res.write(`data: ${JSON.stringify({ chunk: event.delta.text })}\n\n`);
+          }
         }
-
-        const data = await response.json();
-        const text = data?.choices?.[0]?.message?.content || "";
-        return res.json({ text });
+        res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+        res.end();
+      } catch (streamError) {
+        if (!res.headersSent) {
+          return res.status(500).json({
+            error: "Streaming error",
+            details: streamError instanceof Error ? streamError.message : String(streamError),
+          });
+        }
+        res.write(
+          `data: ${JSON.stringify({
+            error: "Streaming error",
+            details: streamError instanceof Error ? streamError.message : String(streamError),
+          })}\n\n`
+        );
+        res.end();
       }
-    } catch (error) {
-      return res.status(500).json({
-        error: "Failed to generate text with Copilot local endpoint",
-        details: error instanceof Error ? error.message : String(error),
-      });
+      return;
     }
+
+    const response = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 4096,
+      system,
+      messages: merged,
+    });
+
+    const textBlock = response.content.find((b: any) => b.type === "text") as any;
+    return res.json({ text: textBlock ? textBlock.text : "" });
   } catch (error) {
+    Logger.error("Claude text generation error:", error);
     return res.status(500).json({
-      error: "Internal server error",
+      error: "Failed to generate text",
       details: error instanceof Error ? error.message : String(error),
     });
   }
 });
 
-// Local Copilot-compatible endpoint ile görüntü analizi
+/**
+ * Vision endpoint — Claude Sonnet 4.5. Endpoint name kept for frontend compat.
+ */
 router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, res) => {
   try {
     const { prompt, imageData } = req.body;
@@ -592,65 +542,44 @@ router.post("/generate/gemini-vision", optionalAuth, aiRateLimit, async (req, re
     if (!prompt) {
       return res.status(400).json({ error: "No prompt provided" });
     }
-
     if (!imageData) {
       return res.status(400).json({ error: "No image data provided" });
     }
-
-    try {
-      const { baseUrl, model, apiKey } = getOpenRouterConfig();
-      let base64Data: string;
-      let mimeType: string;
-
-      try {
-        const parsed = extractImageData(imageData);
-        base64Data = parsed.base64Data;
-        mimeType = parsed.mimeType;
-      } catch {
-        return res.status(400).json({ error: "Invalid image data format" });
-      }
-
-      const response = await fetch(getChatCompletionsUrl(baseUrl), {
-        method: "POST",
-        headers: getProviderHeaders(apiKey),
-        body: JSON.stringify({
-          model,
-          max_tokens: getOpenRouterMaxTokens(),
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: prompt },
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:${mimeType};base64,${base64Data}`,
-                  },
-                },
-              ],
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Copilot local vision error ${response.status}: ${errText}`);
-      }
-
-      const data = await response.json();
-      const text = data?.choices?.[0]?.message?.content || "";
-
-      return res.json({ text });
-    } catch (error) {
-      return res.status(500).json({
-        error: "Failed to analyze image with Copilot local endpoint",
-        details: error instanceof Error ? error.message : String(error),
-      });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: "Anthropic API key not configured" });
     }
+
+    let mediaType: ImageMediaType;
+    let data: string;
+    try {
+      const decoded = decodeBase64Image(imageData);
+      mediaType = decoded.mediaType;
+      data = decoded.data;
+      if (!data) throw new Error("Could not extract base64 data from image");
+    } catch {
+      return res.status(400).json({ error: "Invalid image data format" });
+    }
+
+    const response = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 4096,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: mediaType, data } },
+            { type: "text", text: prompt },
+          ],
+        },
+      ],
+    });
+
+    const textBlock = response.content.find((b: any) => b.type === "text") as any;
+    return res.json({ text: textBlock ? textBlock.text : "" });
   } catch (error) {
+    Logger.error("Claude vision error:", error);
     return res.status(500).json({
-      error: "Internal server error",
+      error: "Failed to analyze image",
       details: error instanceof Error ? error.message : String(error),
     });
   }
@@ -667,8 +596,6 @@ router.post("/dev/agent-trace", async (req, res) => {
       return res.status(400).json({ error: "Invalid trace payload" });
     }
 
-    // In prod (compiled): __dirname = server/dist/routes → ../../.. = project root
-    // In dev (ts-node-dev): __dirname = server/routes → ../.. = project root
     const projectRoot = __dirname.includes("dist")
       ? path.resolve(__dirname, "../../..")
       : path.resolve(__dirname, "../..");
