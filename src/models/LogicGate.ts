@@ -55,18 +55,40 @@ export abstract class LogicGate extends Component {
   public getMinInputCount(): number {
     return 2;
   }
+
+  // Basic gates with a free 2..8 input range. Mux/Decoder/Adder subclasses
+  // inherit LogicGate but use fixed layouts, so they opt out of auto-resize.
+  public supportsVariableInputs(): boolean {
+    return ["and", "or", "nand", "nor", "xor", "xnor"].includes(this.type);
+  }
+
+  // Spacing after grid-snap requires height >= (N+1)*16, otherwise ports
+  // collapse onto the same grid line. Width is kept equal so AndGate's arc
+  // (radius height/2) still fits inside the box.
+  public computeGateSize(inputCount: number = this.inputs.length): {
+    width: number;
+    height: number;
+  } {
+    if (!this.supportsVariableInputs()) {
+      return { width: this.size.width, height: this.size.height };
+    }
+    const dim = Math.max(64, (inputCount + 1) * 16);
+    return { width: dim, height: dim };
+  }
+
+  protected updateGateSize(): void {
+    const next = this.computeGateSize();
+    this.size.width = next.width;
+    this.size.height = next.height;
+  }
+
   public decreaseInputCount(): void {
     const currentInputCount = this.inputs.length;
     const minInputs = this.getMinInputCount();
 
     if (currentInputCount > minInputs) {
-      const lastPort = this.inputs[currentInputCount - 1];
-
-      if (lastPort.isConnected) {
-      }
-
       this.inputs.pop();
-
+      this.updateGateSize();
       this.updatePortPositions();
     }
   }
@@ -76,11 +98,10 @@ export abstract class LogicGate extends Component {
     const maxInputs = this.getMaxInputCount();
 
     if (currentInputCount < maxInputs) {
-      const newPortPosition = this.getInputPortPosition(currentInputCount, currentInputCount + 1);
       const newPort: Port = {
         id: Math.random().toString(36).substring(2, 15),
         type: "input",
-        position: newPortPosition,
+        position: { x: 0, y: 0 },
         value: false,
         bitWidth: this.defaultBitWidth,
         isConnected: false,
@@ -88,9 +109,27 @@ export abstract class LogicGate extends Component {
       };
 
       this.inputs.push(newPort);
-
+      this.updateGateSize();
       this.updatePortPositions();
     }
+  }
+
+  override setState(state: any): void {
+    if (state && Array.isArray(state.inputs) && this.supportsVariableInputs()) {
+      const targetCount = state.inputs.length;
+      const min = this.getMinInputCount();
+      const max = this.getMaxInputCount();
+      if (targetCount >= min && targetCount <= max && targetCount !== this.inputs.length) {
+        const outputCount =
+          Array.isArray(state.outputs) && state.outputs.length > 0
+            ? state.outputs.length
+            : this.outputs.length;
+        this.initializePorts(targetCount, outputCount);
+      }
+    }
+    this.updateGateSize();
+    super.setState(state);
+    this.updatePortPositions();
   }
   public setBitWidth(width: number): void {
     if (width < 1) {
