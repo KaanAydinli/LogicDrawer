@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 
 RUN pip3 install --no-cache-dir --break-system-packages \
-    torch==2.4.1+cpu torchvision==0.19.1+cpu --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.4.1+cpu torchvision==0.19.1+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple \
  && pip3 install --no-cache-dir --break-system-packages \
     ultralytics opencv-python-headless scikit-image numpy
 
