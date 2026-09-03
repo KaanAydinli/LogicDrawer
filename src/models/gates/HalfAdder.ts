@@ -78,5 +78,10 @@ export class HalfAdder extends LogicGate {
     ctx.textBaseline = "middle";
     ctx.fillText("Half", x + width / 2, y + height / 2);
     ctx.fillText("Adder", x + width / 2, y + (height * 2) / 3);
+
+    ctx.font = "10px Arial";
+    ctx.textAlign = "right";
+    ctx.fillText("S", x + width - 4, y + 16);
+    ctx.fillText("C", x + width - 4, y + 32);
   }
 }
